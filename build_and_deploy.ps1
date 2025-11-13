@@ -199,16 +199,60 @@ try {
     
     # Check if NSIS is available
     $nsisPath = Get-Command makensis -ErrorAction SilentlyContinue
+    if (-not $nsisPath) {
+        Write-Host "NSIS not found. Attempting to install NSIS..." -ForegroundColor Yellow
+        
+        # Try winget first (Windows 10/11)
+        $wingetPath = Get-Command winget -ErrorAction SilentlyContinue
+        if ($wingetPath) {
+            Write-Host "Installing NSIS via winget..." -ForegroundColor Gray
+            winget install --id=NSIS.NSIS -e --silent --accept-package-agreements --accept-source-agreements
+            
+            # Refresh PATH
+            $env:PATH = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+            $nsisPath = Get-Command makensis -ErrorAction SilentlyContinue
+        }
+        
+        # Try Chocolatey if winget failed
+        if (-not $nsisPath) {
+            $chocoPath = Get-Command choco -ErrorAction SilentlyContinue
+            if ($chocoPath) {
+                Write-Host "Installing NSIS via Chocolatey..." -ForegroundColor Gray
+                choco install nsis -y
+                
+                # Refresh PATH
+                $env:PATH = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+                $nsisPath = Get-Command makensis -ErrorAction SilentlyContinue
+            }
+        }
+        
+        # If still not found, provide manual instructions
+        if (-not $nsisPath) {
+            Write-Host "" -ForegroundColor Yellow
+            Write-Host "Could not automatically install NSIS." -ForegroundColor Yellow
+            Write-Host "To create an EXE installer, please install NSIS manually:" -ForegroundColor Yellow
+            Write-Host "  1. Download from: https://nsis.sourceforge.io/Download" -ForegroundColor Yellow
+            Write-Host "  2. Or run: winget install NSIS.NSIS" -ForegroundColor Yellow
+            Write-Host "  3. Or run: choco install nsis" -ForegroundColor Yellow
+            Write-Host "" -ForegroundColor Yellow
+        }
+    }
+    
+    # Try to create NSIS installer
     if ($nsisPath) {
+        Write-Host "Creating NSIS installer..." -ForegroundColor Gray
         cpack -G NSIS -C $BuildType
         
         if ($LASTEXITCODE -ne 0) {
             Write-Host "NSIS packaging failed, creating ZIP instead..." -ForegroundColor Yellow
             cpack -G ZIP -C $BuildType
         }
+        else {
+            Write-Host "NSIS installer created successfully!" -ForegroundColor Green
+        }
     }
     else {
-        Write-Host "NSIS not found, creating ZIP package..." -ForegroundColor Yellow
+        Write-Host "Creating ZIP package (NSIS not available)..." -ForegroundColor Yellow
         cpack -G ZIP -C $BuildType
     }
     
