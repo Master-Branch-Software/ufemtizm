@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "timezonewidget.h"
 #include <QMenuBar>
+#include <QStatusBar>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QScrollArea>
@@ -17,17 +18,54 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
       isDirty(false)
 {
+    setStyleSheet(
+        "QMainWindow {"
+        "    background-color: #f5f5f5;"
+        "}"
+        "QMenuBar {"
+        "    background-color: #ffffff;"
+        "    border-bottom: 1px solid #e0e0e0;"
+        "    padding: 4px;"
+        "}"
+        "QMenuBar::item {"
+        "    background-color: transparent;"
+        "    padding: 6px 12px;"
+        "    border-radius: 4px;"
+        "}"
+        "QMenuBar::item:selected {"
+        "    background-color: #e3f2fd;"
+        "}"
+        "QMenu {"
+        "    background-color: #ffffff;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 6px;"
+        "    padding: 4px;"
+        "}"
+        "QMenu::item {"
+        "    padding: 8px 24px 8px 12px;"
+        "    border-radius: 4px;"
+        "}"
+        "QMenu::item:selected {"
+        "    background-color: #e3f2fd;"
+        "}"
+        "QMenu::separator {"
+        "    height: 1px;"
+        "    background-color: #e0e0e0;"
+        "    margin: 4px 8px;"
+        "}"
+    );
+    
     setupMenuBar();
     
     centralWidget = new QWidget();
     QHBoxLayout *layout = new QHBoxLayout(centralWidget);
     layout->setAlignment(Qt::AlignLeft);
-    layout->setContentsMargins(5, 5, 5, 5);
-    layout->setSpacing(5);
+    layout->setContentsMargins(16, 16, 16, 16);
+    layout->setSpacing(12);
     
     setCentralWidget(centralWidget);
     
-    setFixedSize(QSize(300, 700));
+    setMinimumSize(QSize(280, 720));
     
     addTimeZoneWidget();
     updateWindowTitle();
@@ -63,36 +101,58 @@ void MainWindow::setupMenuBar()
     
     QAction *newAction = fileMenu->addAction("&New");
     newAction->setShortcut(QKeySequence::New);
+    newAction->setToolTip("Create a new timezone configuration");
+    newAction->setStatusTip("Create a new timezone configuration");
     connect(newAction, &QAction::triggered, this, &MainWindow::newFile);
     
     QAction *openAction = fileMenu->addAction("&Open...");
     openAction->setShortcut(QKeySequence::Open);
+    openAction->setToolTip("Open an existing timezone configuration");
+    openAction->setStatusTip("Open an existing timezone configuration");
     connect(openAction, &QAction::triggered, this, &MainWindow::openFile);
     
-    recentFilesMenu = fileMenu->addMenu("Recent Files");
+    recentFilesMenu = fileMenu->addMenu("📂 Recent Files");
     updateRecentFilesMenu();
     
     fileMenu->addSeparator();
     
     QAction *saveAction = fileMenu->addAction("&Save");
     saveAction->setShortcut(QKeySequence::Save);
+    saveAction->setToolTip("Save the current configuration");
+    saveAction->setStatusTip("Save the current configuration");
     connect(saveAction, &QAction::triggered, this, &MainWindow::saveFile);
     
     QAction *saveAsAction = fileMenu->addAction("Save &As...");
     saveAsAction->setShortcut(QKeySequence::SaveAs);
+    saveAsAction->setToolTip("Save the configuration with a new name");
+    saveAsAction->setStatusTip("Save the configuration with a new name");
     connect(saveAsAction, &QAction::triggered, this, &MainWindow::saveFileAs);
     
     fileMenu->addSeparator();
     
-    QAction *addAction = fileMenu->addAction("Add Time &Zone");
-    addAction->setShortcut(QKeySequence("Ctrl+A"));
+    QAction *addAction = fileMenu->addAction("➕ Add Time &Zone");
+    addAction->setShortcut(QKeySequence("Ctrl+T"));
+    addAction->setToolTip("Add a new timezone widget (Ctrl+T)");
+    addAction->setStatusTip("Add a new timezone widget");
     connect(addAction, &QAction::triggered, this, &MainWindow::addTimeZoneWidget);
     
     fileMenu->addSeparator();
     
     QAction *exitAction = fileMenu->addAction("&Quit");
     exitAction->setShortcut(QKeySequence::Quit);
+    exitAction->setToolTip("Exit the application");
+    exitAction->setStatusTip("Exit the application");
     connect(exitAction, &QAction::triggered, this, &QWidget::close);
+    
+    statusBar()->setStyleSheet(
+        "QStatusBar {"
+        "    background-color: #ffffff;"
+        "    border-top: 1px solid #e0e0e0;"
+        "    color: #757575;"
+        "    font-size: 11px;"
+        "}"
+    );
+    statusBar()->showMessage("Ready");
 }
 
 void MainWindow::addTimeZoneWidget()
@@ -118,6 +178,8 @@ void MainWindow::addTimeZoneWidget()
     
     isDirty = true;
     updateWindowTitle();
+    
+    statusBar()->showMessage("Timezone added", 2000);
 }
 
 void MainWindow::removeTimeZoneWidget(TimeZoneWidget *widget)
@@ -311,10 +373,39 @@ bool MainWindow::maybeSave()
         return true;
     }
     
-    QMessageBox::StandardButton reply = QMessageBox::question(this,
-        "Unsaved Changes",
-        "Do you want to save your changes?",
-        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle("Unsaved Changes");
+    msgBox.setText("You have unsaved changes.");
+    msgBox.setInformativeText("Do you want to save your changes before continuing?");
+    msgBox.setStandardButtons(QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+    msgBox.setDefaultButton(QMessageBox::Save);
+    msgBox.setIcon(QMessageBox::Question);
+    msgBox.setStyleSheet(
+        "QMessageBox {"
+        "    background-color: #ffffff;"
+        "}"
+        "QPushButton {"
+        "    background-color: #f5f5f5;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 4px;"
+        "    padding: 6px 16px;"
+        "    min-width: 70px;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #e3f2fd;"
+        "    border: 1px solid #2196f3;"
+        "}"
+        "QPushButton:default {"
+        "    background-color: #2196f3;"
+        "    color: #ffffff;"
+        "    border: 1px solid #1976d2;"
+        "}"
+        "QPushButton:default:hover {"
+        "    background-color: #1976d2;"
+        "}"
+    );
+    
+    int reply = msgBox.exec();
     
     if (reply == QMessageBox::Save)
     {
@@ -356,6 +447,9 @@ bool MainWindow::saveToFile(const QString &filename)
     setCurrentFile(filename);
     isDirty = false;
     updateWindowTitle();
+    
+    QFileInfo fileInfo(filename);
+    statusBar()->showMessage(QString("Saved: %1").arg(fileInfo.fileName()), 3000);
     
     return true;
 }
@@ -466,6 +560,12 @@ bool MainWindow::loadFromFile(const QString &filename)
     isDirty = false;
     updateWindowTitle();
     
+    QFileInfo fileInfo(filename);
+    statusBar()->showMessage(QString("Loaded: %1 (%2 timezone%3)")
+        .arg(fileInfo.fileName())
+        .arg(timeZoneWidgets.size())
+        .arg(timeZoneWidgets.size() != 1 ? "s" : ""), 3000);
+    
     return true;
 }
 
@@ -512,14 +612,17 @@ QStringList MainWindow::getRecentFiles() const
 
 void MainWindow::adjustWindowSize()
 {
-    int widgetWidth = 210;
+    int widgetWidth = 240;
     int widgetCount = timeZoneWidgets.size();
-    int spacing = 5;
+    int spacing = 12;
+    int margins = 32;
     
-    int totalWidth = (widgetWidth * widgetCount) + (spacing * (widgetCount - 1)) + 10;
-    int height = 680;
+    int totalWidth = (widgetWidth * widgetCount) + (spacing * (widgetCount - 1)) + margins;
+    int minHeight = 700;
     
-    setFixedSize(totalWidth, height);
+    resize(totalWidth, minHeight);
+    setMinimumSize(totalWidth, minHeight);
+    setMaximumWidth(totalWidth);
 }
 
 void MainWindow::saveWindowGeometry()

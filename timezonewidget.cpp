@@ -19,37 +19,77 @@ TimeZoneWidget::TimeZoneWidget(QWidget *parent)
 
 void TimeZoneWidget::setupUI()
 {
-    setFixedWidth(210);
+    setMinimumWidth(240);
+    setMaximumWidth(280);
+    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setContentsMargins(8, 8, 8, 8);
     
     QFrame *frame = new QFrame();
-    frame->setFrameStyle(QFrame::Box | QFrame::Raised);
-    frame->setLineWidth(1);
+    frame->setObjectName("timeZoneCard");
+    frame->setStyleSheet(
+        "QFrame#timeZoneCard {"
+        "    background-color: #ffffff;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 12px;"
+        "    padding: 0px;"
+        "}"
+    );
     
     QVBoxLayout *frameLayout = new QVBoxLayout(frame);
-    frameLayout->setContentsMargins(5, 5, 5, 5);
-    frameLayout->setSpacing(3);
+    frameLayout->setContentsMargins(16, 16, 16, 16);
+    frameLayout->setSpacing(12);
     
     nameEdit = new QLineEdit("My Wonderful Self");
-    nameEdit->setPlaceholderText("Friendly Name");
+    nameEdit->setPlaceholderText("Enter name...");
+    nameEdit->setStyleSheet(
+        "QLineEdit {"
+        "    background-color: #f5f5f5;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 6px;"
+        "    padding: 8px 12px;"
+        "    font-size: 13px;"
+        "    font-weight: 500;"
+        "}"
+        "QLineEdit:focus {"
+        "    border: 1px solid #2196f3;"
+        "    background-color: #ffffff;"
+        "}"
+        "QLineEdit:hover {"
+        "    border: 1px solid #bdbdbd;"
+        "}"
+    );
+    nameEdit->setToolTip("Enter a friendly name for this timezone");
     connect(nameEdit, &QLineEdit::textChanged, this, &TimeZoneWidget::widgetModified);
     frameLayout->addWidget(nameEdit);
     
     dateTimeLabel = new QLabel("Wed, 12:00a");
     dateTimeLabel->setAlignment(Qt::AlignCenter);
     QFont dtFont = dateTimeLabel->font();
-    dtFont.setPointSize(11);
+    dtFont.setPointSize(18);
     dtFont.setBold(true);
     dateTimeLabel->setFont(dtFont);
+    dateTimeLabel->setStyleSheet(
+        "QLabel {"
+        "    color: #212121;"
+        "    padding: 8px;"
+        "}"
+    );
     frameLayout->addWidget(dateTimeLabel);
     
     dayOffsetLabel = new QLabel("+0 Days");
     dayOffsetLabel->setAlignment(Qt::AlignCenter);
     QFont offsetFont = dayOffsetLabel->font();
-    offsetFont.setPointSize(9);
+    offsetFont.setPointSize(11);
+    offsetFont.setWeight(QFont::Medium);
     dayOffsetLabel->setFont(offsetFont);
+    dayOffsetLabel->setStyleSheet(
+        "QLabel {"
+        "    color: #757575;"
+        "    padding: 4px;"
+        "}"
+    );
     frameLayout->addWidget(dayOffsetLabel);
     
     timeSlider = new QSlider(Qt::Vertical);
@@ -58,7 +98,31 @@ void TimeZoneWidget::setupUI()
     timeSlider->setValue(48);
     timeSlider->setTickPosition(QSlider::TicksRight);
     timeSlider->setTickInterval(4);
-    timeSlider->setMinimumHeight(480);
+    timeSlider->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    timeSlider->setStyleSheet(
+        "QSlider::groove:vertical {"
+        "    background: #e0e0e0;"
+        "    width: 4px;"
+        "    border-radius: 2px;"
+        "}"
+        "QSlider::handle:vertical {"
+        "    background: #2196f3;"
+        "    border: 2px solid #1976d2;"
+        "    width: 16px;"
+        "    height: 16px;"
+        "    margin: -8px -6px;"
+        "    border-radius: 8px;"
+        "}"
+        "QSlider::handle:vertical:hover {"
+        "    background: #1976d2;"
+        "    border: 2px solid #0d47a1;"
+        "}"
+        "QSlider::sub-page:vertical {"
+        "    background: #2196f3;"
+        "    border-radius: 2px;"
+        "}"
+    );
+    timeSlider->setToolTip("Drag to adjust time");
     connect(timeSlider, &QSlider::valueChanged, this, &TimeZoneWidget::onSliderValueChanged);
     
     sliderContainer = new QWidget();
@@ -67,7 +131,8 @@ void TimeZoneWidget::setupUI()
     sliderContainerLayout->setSpacing(3);
     
     QWidget *labelsWidget = new QWidget();
-    labelsWidget->setFixedWidth(28);
+    labelsWidget->setFixedWidth(32);
+    labelsWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     QVBoxLayout *labelsLayout = new QVBoxLayout(labelsWidget);
     labelsLayout->setContentsMargins(0, 0, 0, 0);
     labelsLayout->setSpacing(0);
@@ -76,12 +141,18 @@ void TimeZoneWidget::setupUI()
     {
         QLabel *hourLabel = new QLabel();
         hourLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        hourLabel->setFixedHeight(19);
+        hourLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
         QFont labelFont = hourLabel->font();
-        labelFont.setPointSize(7);
+        labelFont.setPointSize(9);
+        labelFont.setWeight(QFont::Medium);
         hourLabel->setFont(labelFont);
+        hourLabel->setStyleSheet(
+            "QLabel {"
+            "    color: #616161;"
+            "}"
+        );
         hourLabels.append(hourLabel);
-        labelsLayout->addWidget(hourLabel);
+        labelsLayout->addWidget(hourLabel, 1);
         
         if (i < 24)
         {
@@ -96,19 +167,104 @@ void TimeZoneWidget::setupUI()
     sliderLayout->addStretch();
     sliderLayout->addWidget(sliderContainer);
     sliderLayout->addStretch();
-    frameLayout->addLayout(sliderLayout);
+    frameLayout->addLayout(sliderLayout, 1);
     
     timeZoneCombo = new QComboBox();
+    timeZoneCombo->setStyleSheet(
+        "QComboBox {"
+        "    background-color: #f5f5f5;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 6px;"
+        "    padding: 8px 12px;"
+        "    font-size: 12px;"
+        "    min-height: 20px;"
+        "}"
+        "QComboBox:hover {"
+        "    border: 1px solid #bdbdbd;"
+        "}"
+        "QComboBox:focus {"
+        "    border: 1px solid #2196f3;"
+        "}"
+        "QComboBox::drop-down {"
+        "    border: none;"
+        "    width: 20px;"
+        "}"
+        "QComboBox::down-arrow {"
+        "    image: none;"
+        "    border-left: 4px solid transparent;"
+        "    border-right: 4px solid transparent;"
+        "    border-top: 5px solid #757575;"
+        "    margin-right: 5px;"
+        "}"
+        "QComboBox QAbstractItemView {"
+        "    background-color: #ffffff;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 6px;"
+        "    selection-background-color: #e3f2fd;"
+        "    selection-color: #212121;"
+        "    padding: 4px;"
+        "}"
+    );
+    timeZoneCombo->setToolTip("Select timezone");
     connect(timeZoneCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), 
             this, &TimeZoneWidget::onTimeZoneChanged);
     frameLayout->addWidget(timeZoneCombo);
     
     format24HourCheck = new QCheckBox("24-hour format");
     format24HourCheck->setChecked(true);
+    format24HourCheck->setStyleSheet(
+        "QCheckBox {"
+        "    font-size: 12px;"
+        "    color: #424242;"
+        "    spacing: 8px;"
+        "}"
+        "QCheckBox::indicator {"
+        "    width: 18px;"
+        "    height: 18px;"
+        "    border: 2px solid #bdbdbd;"
+        "    border-radius: 4px;"
+        "    background-color: #ffffff;"
+        "}"
+        "QCheckBox::indicator:hover {"
+        "    border: 2px solid #2196f3;"
+        "}"
+        "QCheckBox::indicator:checked {"
+        "    background-color: #2196f3;"
+        "    border: 2px solid #2196f3;"
+        "    image: none;"
+        "}"
+    );
+    format24HourCheck->setToolTip("Toggle between 24-hour and 12-hour time format");
     connect(format24HourCheck, &QCheckBox::checkStateChanged, this, &TimeZoneWidget::onFormatChanged);
     frameLayout->addWidget(format24HourCheck);
     
-    removeButton = new QPushButton("Remove");
+    removeButton = new QPushButton("Remove Timezone");
+    removeButton->setStyleSheet(
+        "QPushButton {"
+        "    background-color: #f5f5f5;"
+        "    color: #616161;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 6px;"
+        "    padding: 8px 16px;"
+        "    font-size: 12px;"
+        "    font-weight: 500;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #eeeeee;"
+        "    border: 1px solid #bdbdbd;"
+        "    color: #424242;"
+        "}"
+        "QPushButton:pressed {"
+        "    background-color: #e0e0e0;"
+        "}"
+        "QPushButton:disabled {"
+        "    background-color: #fafafa;"
+        "    color: #bdbdbd;"
+        "    border: 1px solid #e0e0e0;"
+        "}"
+    );
+    removeButton->setToolTip("Remove this timezone widget");
+    removeButton->setCursor(Qt::PointingHandCursor);
     connect(removeButton, &QPushButton::clicked, this, [this]()
     {
         emit removeRequested(this);
@@ -325,14 +481,19 @@ qint64 TimeZoneWidget::sliderValueToTimestamp(int value) const
 {
     int quarterHours = 96 - value;
     
-    int hour = quarterHours / 4;
-    int minute = (quarterHours % 4) * 15;
-    
     QDateTime dt = QDateTime::fromSecsSinceEpoch(baseTimestamp, currentTimeZone);
-    QTime newTime(hour, minute, 0);
-    dt.setTime(newTime);
+    QDate currentDate = dt.date();
     
-    return dt.toSecsSinceEpoch();
+    int hour = (quarterHours / 4) % 24;
+    int minute = (quarterHours % 4) * 15;
+    int dayOffset = quarterHours / 96;
+    
+    QDate newDate = currentDate.addDays(dayOffset);
+    QTime newTime(hour, minute, 0);
+    
+    QDateTime newDateTime(newDate, newTime, currentTimeZone);
+    
+    return newDateTime.toSecsSinceEpoch();
 }
 
 QString TimeZoneWidget::getFriendlyName() const

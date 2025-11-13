@@ -8,30 +8,72 @@ int main(int argc, char *argv[])
     
     app.setStyle(QStyleFactory::create("Fusion"));
     
-    QPalette palette = app.palette();
-    QColor windowColor = palette.color(QPalette::Window);
+    QString appStyleSheet = 
+        "QWidget {"
+        "    font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;"
+        "}"
+        "QScrollBar:vertical {"
+        "    border: none;"
+        "    background: #f5f5f5;"
+        "    width: 10px;"
+        "    margin: 0px;"
+        "}"
+        "QScrollBar::handle:vertical {"
+        "    background: #bdbdbd;"
+        "    border-radius: 5px;"
+        "    min-height: 20px;"
+        "}"
+        "QScrollBar::handle:vertical:hover {"
+        "    background: #9e9e9e;"
+        "}"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
+        "    height: 0px;"
+        "}"
+        "QScrollBar:horizontal {"
+        "    border: none;"
+        "    background: #f5f5f5;"
+        "    height: 10px;"
+        "    margin: 0px;"
+        "}"
+        "QScrollBar::handle:horizontal {"
+        "    background: #bdbdbd;"
+        "    border-radius: 5px;"
+        "    min-width: 20px;"
+        "}"
+        "QScrollBar::handle:horizontal:hover {"
+        "    background: #9e9e9e;"
+        "}"
+        "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {"
+        "    width: 0px;"
+        "}"
+        "QToolTip {"
+        "    background-color: #424242;"
+        "    color: #ffffff;"
+        "    border: none;"
+        "    border-radius: 4px;"
+        "    padding: 6px 10px;"
+        "    font-size: 12px;"
+        "}"
+        "QFileDialog {"
+        "    background-color: #ffffff;"
+        "}"
+        "QFileDialog QPushButton {"
+        "    background-color: #f5f5f5;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 4px;"
+        "    padding: 6px 16px;"
+        "}"
+        "QFileDialog QPushButton:hover {"
+        "    background-color: #e3f2fd;"
+        "    border: 1px solid #2196f3;"
+        "}"
+        "QFileDialog QPushButton:default {"
+        "    background-color: #2196f3;"
+        "    color: #ffffff;"
+        "    border: 1px solid #1976d2;"
+        "}";
     
-    bool isDarkMode = windowColor.lightness() < 128;
-    
-    if (isDarkMode)
-    {
-        QPalette darkPalette;
-        darkPalette.setColor(QPalette::Window, QColor(53, 53, 53));
-        darkPalette.setColor(QPalette::WindowText, Qt::white);
-        darkPalette.setColor(QPalette::Base, QColor(25, 25, 25));
-        darkPalette.setColor(QPalette::AlternateBase, QColor(53, 53, 53));
-        darkPalette.setColor(QPalette::ToolTipBase, Qt::white);
-        darkPalette.setColor(QPalette::ToolTipText, Qt::white);
-        darkPalette.setColor(QPalette::Text, Qt::white);
-        darkPalette.setColor(QPalette::Button, QColor(53, 53, 53));
-        darkPalette.setColor(QPalette::ButtonText, Qt::white);
-        darkPalette.setColor(QPalette::BrightText, Qt::red);
-        darkPalette.setColor(QPalette::Link, QColor(42, 130, 218));
-        darkPalette.setColor(QPalette::Highlight, QColor(42, 130, 218));
-        darkPalette.setColor(QPalette::HighlightedText, Qt::black);
-        
-        app.setPalette(darkPalette);
-    }
+    app.setStyleSheet(appStyleSheet);
     
     MainWindow window;
     window.show();
