@@ -33,7 +33,7 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
 
 ### Pre-built Installers
 
-Download the installer for your platform from the [releases page](https://github.com/yourusername/UnfuckMyTimeZoneMath/releases):
+Download the installer for your platform from the [releases page](https://github.com/RayParkerBassPlayer/UnfuckMyTimeZoneMath/releases) or check the `installers/` directory:
 
 - **macOS**: `unfuck-my-timezone-math-1.0.0-Darwin.dmg`
 - **Linux**: `unfuck-my-timezone-math-1.0.0-Linux.deb`
@@ -138,6 +138,7 @@ UnfuckMyTimeZoneMath/
 ├── mainwindow.h/cpp                  # Main window implementation
 ├── timezonewidget.h/cpp              # Time zone widget implementation
 ├── unfuck-my-timezone-math.desktop   # Desktop entry file (Linux)
+├── installers/                       # Pre-built installers (DMG, DEB, EXE)
 └── build/                            # Build directory (created during build)
 ```
 

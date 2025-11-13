@@ -16,6 +16,7 @@ This script will:
 - Build the application
 - Deploy Qt dependencies
 - Create a platform-specific installer
+- Copy the installer to the `installers/` directory
 
 ## Platform-Specific Requirements
 
@@ -27,8 +28,8 @@ This script will:
 - Xcode Command Line Tools
 
 **Output:**
-- `UnfuckMyTimeZoneMath.app` - Application bundle
-- `unfuck-my-timezone-math-1.0.0-Darwin.dmg` - DMG installer
+- `build/UnfuckMyTimeZoneMath.app` - Application bundle
+- `installers/unfuck-my-timezone-math-1.0.0-Darwin.dmg` - DMG installer
 
 **Installation:**
 ```bash
@@ -47,8 +48,8 @@ brew install qt@6 cmake
 - dpkg tools (for .deb packaging)
 
 **Output:**
-- `UnfuckMyTimeZoneMath` - Executable
-- `unfuck-my-timezone-math-1.0.0-Linux.deb` - DEB package
+- `build/UnfuckMyTimeZoneMath` - Executable
+- `installers/unfuck-my-timezone-math-1.0.0-Linux.deb` - DEB package
 
 **Installation (Ubuntu/Debian):**
 ```bash
@@ -77,9 +78,9 @@ sudo mv linuxdeployqt-continuous-x86_64.AppImage /usr/local/bin/linuxdeployqt
 - NSIS (optional, for installer creation)
 
 **Output:**
-- `UnfuckMyTimeZoneMath.exe` - Executable
-- `unfuck-my-timezone-math-1.0.0-win64.exe` - NSIS installer (if NSIS is installed)
-- `unfuck-my-timezone-math-1.0.0-win64.zip` - ZIP package (fallback)
+- `build/UnfuckMyTimeZoneMath.exe` - Executable
+- `installers/unfuck-my-timezone-math-1.0.0-win64.exe` - NSIS installer (if NSIS is installed)
+- `installers/unfuck-my-timezone-math-1.0.0-win64.zip` - ZIP package (fallback)
 
 **Installation:**
 1. Download and install Qt from https://www.qt.io/download
@@ -143,6 +144,18 @@ cpack -G NSIS
 cpack -G ZIP
 ```
 
+### Step 5: Copy to Installers Directory
+
+```bash
+# From build directory, copy installers
+cd ..
+mkdir -p installers
+cp build/*.dmg installers/  # macOS
+cp build/*.deb installers/  # Linux
+cp build/*.exe installers/  # Windows
+cp build/*.zip installers/  # Windows ZIP
+```
+
 ## Environment Variables
 
 You can override the automatic Qt detection by setting:
@@ -195,10 +208,18 @@ The `build_and_deploy.sh` script is designed to work in CI/CD pipelines:
 
 ## Distribution
 
-After building:
+After building, installers are automatically copied to the `installers/` directory:
 
-- **macOS**: Distribute the `.dmg` file. Users drag the app to Applications folder.
-- **Linux**: Distribute the `.deb` package. Users install with `sudo dpkg -i package.deb`.
-- **Windows**: Distribute the `.exe` installer or `.zip` package.
+- **macOS**: Distribute the `.dmg` file from `installers/`. Users drag the app to Applications folder.
+- **Linux**: Distribute the `.deb` package from `installers/`. Users install with `sudo dpkg -i package.deb`.
+- **Windows**: Distribute the `.exe` installer or `.zip` package from `installers/`.
 
 All installers are self-contained with Qt dependencies bundled.
+
+## Repository Structure
+
+The `installers/` directory contains pre-built installers for all platforms. These can be:
+- Downloaded directly from the repository
+- Distributed to end users
+- Uploaded to release pages
+- Shared via cloud storage or internal networks
