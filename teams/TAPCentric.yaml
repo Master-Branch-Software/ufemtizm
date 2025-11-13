@@ -9,5 +9,5 @@ timezones:
     timezone: "America/Chicago"
     format24hour: false
   - name: "Tony"
-    timezone: "America/Los_Angeles"
+    timezone: "Asia/Singapore"
     format24hour: false
