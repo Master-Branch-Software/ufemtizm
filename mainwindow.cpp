@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "timezonewidget.h"
+#include "version.h"
 #include <QMenuBar>
 #include <QStatusBar>
 #include <QVBoxLayout>
@@ -662,7 +663,7 @@ void MainWindow::showAboutDialog()
     aboutBox.setWindowTitle("About UnfuckMyTimeZoneMath");
     aboutBox.setTextFormat(Qt::RichText);
     aboutBox.setText(
-        "<h2>UnfuckMyTimeZoneMath</h2>"
+        "<h2>UnfuckMyTimeZoneMath " APP_VERSION "</h2>"
         "<p>A handy utility to help teams figure out time zone math when trying to schedule meetings and stuff.</p>"
         "<p>Visualize and synchronize times across multiple time zones with ease.</p>"
         "<p><a href='https://github.com/RayParkerBassPlayer/UnfuckMyTimeZoneMath'>github.com/RayParkerBassPlayer/UnfuckMyTimeZoneMath</a></p>"
