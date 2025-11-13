@@ -137,16 +137,20 @@ Write-Host "==> Configuring with CMake..." -ForegroundColor Cyan
 Push-Location $BuildDir
 
 try {
+    # Convert Windows paths to forward slashes for CMake
+    $qtPathForCMake = $foundQtPath -replace '\\', '/'
+    
     $cmakeArgs = @(
-        "-DCMAKE_PREFIX_PATH=`"$foundQtPath`"",
+        "-DCMAKE_PREFIX_PATH=`"$qtPathForCMake`"",
         "-DCMAKE_BUILD_TYPE=$BuildType",
         "-G", "`"$generator`""
     )
     
     # Add MinGW compiler paths if found
     if ($mingwCompiler) {
-        $gccPath = Join-Path $mingwCompiler "bin\gcc.exe"
-        $gxxPath = Join-Path $mingwCompiler "bin\g++.exe"
+        # Convert backslashes to forward slashes for CMake
+        $gccPath = (Join-Path $mingwCompiler "bin\gcc.exe") -replace '\\', '/'
+        $gxxPath = (Join-Path $mingwCompiler "bin\g++.exe") -replace '\\', '/'
         $cmakeArgs += "-DCMAKE_C_COMPILER=`"$gccPath`""
         $cmakeArgs += "-DCMAKE_CXX_COMPILER=`"$gxxPath`""
     }
