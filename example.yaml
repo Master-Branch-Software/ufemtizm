@@ -1,0 +1,13 @@
+timezones:
+  - name: "Ray"
+    timezone: "America/New_York"
+    format24hour: false
+  - name: "Bert"
+    timezone: "Asia/Dhaka"
+    format24hour: false
+  - name: "David"
+    timezone: "America/Chicago"
+    format24hour: false
+  - name: "Tony"
+    timezone: "America/Los_Angeles"
+    format24hour: false

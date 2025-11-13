@@ -1,0 +1,52 @@
+# C++ build artifacts
+*.o
+*.a
+*.so
+*.exe
+*.out
+*.app
+*.dylib
+
+# Qt
+*.pro.user
+*.pro.user.*
+*.qm
+.qmake.stash
+*.autosave
+*_autogen/
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+
+# CMake
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+# Build directories
+build/
+build-*/
+debug/
+release/
+Debug/
+Release/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Qt Creator
+*.creator.user*
+*.includes
+*.files
+*.config
