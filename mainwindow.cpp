@@ -148,6 +148,14 @@ void MainWindow::setupMenuBar()
     
     fileMenu->addSeparator();
     
+    QAction *currentTimeAction = fileMenu->addAction("🕐 Set to Current Time");
+    currentTimeAction->setShortcut(QKeySequence("Ctrl+N"));
+    currentTimeAction->setToolTip("Set all timezones to current time (Ctrl+N)");
+    currentTimeAction->setStatusTip("Set all timezones to current time");
+    connect(currentTimeAction, &QAction::triggered, this, &MainWindow::setToCurrentTime);
+    
+    fileMenu->addSeparator();
+    
     QAction *exitAction = fileMenu->addAction("&Quit");
     exitAction->setShortcut(QKeySequence::Quit);
     exitAction->setToolTip("Exit the application");
@@ -283,13 +291,74 @@ void MainWindow::openFile()
         return;
     }
     
-    QString filename = QFileDialog::getOpenFileName(this, "Open Configuration",
-                                                     QDir::homePath(),
-                                                     "YAML Files (*.yaml *.yml)");
+    QFileDialog dialog(this);
+    dialog.setWindowTitle("Open Configuration");
+    dialog.setDirectory(QDir::homePath());
+    dialog.setNameFilter("YAML Files (*.yaml *.yml)");
+    dialog.setFileMode(QFileDialog::ExistingFile);
+    dialog.setStyleSheet(
+        "QFileDialog {"
+        "    background-color: #ffffff;"
+        "}"
+        "QDialog {"
+        "    background-color: #ffffff;"
+        "}"
+        "QPushButton {"
+        "    background-color: #f5f5f5;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 4px;"
+        "    padding: 8px 16px;"
+        "    min-width: 80px;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #e3f2fd;"
+        "    border: 1px solid #2196f3;"
+        "}"
+        "QPushButton:default {"
+        "    background-color: #2196f3;"
+        "    color: #ffffff;"
+        "    border: 1px solid #1976d2;"
+        "}"
+        "QPushButton:default:hover {"
+        "    background-color: #1976d2;"
+        "}"
+        "QListView, QTreeView {"
+        "    background-color: #ffffff;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 4px;"
+        "    padding: 4px;"
+        "}"
+        "QListView::item:hover, QTreeView::item:hover {"
+        "    background-color: #f5f5f5;"
+        "}"
+        "QListView::item:selected, QTreeView::item:selected {"
+        "    background-color: #e3f2fd;"
+        "    color: #000000;"
+        "}"
+        "QLineEdit {"
+        "    background-color: #ffffff;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 4px;"
+        "    padding: 6px;"
+        "}"
+        "QLineEdit:focus {"
+        "    border: 2px solid #2196f3;"
+        "}"
+        "QComboBox {"
+        "    background-color: #ffffff;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 4px;"
+        "    padding: 6px;"
+        "}"
+    );
     
-    if (!filename.isEmpty())
+    if (dialog.exec() == QDialog::Accepted)
     {
-        loadFromFile(filename);
+        QStringList files = dialog.selectedFiles();
+        if (!files.isEmpty())
+        {
+            loadFromFile(files.first());
+        }
     }
 }
 
@@ -307,18 +376,80 @@ void MainWindow::saveFile()
 
 void MainWindow::saveFileAs()
 {
-    QString filename = QFileDialog::getSaveFileName(this, "Save Configuration",
-                                                     QDir::homePath(),
-                                                     "YAML Files (*.yaml *.yml)");
+    QFileDialog dialog(this);
+    dialog.setWindowTitle("Save Configuration");
+    dialog.setDirectory(QDir::homePath());
+    dialog.setNameFilter("YAML Files (*.yaml *.yml)");
+    dialog.setAcceptMode(QFileDialog::AcceptSave);
+    dialog.setDefaultSuffix("yaml");
+    dialog.setStyleSheet(
+        "QFileDialog {"
+        "    background-color: #ffffff;"
+        "}"
+        "QDialog {"
+        "    background-color: #ffffff;"
+        "}"
+        "QPushButton {"
+        "    background-color: #f5f5f5;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 4px;"
+        "    padding: 8px 16px;"
+        "    min-width: 80px;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #e3f2fd;"
+        "    border: 1px solid #2196f3;"
+        "}"
+        "QPushButton:default {"
+        "    background-color: #2196f3;"
+        "    color: #ffffff;"
+        "    border: 1px solid #1976d2;"
+        "}"
+        "QPushButton:default:hover {"
+        "    background-color: #1976d2;"
+        "}"
+        "QListView, QTreeView {"
+        "    background-color: #ffffff;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 4px;"
+        "    padding: 4px;"
+        "}"
+        "QListView::item:hover, QTreeView::item:hover {"
+        "    background-color: #f5f5f5;"
+        "}"
+        "QListView::item:selected, QTreeView::item:selected {"
+        "    background-color: #e3f2fd;"
+        "    color: #000000;"
+        "}"
+        "QLineEdit {"
+        "    background-color: #ffffff;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 4px;"
+        "    padding: 6px;"
+        "}"
+        "QLineEdit:focus {"
+        "    border: 2px solid #2196f3;"
+        "}"
+        "QComboBox {"
+        "    background-color: #ffffff;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 4px;"
+        "    padding: 6px;"
+        "}"
+    );
     
-    if (!filename.isEmpty())
+    if (dialog.exec() == QDialog::Accepted)
     {
-        if (!filename.endsWith(".yaml", Qt::CaseInsensitive) && !filename.endsWith(".yml", Qt::CaseInsensitive))
+        QStringList files = dialog.selectedFiles();
+        if (!files.isEmpty())
         {
-            filename += ".yaml";
+            QString filename = files.first();
+            if (!filename.endsWith(".yaml", Qt::CaseInsensitive) && !filename.endsWith(".yml", Qt::CaseInsensitive))
+            {
+                filename += ".yaml";
+            }
+            saveToFile(filename);
         }
-        
-        saveToFile(filename);
     }
 }
 
@@ -717,4 +848,15 @@ void MainWindow::onWidgetDropped(TimeZoneWidget *target, TimeZoneWidget *source)
     updateWindowTitle();
     
     statusBar()->showMessage("Widget reordered", 2000);
+}
+
+void MainWindow::setToCurrentTime()
+{
+    qint64 currentTime = QDateTime::currentSecsSinceEpoch();
+    
+    if (!timeZoneWidgets.isEmpty())
+    {
+        updateAllWidgets(currentTime, nullptr);
+        statusBar()->showMessage("Set to current time", 2000);
+    }
 }

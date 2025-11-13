@@ -30,12 +30,18 @@ elseif(APPLE)
                "A Qt-based timezone conversion utility")
 else()
   add_executable(UnfuckMyTimeZoneMath main.cpp mainwindow.h mainwindow.cpp
-                                      timezonewidget.h timezonewidget.cpp)
+                                      timezonewidget.h timezonewidget.cpp
+                                      resources.qrc)
 endif()
 
 
 target_include_directories(UnfuckMyTimeZoneMath PRIVATE ${CMAKE_BINARY_DIR})
 target_link_libraries(UnfuckMyTimeZoneMath PRIVATE Qt6::Core Qt6::Widgets)
+
+if(UNIX AND NOT APPLE)
+  set_target_properties(UnfuckMyTimeZoneMath PROPERTIES
+    INSTALL_RPATH "$ORIGIN/../lib/UnfuckMyTimeZoneMath")
+endif()
 
 
 if(UNIX AND NOT APPLE)
@@ -71,11 +77,22 @@ set(CPACK_PACKAGE_INSTALL_DIRECTORY "UnfuckMyTimeZoneMath")
 set(CPACK_COMPONENTS_ALL ${COMPONENT_NAME_MAIN})
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
-install(TARGETS UnfuckMyTimeZoneMath
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    BUNDLE DESTINATION .
-    COMPONENT ${COMPONENT_NAME_MAIN}
-)
+if(UNIX AND NOT APPLE)
+  # On Linux: install binary to lib directory and wrapper to bin
+  install(TARGETS UnfuckMyTimeZoneMath
+      RUNTIME DESTINATION lib/UnfuckMyTimeZoneMath
+      COMPONENT ${COMPONENT_NAME_MAIN})
+  install(PROGRAMS unfuckmytimezonemath-wrapper.sh
+      DESTINATION ${CMAKE_INSTALL_BINDIR}
+      RENAME UnfuckMyTimeZoneMath
+      COMPONENT ${COMPONENT_NAME_MAIN})
+else()
+  install(TARGETS UnfuckMyTimeZoneMath
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+      BUNDLE DESTINATION .
+      COMPONENT ${COMPONENT_NAME_MAIN})
+endif()
+
 
 install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
     DESTINATION share/doc/${CMAKE_PROJECT_NAME}/licenses
@@ -148,12 +165,32 @@ elseif(WIN32)
 
 
 else()
+  # Linux: Use CPack to create DEB package with bundled Qt libraries
+  
+  # Install Qt libraries from qt_deploy directory (created by build script)
+  install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qt_deploy/lib/"
+          DESTINATION "lib/UnfuckMyTimeZoneMath"
+          COMPONENT ${COMPONENT_NAME_MAIN}
+          OPTIONAL
+          FILES_MATCHING PATTERN "*.so*")
+  install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qt_deploy/plugins/"
+          DESTINATION "lib/UnfuckMyTimeZoneMath/plugins"
+          COMPONENT ${COMPONENT_NAME_MAIN}
+          OPTIONAL
+          FILES_MATCHING PATTERN "*.so")
+  
   set(CPACK_GENERATOR "DEB")
   set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Ray")
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "qt6-base, libc6")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6, libgcc-s1")
   set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
   set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-  set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/postinst")
+  set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
+  set(CPACK_SET_DESTDIR ON)
+  set(CPACK_INSTALL_PREFIX "/usr")
+  
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/postinst")
+    set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/postinst")
+  endif()
 
   include(CPack)
 endif()
