@@ -3,16 +3,26 @@
 set -e
 
 APP_NAME="UnfuckMyTimeZoneMath"
+BUNDLE_NAME="Unfuck My Time Zone Math"
 BUILD_DIR="build"
 INSTALLER_DIR="installers"
+
+# Extract project version from CMakeLists.txt so artifacts can be versioned
+PROJECT_VERSION=$(grep -E '^project\(' CMakeLists.txt 2>/dev/null | \
+    sed -E 's/.*VERSION[ ]+([^ ]+).*/\1/' )
+
+# Default DMG filename (used on macOS)
+if [[ -n "$PROJECT_VERSION" ]]; then
+    DMG_FILENAME="${BUNDLE_NAME}-${PROJECT_VERSION}.dmg"
+else
+    DMG_FILENAME="${BUNDLE_NAME}.dmg"
+fi
 
 detect_os() {
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         echo "linux"
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         echo "macos"
-    elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
-        echo "windows"
     else
         echo "unknown"
     fi
@@ -50,46 +60,6 @@ find_qt_path() {
             if [[ -n "$QT_VERSION" && -d "$HOME/Qt/$QT_VERSION/gcc_64" ]]; then
                 echo "$HOME/Qt/$QT_VERSION/gcc_64"
                 return
-            fi
-        fi
-    elif [[ "$os" == "windows" ]]; then
-        # Prefer MinGW over MSVC
-        if [[ -d "$HOME/Qt" ]]; then
-            QT_VERSION=$(ls -1 "$HOME/Qt" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
-            if [[ -n "$QT_VERSION" ]]; then
-                # Try MinGW first
-                for compiler_dir in "$HOME/Qt/$QT_VERSION"/mingw*; do
-                    if [[ -d "$compiler_dir" ]]; then
-                        echo "$compiler_dir"
-                        return
-                    fi
-                done
-                # Fall back to MSVC if MinGW not found
-                for compiler_dir in "$HOME/Qt/$QT_VERSION"/msvc*; do
-                    if [[ -d "$compiler_dir" ]]; then
-                        echo "$compiler_dir"
-                        return
-                    fi
-                done
-            fi
-        fi
-        if [[ -d "C:/Qt" ]]; then
-            QT_VERSION=$(ls -1 "C:/Qt" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
-            if [[ -n "$QT_VERSION" ]]; then
-                # Try MinGW first
-                for compiler_dir in "C:/Qt/$QT_VERSION"/mingw*; do
-                    if [[ -d "$compiler_dir" ]]; then
-                        echo "$compiler_dir"
-                        return
-                    fi
-                done
-                # Fall back to MSVC if MinGW not found
-                for compiler_dir in "C:/Qt/$QT_VERSION"/msvc*; do
-                    if [[ -d "$compiler_dir" ]]; then
-                        echo "$compiler_dir"
-                        return
-                    fi
-                done
             fi
         fi
     fi
@@ -135,47 +105,38 @@ echo "==> Configuring with CMake..."
 cd "$BUILD_DIR"
 
 # Determine CMake generator based on OS and Qt installation
-if [[ "$OS" == "windows" && "$QT_PATH" == *"mingw"* ]]; then
-    # Force MinGW Makefiles generator when using MinGW Qt
-    # Find the matching MinGW compiler installation
-    MINGW_COMPILER=""
-    
-    # Extract Qt version and look for matching MinGW in Qt/Tools
-    if [[ "$QT_PATH" =~ Qt/([0-9]+\.[0-9]+\.[0-9]+)/mingw ]]; then
-        QT_BASE="${QT_PATH%%/$BASH_REMATCH[1]*}"
-        for mingw_tool in "$QT_BASE/Tools"/mingw*; do
-            if [[ -d "$mingw_tool/bin" ]]; then
-                MINGW_COMPILER="$mingw_tool"
-                break
-            fi
-        done
-    fi
-    
-    # Build cmake command with MinGW-specific settings
-    CMAKE_CMD="cmake -DCMAKE_PREFIX_PATH=\"$QT_PATH\" -G \"MinGW Makefiles\" -DCMAKE_BUILD_TYPE=Release"
-    
-    if [[ -n "$MINGW_COMPILER" && -f "$MINGW_COMPILER/bin/gcc.exe" ]]; then
-        echo "==> Using MinGW compiler from: $MINGW_COMPILER"
-        CMAKE_CMD="$CMAKE_CMD -DCMAKE_C_COMPILER=\"$MINGW_COMPILER/bin/gcc.exe\" -DCMAKE_CXX_COMPILER=\"$MINGW_COMPILER/bin/g++.exe\""
-    fi
-    
-    eval "$CMAKE_CMD .."
-else
-    cmake -DCMAKE_PREFIX_PATH="$QT_PATH" \
-          -DCMAKE_BUILD_TYPE=Release \
-          ..
-fi
+cmake -DCMAKE_PREFIX_PATH="$QT_PATH" \
+      -DCMAKE_BUILD_TYPE=Release \
+      ..
 
 echo "==> Building application..."
 CPU_COUNT=$(get_cpu_count "$OS")
 cmake --build . --config Release -j"$CPU_COUNT"
 
 if [[ "$OS" == "macos" ]]; then
-    echo "==> Deploying Qt dependencies (macOS)..."
-    "$QT_PATH/bin/macdeployqt" "$APP_NAME.app" -verbose=1
-    
-    echo "==> Creating DMG installer..."
-    cpack -G DragNDrop
+    echo "==> Ensuring app bundle has icon..."
+    if [[ -f "../icon.icns" ]]; then
+        mkdir -p "$BUNDLE_NAME.app/Contents/Resources"
+        cp "../icon.icns" "$BUNDLE_NAME.app/Contents/Resources/icon.icns"
+    fi
+
+    echo "==> Deploying Qt dependencies (macOS via macdeployqt)..."
+    # Deploy Qt frameworks and plugins into the .app bundle
+    "$QT_PATH/bin/macdeployqt" "$BUNDLE_NAME.app" -verbose=1
+
+    echo "==> Creating DMG with Applications link..."
+    DMG_ROOT_DIR="dmg_root"
+    rm -rf "$DMG_ROOT_DIR"
+    mkdir -p "$DMG_ROOT_DIR"
+
+    # Copy app bundle into DMG root
+    cp -R "$BUNDLE_NAME.app" "$DMG_ROOT_DIR/"
+
+    # Add /Applications symlink for drag-and-drop install UX
+    ln -s /Applications "$DMG_ROOT_DIR/Applications" 2>/dev/null || true
+
+    # Create the compressed DMG (contents: app bundle + Applications link)
+    hdiutil create -volname "Unfuck My TimeZone Math" -srcfolder "$DMG_ROOT_DIR" -ov -format UDZO "$DMG_FILENAME"
     
     echo "==> Copying installer to $INSTALLER_DIR directory..."
     cd ..
@@ -184,7 +145,7 @@ if [[ "$OS" == "macos" ]]; then
     
     echo "==> Build and deployment complete!"
     echo ""
-    echo "Application bundle: $BUILD_DIR/$APP_NAME.app"
+    echo "Application bundle: $BUILD_DIR/$BUNDLE_NAME.app"
     echo "DMG installer: $INSTALLER_DIR/"
     ls -lh "$INSTALLER_DIR"/*.dmg 2>/dev/null || echo "No DMG found"
     
@@ -217,27 +178,4 @@ elif [[ "$OS" == "linux" ]]; then
     echo "  sudo gtk-update-icon-cache -f -t /usr/share/icons/hicolor"
     echo "  sudo update-desktop-database /usr/share/applications"
     
-elif [[ "$OS" == "windows" ]]; then
-    echo "==> Deploying Qt dependencies (Windows)..."
-    "$QT_PATH/bin/windeployqt.exe" --release "$APP_NAME.exe"
-    
-    echo "==> Creating NSIS installer..."
-    if command -v makensis &> /dev/null; then
-        cpack -G NSIS
-    else
-        echo "Note: NSIS not found. Creating ZIP package instead."
-        cpack -G ZIP
-    fi
-    
-    echo "==> Copying installer to $INSTALLER_DIR directory..."
-    cd ..
-    mkdir -p "$INSTALLER_DIR"
-    cp "$BUILD_DIR"/*.exe "$INSTALLER_DIR/" 2>/dev/null
-    cp "$BUILD_DIR"/*.zip "$INSTALLER_DIR/" 2>/dev/null
-    
-    echo "==> Build and deployment complete!"
-    echo ""
-    echo "Executable: $BUILD_DIR/$APP_NAME.exe"
-    echo "Installer: $INSTALLER_DIR/"
-    ls -lh "$INSTALLER_DIR"/*.exe "$INSTALLER_DIR"/*.zip 2>/dev/null || echo "No installer found"
 fi

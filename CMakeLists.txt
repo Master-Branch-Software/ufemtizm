@@ -20,9 +20,9 @@ elseif(APPLE)
   add_executable(
     UnfuckMyTimeZoneMath MACOSX_BUNDLE main.cpp mainwindow.h mainwindow.cpp
                                        timezonewidget.h timezonewidget.cpp)
-  set_target_properties(
-    UnfuckMyTimeZoneMath
-    PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Unfuck My TimeZone Math"
+  set_target_properties(UnfuckMyTimeZoneMath
+    PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Unfuck My Time Zone Math"
+               OUTPUT_NAME "Unfuck My Time Zone Math"
                MACOSX_BUNDLE_GUI_IDENTIFIER "com.ows.unfuckmytimezonemath"
                MACOSX_BUNDLE_BUNDLE_VERSION "1.0.0"
                MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
@@ -63,11 +63,26 @@ set(CONF_DISPLAY_NAME "Unfuck My TimeZone Math")
 set(CONF_PUBLISHER "Ray Parker & Vojtěch Gistr")
 set(CONF_DESCRIPTION "A Qt-based timezone conversion utility")
 
+set(CPACK_PACKAGE_NAME "UnfuckMyTimeZoneMath")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VENDOR "${CONF_PUBLISHER}")
+set(CPACK_PACKAGE_DESCRIPTION "${CONF_DESCRIPTION}")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "UnfuckMyTimeZoneMath")
+set(CPACK_COMPONENTS_ALL ${COMPONENT_NAME_MAIN})
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+
+install(TARGETS UnfuckMyTimeZoneMath
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    BUNDLE DESTINATION .
+    COMPONENT ${COMPONENT_NAME_MAIN}
+)
+
+install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
+    DESTINATION share/doc/${CMAKE_PROJECT_NAME}/licenses
+    COMPONENT ${COMPONENT_NAME_MAIN})
+
 if(APPLE)
-  set(CPACK_GENERATOR "DragNDrop")
-  set(CPACK_DMG_VOLUME_NAME "Unfuck My TimeZone Math")
-  set(CPACK_DMG_FORMAT "UDBZ")
-  set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_SOURCE_DIR}/icon.png")
+  # macOS DMG is created via macdeployqt in build_and_deploy.sh; CPack is not used on macOS.
 
 elseif(WIN32)
   file(GLOB_RECURSE _BINARYCREATOR_CANDIDATES
@@ -104,11 +119,6 @@ elseif(WIN32)
 
   set(CPACK_GENERATOR "IFW")
 
-  set(CPACK_PACKAGE_NAME "UnfuckMyTimeZoneMath")
-  set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-  set(CPACK_PACKAGE_VENDOR "${CONF_PUBLISHER}")
-  set(CPACK_PACKAGE_DESCRIPTION "${CONF_DESCRIPTION}")
-  set(CPACK_PACKAGE_INSTALL_DIRECTORY "UnfuckMyTimeZoneMath")
   set(CPACK_IFW_PACKAGE_NAME "${CONF_DISPLAY_NAME}")
   set(CPACK_IFW_PACKAGE_TITLE "${CONF_DISPLAY_NAME}")
   set(CPACK_IFW_PACKAGE_PUBLISHER "${CONF_PUBLISHER}")
@@ -116,8 +126,6 @@ elseif(WIN32)
   set(CPACK_IFW_PACKAGE_WIZARD_SHOW_PAGE_LIST OFF)
   set(CPACK_IFW_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/icon.png")
   set(CPACK_IFW_DOWNLOAD_ALL OFF)
-  set(CPACK_COMPONENTS_ALL ${COMPONENT_NAME_MAIN})
-  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
   include(CPack)
   include(CPackIFW)
@@ -138,15 +146,6 @@ elseif(WIN32)
     DEFAULT TRUE
   )
 
-  install(TARGETS UnfuckMyTimeZoneMath
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    BUNDLE DESTINATION .
-    COMPONENT ${COMPONENT_NAME_MAIN}
-  )
-
-  install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
-    DESTINATION share/doc/${CMAKE_PROJECT_NAME}/licenses
-    COMPONENT ${COMPONENT_NAME_MAIN})
 
 else()
   set(CPACK_GENERATOR "DEB")
@@ -155,4 +154,6 @@ else()
   set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
   set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
   set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/postinst")
+
+  include(CPack)
 endif()
