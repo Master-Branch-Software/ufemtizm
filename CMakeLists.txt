@@ -1,32 +1,26 @@
 cmake_minimum_required(VERSION 3.16)
-
 project(
   UnfuckMyTimeZoneMath
   VERSION 1.0.0
   LANGUAGES CXX)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
-
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
-
 # Configure version header
 configure_file(${CMAKE_SOURCE_DIR}/version.h.in ${CMAKE_BINARY_DIR}/version.h
                @ONLY)
-
 if(WIN32)
   add_executable(
     UnfuckMyTimeZoneMath WIN32 main.cpp mainwindow.h mainwindow.cpp
-                               timezonewidget.h timezonewidget.cpp)
+                               timezonewidget.h timezonewidget.cpp
+                               resources.qrc)
 elseif(APPLE)
   add_executable(
     UnfuckMyTimeZoneMath MACOSX_BUNDLE main.cpp mainwindow.h mainwindow.cpp
                                        timezonewidget.h timezonewidget.cpp)
-
   set_target_properties(
     UnfuckMyTimeZoneMath
     PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Unfuck My TimeZone Math"
@@ -39,16 +33,52 @@ else()
   add_executable(UnfuckMyTimeZoneMath main.cpp mainwindow.h mainwindow.cpp
                                       timezonewidget.h timezonewidget.cpp)
 endif()
-
 target_include_directories(UnfuckMyTimeZoneMath PRIVATE ${CMAKE_BINARY_DIR})
 target_link_libraries(UnfuckMyTimeZoneMath PRIVATE Qt6::Core Qt6::Widgets)
-
+# Basic CPack configuration (must come before include(CPack) for vars)
+set(CPACK_PACKAGE_NAME "unfuck-my-timezone-math")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VENDOR "Ray")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A Qt-based timezone conversion utility")
+set(CPACK_PACKAGE_DESCRIPTION
+    "UnfuckMyTimeZoneMath is a Qt6-based application for converting times between different timezones."
+)
+set(CPACK_PACKAGE_CONTACT "ray@example.com")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "UnfuckMyTimeZoneMath")
+if(EXISTS "${CMAKE_SOURCE_DIR}/LICENSE")
+  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+endif()
+# Include CPack early to enable CPack commands like cpack_add_component
+include(CPack)
+# Include CPackIFW for IFW-specific commands like cpack_ifw_configure_component
+include(CPackIFW)
+# Define the IFW component (name must match CPACK_PACKAGE_NAME: lowercase)
+cpack_add_component(unfuck-my-timezone-math
+    DISPLAY_NAME "Unfuck My TimeZone Math"
+    DESCRIPTION "A Qt-based timezone conversion utility"
+)
+# Configure component script immediately after (with relative path & COMMON)
+cpack_ifw_configure_component(unfuck-my-timezone-math
+    COMMON
+    SCRIPT "installer/installscript.qs")
+# Manual fallback: Explicitly install script to packages/.../scripts/ (before other installs)
+if(EXISTS "${CMAKE_SOURCE_DIR}/installer/installscript.qs")
+  install(FILES ${CMAKE_SOURCE_DIR}/installer/installscript.qs
+          DESTINATION packages/unfuck-my-timezone-math/scripts
+          COMPONENT unfuck-my-timezone-math)
+endif()
 # Install target
 install(
   TARGETS UnfuckMyTimeZoneMath
   RUNTIME DESTINATION bin
-  BUNDLE DESTINATION .)
-
+  BUNDLE DESTINATION .
+  COMPONENT unfuck-my-timezone-math)
+# Install LICENSE file (cross-platform)
+if(EXISTS "${CMAKE_SOURCE_DIR}/LICENSE")
+  install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
+          DESTINATION share/doc/${CMAKE_PROJECT_NAME}/licenses
+          COMPONENT unfuck-my-timezone-math)
+endif()
 # Bundle Qt runtime into the install tree on Windows so CPack includes it
 if(WIN32)
   # Try to locate windeployqt (relative to Qt6_DIR is typical)
@@ -71,42 +101,25 @@ if(WIN32)
   else()
     message(WARNING "windeployqt not found. Qt runtime will not be bundled by CPack.")
   endif()
+  # Install .ico icon for Windows
+  if(EXISTS "${CMAKE_SOURCE_DIR}/icon.ico")
+    install(FILES ${CMAKE_SOURCE_DIR}/icon.ico
+            DESTINATION bin
+            RENAME UnfuckMyTimeZoneMath.ico
+            COMPONENT unfuck-my-timezone-math)
+  endif()
 endif()
-
 # Install desktop file and icon for Linux
 if(UNIX AND NOT APPLE)
   install(FILES ${CMAKE_SOURCE_DIR}/unfuck-my-timezone-math.desktop
-          DESTINATION share/applications)
-  install(
-    FILES ${CMAKE_SOURCE_DIR}/icon.png
-    DESTINATION share/icons/hicolor/256x256/apps
-    RENAME unfuck-my-timezone-math.png)
-  # Install smaller icon sizes for better system integration
-  install(
-    FILES ${CMAKE_SOURCE_DIR}/icon.png
-    DESTINATION share/icons/hicolor/128x128/apps
-    RENAME unfuck-my-timezone-math.png)
-  install(
-    FILES ${CMAKE_SOURCE_DIR}/icon.png
-    DESTINATION share/icons/hicolor/48x48/apps
-    RENAME unfuck-my-timezone-math.png)
+          DESTINATION share/applications
+          COMPONENT unfuck-my-timezone-math)
+  install(FILES ${CMAKE_SOURCE_DIR}/icon.svg
+          DESTINATION share/icons/hicolor/scalable/apps
+          RENAME unfuck-my-timezone-math.svg
+          COMPONENT unfuck-my-timezone-math)
 endif()
-
-# CPack configuration
-set(CPACK_PACKAGE_NAME "unfuck-my-timezone-math")
-set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-set(CPACK_PACKAGE_VENDOR "Ray")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A Qt-based timezone conversion utility")
-set(CPACK_PACKAGE_DESCRIPTION
-    "UnfuckMyTimeZoneMath is a Qt6-based application for converting times between different timezones."
-)
-set(CPACK_PACKAGE_CONTACT "ray@example.com")
-set(CPACK_PACKAGE_INSTALL_DIRECTORY "UnfuckMyTimeZoneMath")
-
-if(EXISTS "${CMAKE_SOURCE_DIR}/LICENSE")
-  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
-endif()
-
+# Platform-specific CPack configuration
 if(APPLE)
   set(CPACK_GENERATOR "DragNDrop")
   set(CPACK_DMG_VOLUME_NAME "Unfuck My TimeZone Math")
@@ -115,7 +128,6 @@ if(APPLE)
 elseif(WIN32)
   # Use Qt Installer Framework as primary installer, with NSIS and ZIP as fallbacks
   set(CPACK_GENERATOR "IFW;NSIS;ZIP")
-  
   # Qt Installer Framework configuration
   set(CPACK_IFW_PACKAGE_NAME "Unfuck My TimeZone Math")
   set(CPACK_IFW_PACKAGE_TITLE "Unfuck My TimeZone Math Installer")
@@ -126,7 +138,10 @@ elseif(WIN32)
   set(CPACK_IFW_PACKAGE_RUN_PROGRAM "@TargetDir@/bin/UnfuckMyTimeZoneMath.exe")
   set(CPACK_IFW_PACKAGE_RUN_PROGRAM_DESCRIPTION "Launch Unfuck My TimeZone Math")
   set(CPACK_IFW_VERBOSE ON)
-  
+  # IFW: Set installer icon (.ico for Windows)
+  if(EXISTS "${CMAKE_SOURCE_DIR}/icon.ico")
+    set(CPACK_IFW_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/icon.ico")
+  endif()
   # NSIS configuration (fallback)
   set(CPACK_NSIS_DISPLAY_NAME "Unfuck My TimeZone Math")
   set(CPACK_NSIS_PACKAGE_NAME "UnfuckMyTimeZoneMath")
@@ -141,8 +156,11 @@ elseif(WIN32)
   set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/RayParkerBassPlayer/UnfuckMyTimeZoneMath")
   set(CPACK_NSIS_CONTACT "ray@example.com")
   set(CPACK_NSIS_EXECUTABLES_DIRECTORY "bin")
-  set(CPACK_NSIS_MUI_ICON "")
-  set(CPACK_NSIS_MUI_UNIICON "")
+  # NSIS: Set installer icons (.ico for install/uninstall)
+  if(EXISTS "${CMAKE_SOURCE_DIR}/icon.ico")
+    set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/icon.ico")
+    set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/icon.ico")
+  endif()
 else()
   set(CPACK_GENERATOR "DEB")
   set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Ray")
@@ -151,5 +169,3 @@ else()
   set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
   set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/postinst")
 endif()
-
-include(CPack)
