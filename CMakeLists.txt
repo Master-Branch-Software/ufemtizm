@@ -47,6 +47,22 @@ endif()
 
 target_link_libraries(UnfuckMyTimeZoneMath PRIVATE Qt6::Core Qt6::Widgets)
 
+# Install target
+install(TARGETS UnfuckMyTimeZoneMath
+    RUNTIME DESTINATION bin
+    BUNDLE DESTINATION .
+)
+
+# Install desktop file and icon for Linux
+if(UNIX AND NOT APPLE)
+    install(FILES unfuck-my-timezone-math.desktop
+        DESTINATION share/applications
+    )
+    install(FILES icon.png
+        DESTINATION share/icons/hicolor/256x256/apps
+        RENAME unfuck-my-timezone-math.png
+    )
+endif()
 
 # CPack configuration
 set(CPACK_PACKAGE_NAME "unfuck-my-timezone-math")
@@ -72,7 +88,7 @@ elseif(WIN32)
 else()
     set(CPACK_GENERATOR "DEB")
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Ray")
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "qt6-base-gui, libc6")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "qt6-base, libc6")
     set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
     set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 endif()
