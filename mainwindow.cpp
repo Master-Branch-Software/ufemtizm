@@ -450,6 +450,13 @@ bool MainWindow::loadFromFile(const QString &filename)
     }
     else
     {
+        qint64 currentTime = QDateTime::currentSecsSinceEpoch();
+        
+        for (TimeZoneWidget *widget : timeZoneWidgets)
+        {
+            widget->setBaseTimestamp(currentTime);
+        }
+        
         adjustWindowSize();
     }
     

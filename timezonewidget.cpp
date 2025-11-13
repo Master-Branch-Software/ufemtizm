@@ -363,6 +363,11 @@ void TimeZoneWidget::setTimeZoneId(const QString &tzId)
         updatingInternally = false;
     }
     
+    int sliderValue = timestampToSliderValue(baseTimestamp);
+    updatingInternally = true;
+    timeSlider->setValue(sliderValue);
+    updatingInternally = false;
+    
     updateDisplay();
 }
 
