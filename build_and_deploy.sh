@@ -53,11 +53,20 @@ find_qt_path() {
             fi
         fi
     elif [[ "$os" == "windows" ]]; then
+        # Prefer MinGW over MSVC
         if [[ -d "$HOME/Qt" ]]; then
             QT_VERSION=$(ls -1 "$HOME/Qt" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
             if [[ -n "$QT_VERSION" ]]; then
-                for compiler_dir in "$HOME/Qt/$QT_VERSION"/*; do
-                    if [[ -d "$compiler_dir" && $(basename "$compiler_dir") =~ ^(mingw|msvc) ]]; then
+                # Try MinGW first
+                for compiler_dir in "$HOME/Qt/$QT_VERSION"/mingw*; do
+                    if [[ -d "$compiler_dir" ]]; then
+                        echo "$compiler_dir"
+                        return
+                    fi
+                done
+                # Fall back to MSVC if MinGW not found
+                for compiler_dir in "$HOME/Qt/$QT_VERSION"/msvc*; do
+                    if [[ -d "$compiler_dir" ]]; then
                         echo "$compiler_dir"
                         return
                     fi
@@ -67,8 +76,16 @@ find_qt_path() {
         if [[ -d "C:/Qt" ]]; then
             QT_VERSION=$(ls -1 "C:/Qt" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
             if [[ -n "$QT_VERSION" ]]; then
-                for compiler_dir in "C:/Qt/$QT_VERSION"/*; do
-                    if [[ -d "$compiler_dir" && $(basename "$compiler_dir") =~ ^(mingw|msvc) ]]; then
+                # Try MinGW first
+                for compiler_dir in "C:/Qt/$QT_VERSION"/mingw*; do
+                    if [[ -d "$compiler_dir" ]]; then
+                        echo "$compiler_dir"
+                        return
+                    fi
+                done
+                # Fall back to MSVC if MinGW not found
+                for compiler_dir in "C:/Qt/$QT_VERSION"/msvc*; do
+                    if [[ -d "$compiler_dir" ]]; then
                         echo "$compiler_dir"
                         return
                     fi

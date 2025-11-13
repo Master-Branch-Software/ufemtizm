@@ -27,7 +27,9 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
 - Platform-specific tools:
   - **macOS**: Xcode Command Line Tools
   - **Linux**: build-essential, dpkg
-  - **Windows**: Visual Studio 2019+ or MinGW
+  - **Windows**: MinGW-w64 (preferred) or Visual Studio 2019+
+
+**Note**: For detailed MinGW setup and build instructions, see **[MINGW_BUILD.md](MINGW_BUILD.md)**.
 
 ## Quick Installation
 
