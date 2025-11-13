@@ -57,10 +57,17 @@ if(WIN32)
     HINTS "${Qt6_DIR}/../../../bin"
   )
   if(WINDEPLOYQT_EXECUTABLE)
-    file(TO_CMAKE_PATH "${CMAKE_INSTALL_PREFIX}" _install_prefix_cmake)
-    set(_app_exe "${_install_prefix_cmake}/bin/UnfuckMyTimeZoneMath.exe")
-    # Run windeployqt at install time to stage Qt DLLs and plugins next to the exe
-    install(CODE "execute_process(COMMAND \"${WINDEPLOYQT_EXECUTABLE}\" --release \"${_app_exe}\")")
+    # Run windeployqt at install time to deploy Qt DLLs/plugins into bin directory
+    install(CODE "
+      set(WINDEPLOYQT_EXECUTABLE \"${WINDEPLOYQT_EXECUTABLE}\")
+      execute_process(
+        COMMAND \"\${WINDEPLOYQT_EXECUTABLE}\" --release --dir \"\${CMAKE_INSTALL_PREFIX}/bin\" \"\${CMAKE_INSTALL_PREFIX}/bin/UnfuckMyTimeZoneMath.exe\"
+        RESULT_VARIABLE WINDEPLOYQT_RESULT
+      )
+      if(NOT WINDEPLOYQT_RESULT EQUAL 0)
+        message(WARNING \"windeployqt failed with result: \${WINDEPLOYQT_RESULT}\")
+      endif()
+    ")
   else()
     message(WARNING "windeployqt not found. Qt runtime will not be bundled by CPack.")
   endif()
@@ -116,8 +123,9 @@ elseif(WIN32)
   set(CPACK_IFW_PRODUCT_URL "https://github.com/RayParkerBassPlayer/UnfuckMyTimeZoneMath")
   set(CPACK_IFW_PACKAGE_START_MENU_DIRECTORY "Unfuck My TimeZone Math")
   set(CPACK_IFW_TARGET_DIRECTORY "@ApplicationsDir@/UnfuckMyTimeZoneMath")
-  set(CPACK_IFW_PACKAGE_RUN_PROGRAM "@TargetDir@/UnfuckMyTimeZoneMath.exe")
+  set(CPACK_IFW_PACKAGE_RUN_PROGRAM "@TargetDir@/bin/UnfuckMyTimeZoneMath.exe")
   set(CPACK_IFW_PACKAGE_RUN_PROGRAM_DESCRIPTION "Launch Unfuck My TimeZone Math")
+  set(CPACK_IFW_VERBOSE ON)
   
   # NSIS configuration (fallback)
   set(CPACK_NSIS_DISPLAY_NAME "Unfuck My TimeZone Math")

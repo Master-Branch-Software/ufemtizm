@@ -11,16 +11,16 @@ Component.prototype.createOperations = function()
     if (systemInfo.productType === "windows") {
         // Create Start Menu shortcut
         component.addOperation("CreateShortcut", 
-            "@TargetDir@/UnfuckMyTimeZoneMath.exe", 
+            "@TargetDir@/bin/UnfuckMyTimeZoneMath.exe", 
             "@StartMenuDir@/Unfuck My TimeZone Math.lnk",
-            "workingDirectory=@TargetDir@",
+            "workingDirectory=@TargetDir@/bin",
             "description=A timezone conversion utility");
         
         // Create Desktop shortcut (optional)
         component.addOperation("CreateShortcut", 
-            "@TargetDir@/UnfuckMyTimeZoneMath.exe", 
+            "@TargetDir@/bin/UnfuckMyTimeZoneMath.exe", 
             "@DesktopDir@/Unfuck My TimeZone Math.lnk",
-            "workingDirectory=@TargetDir@",
+            "workingDirectory=@TargetDir@/bin",
             "description=A timezone conversion utility");
     }
 }
