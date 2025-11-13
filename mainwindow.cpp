@@ -65,8 +65,6 @@ MainWindow::MainWindow(QWidget *parent)
     
     setCentralWidget(centralWidget);
     
-    setMinimumSize(QSize(280, 720));
-    
     addTimeZoneWidget();
     updateWindowTitle();
     isDirty = false;
@@ -620,9 +618,7 @@ void MainWindow::adjustWindowSize()
     int totalWidth = (widgetWidth * widgetCount) + (spacing * (widgetCount - 1)) + margins;
     int minHeight = 700;
     
-    resize(totalWidth, minHeight);
-    setMinimumSize(totalWidth, minHeight);
-    setMaximumWidth(totalWidth);
+    setFixedSize(totalWidth, minHeight);
 }
 
 void MainWindow::saveWindowGeometry()
