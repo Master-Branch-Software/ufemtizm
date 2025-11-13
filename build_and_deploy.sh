@@ -137,10 +137,29 @@ cd "$BUILD_DIR"
 # Determine CMake generator based on OS and Qt installation
 if [[ "$OS" == "windows" && "$QT_PATH" == *"mingw"* ]]; then
     # Force MinGW Makefiles generator when using MinGW Qt
-    cmake -DCMAKE_PREFIX_PATH="$QT_PATH" \
-          -G "MinGW Makefiles" \
-          -DCMAKE_BUILD_TYPE=Release \
-          ..
+    # Find the matching MinGW compiler installation
+    MINGW_COMPILER=""
+    
+    # Extract Qt version and look for matching MinGW in Qt/Tools
+    if [[ "$QT_PATH" =~ Qt/([0-9]+\.[0-9]+\.[0-9]+)/mingw ]]; then
+        QT_BASE="${QT_PATH%%/$BASH_REMATCH[1]*}"
+        for mingw_tool in "$QT_BASE/Tools"/mingw*; do
+            if [[ -d "$mingw_tool/bin" ]]; then
+                MINGW_COMPILER="$mingw_tool"
+                break
+            fi
+        done
+    fi
+    
+    # Build cmake command with MinGW-specific settings
+    CMAKE_CMD="cmake -DCMAKE_PREFIX_PATH=\"$QT_PATH\" -G \"MinGW Makefiles\" -DCMAKE_BUILD_TYPE=Release"
+    
+    if [[ -n "$MINGW_COMPILER" && -f "$MINGW_COMPILER/bin/gcc.exe" ]]; then
+        echo "==> Using MinGW compiler from: $MINGW_COMPILER"
+        CMAKE_CMD="$CMAKE_CMD -DCMAKE_C_COMPILER=\"$MINGW_COMPILER/bin/gcc.exe\" -DCMAKE_CXX_COMPILER=\"$MINGW_COMPILER/bin/g++.exe\""
+    fi
+    
+    eval "$CMAKE_CMD .."
 else
     cmake -DCMAKE_PREFIX_PATH="$QT_PATH" \
           -DCMAKE_BUILD_TYPE=Release \
