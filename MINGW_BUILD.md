@@ -22,13 +22,25 @@ MinGW (Minimalist GNU for Windows) is a minimalist development environment for n
 
 ### Automated Build
 
-The `build_and_deploy.sh` script automatically detects and prefers MinGW:
+**Recommended: Use the PowerShell script on Windows:**
+
+```powershell
+.\build_and_deploy.ps1
+```
+
+The PowerShell script automatically:
+- Detects and prefers MinGW over MSVC
+- Finds the matching MinGW compiler from Qt/Tools
+- Configures the correct build environment
+- Handles all Qt deployment
+
+**Alternative: Bash script (Git Bash/MSYS2):**
 
 ```bash
 ./build_and_deploy.sh
 ```
 
-The script searches for Qt installations in this order:
+Both scripts search for Qt installations in this order:
 1. `$HOME/Qt/<version>/mingw*` (MinGW first)
 2. `$HOME/Qt/<version>/msvc*` (MSVC fallback)
 3. `C:/Qt/<version>/mingw*` (MinGW first)

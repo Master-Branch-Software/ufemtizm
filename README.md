@@ -66,16 +66,22 @@ sudo apt-get install -f  # Install any missing dependencies
 
 The easiest way to build is using the automated script:
 
+**Linux/macOS:**
 ```bash
 ./build_and_deploy.sh
 ```
 
-This script automatically:
-- Detects your operating system
-- Finds your Qt installation
-- Builds the application
-- Deploys Qt dependencies
-- Creates a platform-specific installer
+**Windows (PowerShell):**
+```powershell
+.\build_and_deploy.ps1
+```
+
+These scripts automatically:
+- Detect your operating system
+- Find your Qt installation (preferring MinGW on Windows)
+- Build the application
+- Deploy Qt dependencies
+- Create a platform-specific installer
 
 ### Manual Build
 
@@ -135,7 +141,10 @@ UnfuckMyTimeZoneMath/
 ├── CMakeLists.txt                    # Cross-platform build configuration
 ├── README.md                         # This file
 ├── BUILD.md                          # Detailed build instructions
-├── build_and_deploy.sh               # Automated build script
+├── MINGW_BUILD.md                    # MinGW-specific build instructions
+├── build_and_deploy.sh               # Automated build script (Linux/macOS)
+├── build_and_deploy.ps1              # Automated build script (Windows)
+├── mingw-toolchain.cmake             # MinGW cross-compilation toolchain
 ├── main.cpp                          # Application entry point
 ├── mainwindow.h/cpp                  # Main window implementation
 ├── timezonewidget.h/cpp              # Time zone widget implementation
