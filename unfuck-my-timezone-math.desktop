@@ -4,6 +4,6 @@ Type=Application
 Name=Unfuck My TimeZone Math
 Comment=Convert times between different timezones
 Exec=UnfuckMyTimeZoneMath
-Icon=preferences-system-time
+Icon=unfuck-my-timezone-math
 Terminal=false
 Categories=Utility;Qt;
