@@ -179,6 +179,7 @@ void MainWindow::addTimeZoneWidget()
     connect(widget, &TimeZoneWidget::timeChanged, this, &MainWindow::onTimeChanged);
     connect(widget, &TimeZoneWidget::removeRequested, this, &MainWindow::removeTimeZoneWidget);
     connect(widget, &TimeZoneWidget::widgetModified, this, &MainWindow::onWidgetModified);
+    connect(widget, &TimeZoneWidget::dropReceived, this, &MainWindow::onWidgetDropped);
     
     if (!timeZoneWidgets.isEmpty())
     {
@@ -517,6 +518,7 @@ bool MainWindow::loadFromFile(const QString &filename)
                 connect(widget, &TimeZoneWidget::timeChanged, this, &MainWindow::onTimeChanged);
                 connect(widget, &TimeZoneWidget::removeRequested, this, &MainWindow::removeTimeZoneWidget);
                 connect(widget, &TimeZoneWidget::widgetModified, this, &MainWindow::onWidgetModified);
+                connect(widget, &TimeZoneWidget::dropReceived, this, &MainWindow::onWidgetDropped);
                 
                 timeZoneWidgets.append(widget);
                 centralWidget->layout()->addWidget(widget);
@@ -550,6 +552,7 @@ bool MainWindow::loadFromFile(const QString &filename)
         connect(widget, &TimeZoneWidget::timeChanged, this, &MainWindow::onTimeChanged);
         connect(widget, &TimeZoneWidget::removeRequested, this, &MainWindow::removeTimeZoneWidget);
         connect(widget, &TimeZoneWidget::widgetModified, this, &MainWindow::onWidgetModified);
+        connect(widget, &TimeZoneWidget::dropReceived, this, &MainWindow::onWidgetDropped);
         
         timeZoneWidgets.append(widget);
         centralWidget->layout()->addWidget(widget);
@@ -687,4 +690,31 @@ void MainWindow::showAboutDialog()
         "}"
     );
     aboutBox.exec();
+}
+
+void MainWindow::onWidgetDropped(TimeZoneWidget *target, TimeZoneWidget *source)
+{
+    int sourceIndex = timeZoneWidgets.indexOf(source);
+    int targetIndex = timeZoneWidgets.indexOf(target);
+
+    if (sourceIndex == -1 || targetIndex == -1 || sourceIndex == targetIndex)
+    {
+        return;
+    }
+
+    QHBoxLayout *layout = qobject_cast<QHBoxLayout*>(centralWidget->layout());
+
+    if (!layout)
+    {
+        return;
+    }
+
+    layout->removeWidget(source);
+    timeZoneWidgets.move(sourceIndex, targetIndex);
+    layout->insertWidget(targetIndex, source);
+
+    isDirty = true;
+    updateWindowTitle();
+    
+    statusBar()->showMessage("Widget reordered", 2000);
 }
