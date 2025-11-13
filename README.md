@@ -58,7 +58,13 @@ sudo apt-get install -f  # Install any missing dependencies
 
 1. Download and run the `.exe` installer
 2. Follow the installation wizard
-3. Launch from Start Menu
+3. The installer will:
+   - Install the application to `C:\Program Files\UnfuckMyTimeZoneMath`
+   - Create a Start Menu shortcut
+   - Bundle all required Qt dependencies
+4. Launch from Start Menu or desktop shortcut
+
+**Note**: NSIS (Nullsoft Scriptable Install System) is required to create the Windows installer. If NSIS is not installed, the build script will create a ZIP package instead.
 
 ## Building from Source
 

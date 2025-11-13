@@ -70,13 +70,18 @@ endif()
 
 # CPack configuration
 set(CPACK_PACKAGE_NAME "unfuck-my-timezone-math")
-set(CPACK_PACKAGE_VERSION "1.0.0")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 set(CPACK_PACKAGE_VENDOR "Ray")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A Qt-based timezone conversion utility")
 set(CPACK_PACKAGE_DESCRIPTION
     "UnfuckMyTimeZoneMath is a Qt6-based application for converting times between different timezones."
 )
 set(CPACK_PACKAGE_CONTACT "ray@example.com")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "UnfuckMyTimeZoneMath")
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/LICENSE")
+  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+endif()
 
 if(APPLE)
   set(CPACK_GENERATOR "DragNDrop")
@@ -87,10 +92,19 @@ elseif(WIN32)
   set(CPACK_GENERATOR "NSIS;ZIP")
   set(CPACK_NSIS_DISPLAY_NAME "Unfuck My TimeZone Math")
   set(CPACK_NSIS_PACKAGE_NAME "UnfuckMyTimeZoneMath")
+  set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\UnfuckMyTimeZoneMath.exe")
   set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
-  set(CPACK_NSIS_MODIFY_PATH ON)
-  set(CPACK_NSIS_MUI_ICON "")
-  set(CPACK_NSIS_MUI_UNIICON "")
+  set(CPACK_NSIS_MODIFY_PATH OFF)
+  set(CPACK_NSIS_MUI_FINISHPAGE_RUN "UnfuckMyTimeZoneMath.exe")
+  set(CPACK_NSIS_CREATE_ICONS_EXTRA
+      "CreateShortCut '$SMPROGRAMS\\$STARTMENU_FOLDER\\Unfuck My TimeZone Math.lnk' '$INSTDIR\\bin\\UnfuckMyTimeZoneMath.exe'")
+  set(CPACK_NSIS_DELETE_ICONS_EXTRA
+      "Delete '$SMPROGRAMS\\$START_MENU\\Unfuck My TimeZone Math.lnk'")
+  set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/RayParkerBassPlayer/UnfuckMyTimeZoneMath")
+  set(CPACK_NSIS_CONTACT "ray@example.com")
+  set(CPACK_NSIS_EXECUTABLES_DIRECTORY "bin")
+  set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/icon.png")
+  set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/icon.png")
 else()
   set(CPACK_GENERATOR "DEB")
   set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Ray")
