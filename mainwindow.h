@@ -30,6 +30,7 @@ private slots:
     void removeTimeZoneWidget(TimeZoneWidget *widget);
     void onTimeChanged(qint64 baseTimestamp);
     void onWidgetModified();
+    void showAboutDialog();
 
 private:
     void setupMenuBar();

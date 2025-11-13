@@ -153,6 +153,13 @@ void MainWindow::setupMenuBar()
     exitAction->setStatusTip("Exit the application");
     connect(exitAction, &QAction::triggered, this, &QWidget::close);
     
+    QMenu *helpMenu = menuBar()->addMenu("&Help");
+    
+    QAction *aboutAction = helpMenu->addAction("&About");
+    aboutAction->setToolTip("About this application");
+    aboutAction->setStatusTip("About this application");
+    connect(aboutAction, &QAction::triggered, this, &MainWindow::showAboutDialog);
+    
     statusBar()->setStyleSheet(
         "QStatusBar {"
         "    background-color: #ffffff;"
@@ -647,4 +654,36 @@ void MainWindow::restoreWindowGeometry()
         QPoint pos = settings.value("windowPosition").toPoint();
         move(pos);
     }
+}
+
+void MainWindow::showAboutDialog()
+{
+    QMessageBox aboutBox(this);
+    aboutBox.setWindowTitle("About UnfuckMyTimeZoneMath");
+    aboutBox.setTextFormat(Qt::RichText);
+    aboutBox.setText(
+        "<h2>UnfuckMyTimeZoneMath</h2>"
+        "<p>A handy utility to help teams figure out time zone math when trying to schedule meetings and stuff.</p>"
+        "<p>Visualize and synchronize times across multiple time zones with ease.</p>"
+        "<p><a href='https://github.com/RayParkerBassPlayer/UnfuckMyTimeZoneMath'>github.com/RayParkerBassPlayer/UnfuckMyTimeZoneMath</a></p>"
+    );
+    aboutBox.setIcon(QMessageBox::Information);
+    aboutBox.setStandardButtons(QMessageBox::Ok);
+    aboutBox.setStyleSheet(
+        "QMessageBox {"
+        "    background-color: #ffffff;"
+        "}"
+        "QPushButton {"
+        "    background-color: #f5f5f5;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 4px;"
+        "    padding: 6px 16px;"
+        "    min-width: 70px;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #e3f2fd;"
+        "    border: 1px solid #2196f3;"
+        "}"
+    );
+    aboutBox.exec();
 }
