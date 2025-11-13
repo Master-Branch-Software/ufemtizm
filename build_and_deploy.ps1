@@ -87,7 +87,11 @@ function Find-MinGWCompiler {
 }
 
 function Get-ProcessorCount {
-    return $env:NUMBER_OF_PROCESSORS
+    $count = $env:NUMBER_OF_PROCESSORS
+    if ([string]::IsNullOrEmpty($count) -or $count -le 0) {
+        return 4  # Default fallback
+    }
+    return $count
 }
 
 # Main script
@@ -168,9 +172,10 @@ try {
     # Build
     Write-Host "==> Building application..." -ForegroundColor Cyan
     $cpuCount = Get-ProcessorCount
+    Write-Host "Using $cpuCount parallel jobs" -ForegroundColor Gray
     
     if ($usingMinGW) {
-        mingw32-make -j$cpuCount
+        mingw32-make -j $cpuCount
     }
     else {
         cmake --build . --config $BuildType -j $cpuCount
