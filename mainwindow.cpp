@@ -13,8 +13,6 @@
 #include <QTextStream>
 #include <QFileInfo>
 #include <QCloseEvent>
-#include <QIcon>
-#include <QStandardPaths>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -56,18 +54,6 @@ MainWindow::MainWindow(QWidget *parent)
         "    margin: 4px 8px;"
         "}"
     );
-    
-    QIcon icon = QIcon::fromTheme("unfuck-my-timezone-math");
-    
-    if (icon.isNull())
-    {
-        icon = QIcon("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png");
-    }
-    
-    if (!icon.isNull())
-    {
-        setWindowIcon(icon);
-    }
     
     setupMenuBar();
     
