@@ -133,9 +133,19 @@ mkdir -p "$BUILD_DIR"
 
 echo "==> Configuring with CMake..."
 cd "$BUILD_DIR"
-cmake -DCMAKE_PREFIX_PATH="$QT_PATH" \
-      -DCMAKE_BUILD_TYPE=Release \
-      ..
+
+# Determine CMake generator based on OS and Qt installation
+if [[ "$OS" == "windows" && "$QT_PATH" == *"mingw"* ]]; then
+    # Force MinGW Makefiles generator when using MinGW Qt
+    cmake -DCMAKE_PREFIX_PATH="$QT_PATH" \
+          -G "MinGW Makefiles" \
+          -DCMAKE_BUILD_TYPE=Release \
+          ..
+else
+    cmake -DCMAKE_PREFIX_PATH="$QT_PATH" \
+          -DCMAKE_BUILD_TYPE=Release \
+          ..
+fi
 
 echo "==> Building application..."
 CPU_COUNT=$(get_cpu_count "$OS")
