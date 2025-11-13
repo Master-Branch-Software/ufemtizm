@@ -197,9 +197,45 @@ try {
     # Create installer
     Write-Host "==> Creating installer..." -ForegroundColor Cyan
     
-    # Check if NSIS is available
+    # Check if Qt Installer Framework is available
+    $binarycreatorPath = Get-Command binarycreator -ErrorAction SilentlyContinue
+    if (-not $binarycreatorPath) {
+        # Look for binarycreator in Qt installation
+        $ifwPaths = @(
+            "${foundQtPath}/../../../Tools/QtInstallerFramework/*/bin/binarycreator.exe",
+            "C:\Qt\Tools\QtInstallerFramework\*/bin\binarycreator.exe",
+            "$env:USERPROFILE\Qt\Tools\QtInstallerFramework\*/bin\binarycreator.exe"
+        )
+        
+        foreach ($pattern in $ifwPaths) {
+            $found = Get-ChildItem $pattern -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($found) {
+                $binarycreatorPath = $found
+                $env:PATH = "$(Split-Path $binarycreatorPath);$env:PATH"
+                break
+            }
+        }
+    }
+    
+    # Try Qt Installer Framework first
+    if ($binarycreatorPath) {
+        Write-Host "Creating Qt IFW installer..." -ForegroundColor Gray
+        cpack -G IFW -C $BuildType
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Qt IFW installer created successfully!" -ForegroundColor Green
+        }
+        else {
+            Write-Host "Qt IFW packaging failed, trying NSIS..." -ForegroundColor Yellow
+        }
+    }
+    else {
+        Write-Host "Qt Installer Framework not found, trying NSIS..." -ForegroundColor Yellow
+    }
+    
+    # Check if NSIS is available (fallback)
     $nsisPath = Get-Command makensis -ErrorAction SilentlyContinue
-    if (-not $nsisPath) {
+    if (-not $nsisPath -and $LASTEXITCODE -ne 0) {
         Write-Host "NSIS not found. Attempting to install NSIS..." -ForegroundColor Yellow
         
         # Try winget first (Windows 10/11)
@@ -238,21 +274,19 @@ try {
         }
     }
     
-    # Try to create NSIS installer
-    if ($nsisPath) {
+    # Try to create NSIS installer (if IFW failed)
+    if ($nsisPath -and $LASTEXITCODE -ne 0) {
         Write-Host "Creating NSIS installer..." -ForegroundColor Gray
         cpack -G NSIS -C $BuildType
         
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "NSIS packaging failed, creating ZIP instead..." -ForegroundColor Yellow
-            cpack -G ZIP -C $BuildType
-        }
-        else {
+        if ($LASTEXITCODE -eq 0) {
             Write-Host "NSIS installer created successfully!" -ForegroundColor Green
         }
     }
-    else {
-        Write-Host "Creating ZIP package (NSIS not available)..." -ForegroundColor Yellow
+    
+    # Final fallback: create ZIP if both IFW and NSIS failed
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Creating ZIP package as fallback..." -ForegroundColor Yellow
         cpack -G ZIP -C $BuildType
     }
     

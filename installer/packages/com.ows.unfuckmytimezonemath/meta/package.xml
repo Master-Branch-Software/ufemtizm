@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package>
+    <DisplayName>Unfuck My TimeZone Math</DisplayName>
+    <Description>A Qt6 application for visualizing and synchronizing times across multiple time zones.</Description>
+    <Version>1.0.0</Version>
+    <ReleaseDate>2025-01-13</ReleaseDate>
+    <Licenses>
+        <License name="MIT License" file="license.txt" />
+    </Licenses>
+    <Default>true</Default>
+    <Script>installscript.qs</Script>
+</Package>
