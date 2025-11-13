@@ -49,6 +49,23 @@ install(
   RUNTIME DESTINATION bin
   BUNDLE DESTINATION .)
 
+# Bundle Qt runtime into the install tree on Windows so CPack includes it
+if(WIN32)
+  # Try to locate windeployqt (relative to Qt6_DIR is typical)
+  find_program(WINDEPLOYQT_EXECUTABLE
+    NAMES windeployqt windeployqt6
+    HINTS "${Qt6_DIR}/../../../bin"
+  )
+  if(WINDEPLOYQT_EXECUTABLE)
+    file(TO_CMAKE_PATH "${CMAKE_INSTALL_PREFIX}" _install_prefix_cmake)
+    set(_app_exe "${_install_prefix_cmake}/bin/UnfuckMyTimeZoneMath.exe")
+    # Run windeployqt at install time to stage Qt DLLs and plugins next to the exe
+    install(CODE "execute_process(COMMAND \"${WINDEPLOYQT_EXECUTABLE}\" --release \"${_app_exe}\")")
+  else()
+    message(WARNING "windeployqt not found. Qt runtime will not be bundled by CPack.")
+  endif()
+endif()
+
 # Install desktop file and icon for Linux
 if(UNIX AND NOT APPLE)
   install(FILES ${CMAKE_SOURCE_DIR}/unfuck-my-timezone-math.desktop
@@ -99,12 +116,13 @@ elseif(WIN32)
   set(CPACK_NSIS_CREATE_ICONS_EXTRA
       "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Unfuck My TimeZone Math.lnk' '$INSTDIR\\\\bin\\\\UnfuckMyTimeZoneMath.exe'")
   set(CPACK_NSIS_DELETE_ICONS_EXTRA
-      "Delete '$SMPROGRAMS\\\\$START_MENU\\\\Unfuck My TimeZone Math.lnk'")
+      "Delete '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Unfuck My TimeZone Math.lnk'")
   set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/RayParkerBassPlayer/UnfuckMyTimeZoneMath")
   set(CPACK_NSIS_CONTACT "ray@example.com")
   set(CPACK_NSIS_EXECUTABLES_DIRECTORY "bin")
-  set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/icon.png")
-  set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/icon.png")
+  # Optional: provide .ico files for installer icons. Leave empty if not available.
+  set(CPACK_NSIS_MUI_ICON "")
+  set(CPACK_NSIS_MUI_UNIICON "")
 else()
   set(CPACK_GENERATOR "DEB")
   set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Ray")

@@ -185,20 +185,13 @@ try {
         throw "Build failed"
     }
     
-    # Deploy Qt dependencies
-    Write-Host "==> Deploying Qt dependencies..." -ForegroundColor Cyan
-    $windeployqt = Join-Path $foundQtPath "bin\windeployqt.exe"
-    $exePath = if ($usingMinGW) { "$AppName.exe" } else { "$BuildType\$AppName.exe" }
+    # Install to staging directory (this runs windeployqt via CMake install scripts)
+    Write-Host "==> Installing to staging directory..." -ForegroundColor Cyan
+    $installDir = "$PWD\install_staging"
+    cmake --install . --prefix "$installDir" --config $BuildType
     
-    if (Test-Path $windeployqt) {
-        & $windeployqt --release $exePath
-        
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "Warning: windeployqt failed" -ForegroundColor Yellow
-        }
-    }
-    else {
-        Write-Host "Warning: windeployqt not found at $windeployqt" -ForegroundColor Yellow
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Warning: Install step had issues, but continuing..." -ForegroundColor Yellow
     }
     
     # Create installer
@@ -234,7 +227,9 @@ try {
     Write-Host ""
     Write-Host "==> Build and deployment complete!" -ForegroundColor Green
     Write-Host ""
+    $exePath = if ($usingMinGW) { "$AppName.exe" } else { "$BuildType\$AppName.exe" }
     Write-Host "Executable: $BuildDir\$exePath" -ForegroundColor Cyan
+    Write-Host "Staging Dir: $BuildDir\install_staging" -ForegroundColor Cyan
     Write-Host "Installers: $InstallerDir\" -ForegroundColor Cyan
     
     if (Test-Path $InstallerDir) {
