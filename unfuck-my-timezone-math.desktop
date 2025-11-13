@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Unfuck My TimeZone Math
+Comment=Convert times between different timezones
+Exec=UnfuckMyTimeZoneMath
+Icon=preferences-system-time
+Terminal=false
+Categories=Utility;Qt;
