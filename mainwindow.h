@@ -31,6 +31,8 @@ private slots:
     void onTimeChanged(qint64 baseTimestamp);
     void onWidgetModified();
     void showAboutDialog();
+    void onWidgetDropped(TimeZoneWidget *target, TimeZoneWidget *source);
+    void setToCurrentTime();
 
 private:
     void setupMenuBar();

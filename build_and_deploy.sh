@@ -3,16 +3,26 @@
 set -e
 
 APP_NAME="UnfuckMyTimeZoneMath"
+BUNDLE_NAME="Unfuck My Time Zone Math"
 BUILD_DIR="build"
 INSTALLER_DIR="installers"
+
+# Extract project version from CMakeLists.txt so artifacts can be versioned
+PROJECT_VERSION=$(grep -E '^project\(' CMakeLists.txt 2>/dev/null | \
+    sed -E 's/.*VERSION[ ]+([^ ]+).*/\1/' )
+
+# Default DMG filename (used on macOS)
+if [[ -n "$PROJECT_VERSION" ]]; then
+    DMG_FILENAME="${BUNDLE_NAME}-${PROJECT_VERSION}.dmg"
+else
+    DMG_FILENAME="${BUNDLE_NAME}.dmg"
+fi
 
 detect_os() {
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         echo "linux"
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         echo "macos"
-    elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
-        echo "windows"
     else
         echo "unknown"
     fi
@@ -38,43 +48,42 @@ find_qt_path() {
         fi
     elif [[ "$os" == "linux" ]]; then
         # Prefer system Qt6 for better compatibility with installed packages
-        if command -v qmake6 &> /dev/null; then
-            local qt_path=$(qmake6 -query QT_INSTALL_PREFIX)
+        # 1. Try qtpaths6 (preferred on many distros)
+        if command -v qtpaths6 &> /dev/null; then
+            local qt_path=$(qtpaths6 --install-prefix 2>/dev/null || qtpaths6 --query QT_INSTALL_PREFIX 2>/dev/null)
             if [[ -n "$qt_path" && -d "$qt_path" ]]; then
                 echo "$qt_path"
                 return
             fi
         fi
-        if [[ -d "$HOME/Qt" ]]; then
-            QT_VERSION=$(ls -1 "$HOME/Qt" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
-            if [[ -n "$QT_VERSION" && -d "$HOME/Qt/$QT_VERSION/gcc_64" ]]; then
-                echo "$HOME/Qt/$QT_VERSION/gcc_64"
+
+        # 2. Fallback to qmake6 if available
+        if command -v qmake6 &> /dev/null; then
+            local qt_path=$(qmake6 -query QT_INSTALL_PREFIX 2>/dev/null)
+            if [[ -n "$qt_path" && -d "$qt_path" ]]; then
+                echo "$qt_path"
                 return
             fi
         fi
-    elif [[ "$os" == "windows" ]]; then
-        if [[ -d "$HOME/Qt" ]]; then
-            QT_VERSION=$(ls -1 "$HOME/Qt" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
-            if [[ -n "$QT_VERSION" ]]; then
-                for compiler_dir in "$HOME/Qt/$QT_VERSION"/*; do
-                    if [[ -d "$compiler_dir" && $(basename "$compiler_dir") =~ ^(mingw|msvc) ]]; then
-                        echo "$compiler_dir"
-                        return
-                    fi
-                done
+
+        # 3. Look for Qt6 CMake packages in common system prefixes
+        for prefix in /usr /usr/local; do
+            if [[ -d "$prefix/lib/cmake/Qt6" || -d "$prefix/lib64/cmake/Qt6" || -d "$prefix/lib/x86_64-linux-gnu/cmake/Qt6" ]]; then
+                echo "$prefix"
+                return
             fi
-        fi
-        if [[ -d "C:/Qt" ]]; then
-            QT_VERSION=$(ls -1 "C:/Qt" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
-            if [[ -n "$QT_VERSION" ]]; then
-                for compiler_dir in "C:/Qt/$QT_VERSION"/*; do
-                    if [[ -d "$compiler_dir" && $(basename "$compiler_dir") =~ ^(mingw|msvc) ]]; then
-                        echo "$compiler_dir"
-                        return
-                    fi
-                done
+        done
+
+        # 4. Fallback to Qt Online Installer layout under $HOME/Qt or /opt/Qt
+        for base in "$HOME/Qt" "/opt/Qt"; do
+            if [[ -d "$base" ]]; then
+                QT_VERSION=$(ls -1 "$base" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+                if [[ -n "$QT_VERSION" && -d "$base/$QT_VERSION/gcc_64" ]]; then
+                    echo "$base/$QT_VERSION/gcc_64"
+                    return
+                fi
             fi
-        fi
+        done
     fi
     
     echo ""
@@ -101,10 +110,17 @@ if [[ "$OS" == "unknown" ]]; then
     exit 1
 fi
 
-QT_PATH=$(find_qt_path "$OS")
+# If QT_PATH is already defined in the environment and points to a valid directory,
+# respect it and do not override it with auto-detection.
+if [[ -n "$QT_PATH" && -d "$QT_PATH" ]]; then
+    echo "==> Using Qt from QT_PATH environment variable: $QT_PATH"
+else
+    QT_PATH=$(find_qt_path "$OS")
+fi
+
 if [[ -z "$QT_PATH" ]]; then
     echo "Error: Could not find Qt installation"
-    echo "Please set QT_PATH environment variable or install Qt"
+    echo "Please set QT_PATH environment variable or install Qt6 development packages"
     exit 1
 fi
 
@@ -116,6 +132,8 @@ mkdir -p "$BUILD_DIR"
 
 echo "==> Configuring with CMake..."
 cd "$BUILD_DIR"
+
+# Determine CMake generator based on OS and Qt installation
 cmake -DCMAKE_PREFIX_PATH="$QT_PATH" \
       -DCMAKE_BUILD_TYPE=Release \
       ..
@@ -125,11 +143,29 @@ CPU_COUNT=$(get_cpu_count "$OS")
 cmake --build . --config Release -j"$CPU_COUNT"
 
 if [[ "$OS" == "macos" ]]; then
-    echo "==> Deploying Qt dependencies (macOS)..."
-    "$QT_PATH/bin/macdeployqt" "$APP_NAME.app" -verbose=1
-    
-    echo "==> Creating DMG installer..."
-    cpack -G DragNDrop
+    echo "==> Ensuring app bundle has icon..."
+    if [[ -f "../icon.icns" ]]; then
+        mkdir -p "$BUNDLE_NAME.app/Contents/Resources"
+        cp "../icon.icns" "$BUNDLE_NAME.app/Contents/Resources/icon.icns"
+    fi
+
+    echo "==> Deploying Qt dependencies (macOS via macdeployqt)..."
+    # Deploy Qt frameworks and plugins into the .app bundle
+    "$QT_PATH/bin/macdeployqt" "$BUNDLE_NAME.app" -verbose=1
+
+    echo "==> Creating DMG with Applications link..."
+    DMG_ROOT_DIR="dmg_root"
+    rm -rf "$DMG_ROOT_DIR"
+    mkdir -p "$DMG_ROOT_DIR"
+
+    # Copy app bundle into DMG root
+    cp -R "$BUNDLE_NAME.app" "$DMG_ROOT_DIR/"
+
+    # Add /Applications symlink for drag-and-drop install UX
+    ln -s /Applications "$DMG_ROOT_DIR/Applications" 2>/dev/null || true
+
+    # Create the compressed DMG (contents: app bundle + Applications link)
+    hdiutil create -volname "Unfuck My TimeZone Math" -srcfolder "$DMG_ROOT_DIR" -ov -format UDZO "$DMG_FILENAME"
     
     echo "==> Copying installer to $INSTALLER_DIR directory..."
     cd ..
@@ -138,20 +174,63 @@ if [[ "$OS" == "macos" ]]; then
     
     echo "==> Build and deployment complete!"
     echo ""
-    echo "Application bundle: $BUILD_DIR/$APP_NAME.app"
+    echo "Application bundle: $BUILD_DIR/$BUNDLE_NAME.app"
     echo "DMG installer: $INSTALLER_DIR/"
     ls -lh "$INSTALLER_DIR"/*.dmg 2>/dev/null || echo "No DMG found"
     
 elif [[ "$OS" == "linux" ]]; then
-    echo "==> Deploying Qt dependencies (Linux)..."
-    if command -v linuxdeployqt &> /dev/null; then
-        linuxdeployqt "$APP_NAME" -verbose=1
-    else
-        echo "Note: linuxdeployqt not found. Skipping deployment."
-        echo "Install from: https://github.com/probonopd/linuxdeployqt"
+    echo "==> Bundling Qt dependencies..."
+    
+    # Prepare Qt libraries directory
+    QT_LIBS_DIR="$PWD/qt_deploy"
+    rm -rf "$QT_LIBS_DIR"
+    mkdir -p "$QT_LIBS_DIR/lib"
+    mkdir -p "$QT_LIBS_DIR/plugins/platforms"
+    
+    # Copy Qt libraries that the app depends on
+    QT_LIBS=$(ldd "$APP_NAME" | grep -E 'libQt6|libicu' | awk '{print $3}' | grep -v '^$')
+    for lib in $QT_LIBS; do
+        if [[ -f "$lib" ]]; then
+            cp -L "$lib" "$QT_LIBS_DIR/lib/"
+        fi
+    done
+    
+    # Copy Qt plugins
+    if [[ -f "$QT_PATH/plugins/platforms/libqxcb.so" ]]; then
+        cp "$QT_PATH/plugins/platforms/libqxcb.so" "$QT_LIBS_DIR/plugins/platforms/"
+        # Copy xcb plugin dependencies
+        XCB_LIBS=$(ldd "$QT_PATH/plugins/platforms/libqxcb.so" | grep -E 'libQt6' | awk '{print $3}' | grep -v '^$')
+        for lib in $XCB_LIBS; do
+            if [[ -f "$lib" ]]; then
+                cp -L "$lib" "$QT_LIBS_DIR/lib/" 2>/dev/null || true
+            fi
+        done
     fi
     
-    echo "==> Creating DEB package..."
+    # Set RPATH on all Qt libraries
+    for lib in "$QT_LIBS_DIR/lib/"*.so*; do
+        if [[ -f "$lib" ]]; then
+            patchelf --set-rpath '$ORIGIN' "$lib" 2>/dev/null || true
+        fi
+    done
+    
+    # Set RPATH on Qt plugins
+    for plugin in "$QT_LIBS_DIR/plugins/platforms/"*.so; do
+        if [[ -f "$plugin" ]]; then
+            patchelf --set-rpath '$ORIGIN/../../lib' "$plugin" 2>/dev/null || true
+        fi
+    done
+    
+    # Create wrapper script
+    mkdir -p "$QT_LIBS_DIR/wrapper"
+    cat > "$QT_LIBS_DIR/wrapper/$APP_NAME" << 'WRAPPER_EOF'
+#!/bin/bash
+export QT_PLUGIN_PATH="/usr/lib/UnfuckMyTimeZoneMath/plugins"
+exec "/usr/lib/UnfuckMyTimeZoneMath/UnfuckMyTimeZoneMath.bin" "$@"
+WRAPPER_EOF
+    chmod +x "$QT_LIBS_DIR/wrapper/$APP_NAME"
+    
+    echo "==> Creating DEB package with CPack..."
     cpack -G DEB
     
     echo "==> Copying installer to $INSTALLER_DIR directory..."
@@ -171,27 +250,4 @@ elif [[ "$OS" == "linux" ]]; then
     echo "  sudo gtk-update-icon-cache -f -t /usr/share/icons/hicolor"
     echo "  sudo update-desktop-database /usr/share/applications"
     
-elif [[ "$OS" == "windows" ]]; then
-    echo "==> Deploying Qt dependencies (Windows)..."
-    "$QT_PATH/bin/windeployqt.exe" --release "$APP_NAME.exe"
-    
-    echo "==> Creating NSIS installer..."
-    if command -v makensis &> /dev/null; then
-        cpack -G NSIS
-    else
-        echo "Note: NSIS not found. Creating ZIP package instead."
-        cpack -G ZIP
-    fi
-    
-    echo "==> Copying installer to $INSTALLER_DIR directory..."
-    cd ..
-    mkdir -p "$INSTALLER_DIR"
-    cp "$BUILD_DIR"/*.exe "$INSTALLER_DIR/" 2>/dev/null
-    cp "$BUILD_DIR"/*.zip "$INSTALLER_DIR/" 2>/dev/null
-    
-    echo "==> Build and deployment complete!"
-    echo ""
-    echo "Executable: $BUILD_DIR/$APP_NAME.exe"
-    echo "Installer: $INSTALLER_DIR/"
-    ls -lh "$INSTALLER_DIR"/*.exe "$INSTALLER_DIR"/*.zip 2>/dev/null || echo "No installer found"
 fi

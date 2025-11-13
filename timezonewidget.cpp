@@ -2,6 +2,9 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFrame>
+#include <QDrag>
+#include <QMimeData>
+#include <QApplication>
 #include <algorithm>
 
 TimeZoneWidget::TimeZoneWidget(QWidget *parent)
@@ -9,7 +12,8 @@ TimeZoneWidget::TimeZoneWidget(QWidget *parent)
       baseTimestamp(QDateTime::currentSecsSinceEpoch()),
       currentTimeZone(QTimeZone::systemTimeZone()),
       is24HourFormat(true),
-      updatingInternally(false)
+      updatingInternally(false),
+      dropIndicator(nullptr)
 {
     setupUI();
     populateTimeZones();
@@ -22,11 +26,22 @@ void TimeZoneWidget::setupUI()
     setMinimumWidth(240);
     setMaximumWidth(280);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+    setAcceptDrops(true);
     
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(8, 8, 8, 8);
     
-    QFrame *frame = new QFrame();
+    dropIndicator = new QFrame(this);
+    dropIndicator->setFixedWidth(4);
+    dropIndicator->setStyleSheet(
+        "QFrame {"
+        "    background-color: #2196f3;"
+        "    border-radius: 2px;"
+        "}"
+    );
+    dropIndicator->hide();
+    
+    frame = new QFrame();
     frame->setObjectName("timeZoneCard");
     frame->setStyleSheet(
         "QFrame#timeZoneCard {"
@@ -583,4 +598,139 @@ void TimeZoneWidget::updateSliderLabels()
         
         hourLabels[hour]->setText(label);
     }
+}
+
+void TimeZoneWidget::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton)
+    {
+        dragStartPosition = event->pos();
+    }
+
+    QWidget::mousePressEvent(event);
+}
+
+void TimeZoneWidget::mouseMoveEvent(QMouseEvent *event)
+{
+    if (!(event->buttons() & Qt::LeftButton))
+    {
+        QWidget::mouseMoveEvent(event);
+        return;
+    }
+
+    if ((event->pos() - dragStartPosition).manhattanLength() < QApplication::startDragDistance())
+    {
+        QWidget::mouseMoveEvent(event);
+        return;
+    }
+
+    QDrag *drag = new QDrag(this);
+    QMimeData *mimeData = new QMimeData();
+    
+    mimeData->setData("application/x-timezonewidget", QByteArray::number(reinterpret_cast<quintptr>(this)));
+    drag->setMimeData(mimeData);
+    
+    frame->setStyleSheet(
+        "QFrame#timeZoneCard {"
+        "    background-color: #ffffff;"
+        "    border: 2px dashed #2196f3;"
+        "    border-radius: 12px;"
+        "    padding: 0px;"
+        "    opacity: 0.5;"
+        "}"
+    );
+    
+    emit dragStarted(this);
+    
+    drag->exec(Qt::MoveAction);
+    
+    frame->setStyleSheet(
+        "QFrame#timeZoneCard {"
+        "    background-color: #ffffff;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 12px;"
+        "    padding: 0px;"
+        "}"
+    );
+}
+
+void TimeZoneWidget::dragEnterEvent(QDragEnterEvent *event)
+{
+    if (event->mimeData()->hasFormat("application/x-timezonewidget"))
+    {
+        TimeZoneWidget *source = reinterpret_cast<TimeZoneWidget*>(event->mimeData()->data("application/x-timezonewidget").toULongLong());
+        
+        if (source != this)
+        {
+            event->acceptProposedAction();
+            showDropIndicator(event->position().toPoint());
+        }
+    }
+}
+
+void TimeZoneWidget::dragMoveEvent(QDragMoveEvent *event)
+{
+    if (event->mimeData()->hasFormat("application/x-timezonewidget"))
+    {
+        TimeZoneWidget *source = reinterpret_cast<TimeZoneWidget*>(event->mimeData()->data("application/x-timezonewidget").toULongLong());
+        
+        if (source != this)
+        {
+            event->acceptProposedAction();
+            showDropIndicator(event->position().toPoint());
+        }
+    }
+}
+
+void TimeZoneWidget::dragLeaveEvent(QDragLeaveEvent *event)
+{
+    Q_UNUSED(event);
+    hideDropIndicator();
+}
+
+void TimeZoneWidget::dropEvent(QDropEvent *event)
+{
+    hideDropIndicator();
+    
+    if (event->mimeData()->hasFormat("application/x-timezonewidget"))
+    {
+        TimeZoneWidget *source = reinterpret_cast<TimeZoneWidget*>(event->mimeData()->data("application/x-timezonewidget").toULongLong());
+        
+        if (source != this)
+        {
+            emit dropReceived(this, source);
+            event->acceptProposedAction();
+        }
+    }
+
+    frame->setStyleSheet(
+        "QFrame#timeZoneCard {"
+        "    background-color: #ffffff;"
+        "    border: 1px solid #e0e0e0;"
+        "    border-radius: 12px;"
+        "    padding: 0px;"
+        "}"
+    );
+}
+
+void TimeZoneWidget::showDropIndicator(const QPoint &pos)
+{
+    int widgetCenter = width() / 2;
+    
+    if (pos.x() < widgetCenter)
+    {
+        dropIndicator->setGeometry(-2, 0, 4, height());
+    }
+    else
+    {
+        dropIndicator->setGeometry(width() - 2, 0, 4, height());
+    }
+
+    dropIndicator->raise();
+    dropIndicator->show();
+}
+
+void TimeZoneWidget::hideDropIndicator()
+{
+    dropIndicator->hide();
 }

@@ -76,6 +76,7 @@ int main(int argc, char *argv[])
     app.setStyleSheet(appStyleSheet);
     
     MainWindow window;
+    window.setWindowIcon(QIcon(":/icons/icon.png"));
     window.show();
     
     return app.exec();

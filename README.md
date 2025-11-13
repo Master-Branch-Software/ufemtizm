@@ -27,7 +27,9 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
 - Platform-specific tools:
   - **macOS**: Xcode Command Line Tools
   - **Linux**: build-essential, dpkg
-  - **Windows**: Visual Studio 2019+ or MinGW
+  - **Windows**: MinGW-w64 (preferred) or Visual Studio 2019+
+
+**Note**: For detailed MinGW setup and build instructions, see **[MINGW_BUILD.md](MINGW_BUILD.md)**.
 
 ## Quick Installation
 
@@ -56,7 +58,13 @@ sudo apt-get install -f  # Install any missing dependencies
 
 1. Download and run the `.exe` installer
 2. Follow the installation wizard
-3. Launch from Start Menu
+3. The installer will:
+   - Install the application to `C:\Program Files\UnfuckMyTimeZoneMath`
+   - Create a Start Menu shortcut
+   - Bundle all required Qt dependencies
+4. Launch from Start Menu or desktop shortcut
+
+**Note**: NSIS (Nullsoft Scriptable Install System) is required to create the Windows installer. If NSIS is not installed, the build script will create a ZIP package instead.
 
 ## Building from Source
 
@@ -64,16 +72,22 @@ sudo apt-get install -f  # Install any missing dependencies
 
 The easiest way to build is using the automated script:
 
+**Linux/macOS:**
 ```bash
 ./build_and_deploy.sh
 ```
 
-This script automatically:
-- Detects your operating system
-- Finds your Qt installation
-- Builds the application
-- Deploys Qt dependencies
-- Creates a platform-specific installer
+**Windows (PowerShell):**
+```powershell
+.\build_and_deploy.ps1
+```
+
+These scripts automatically:
+- Detect your operating system
+- Find your Qt installation (preferring MinGW on Windows)
+- Build the application
+- Deploy Qt dependencies
+- Create a platform-specific installer
 
 ### Manual Build
 
@@ -133,7 +147,10 @@ UnfuckMyTimeZoneMath/
 ├── CMakeLists.txt                    # Cross-platform build configuration
 ├── README.md                         # This file
 ├── BUILD.md                          # Detailed build instructions
-├── build_and_deploy.sh               # Automated build script
+├── MINGW_BUILD.md                    # MinGW-specific build instructions
+├── build_and_deploy.sh               # Automated build script (Linux/macOS)
+├── build_and_deploy.ps1              # Automated build script (Windows)
+├── mingw-toolchain.cmake             # MinGW cross-compilation toolchain
 ├── main.cpp                          # Application entry point
 ├── mainwindow.h/cpp                  # Main window implementation
 ├── timezonewidget.h/cpp              # Time zone widget implementation
