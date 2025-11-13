@@ -37,6 +37,14 @@ find_qt_path() {
             fi
         fi
     elif [[ "$os" == "linux" ]]; then
+        # Prefer system Qt6 for better compatibility with installed packages
+        if command -v qmake6 &> /dev/null; then
+            local qt_path=$(qmake6 -query QT_INSTALL_PREFIX)
+            if [[ -n "$qt_path" && -d "$qt_path" ]]; then
+                echo "$qt_path"
+                return
+            fi
+        fi
         if [[ -d "$HOME/Qt" ]]; then
             QT_VERSION=$(ls -1 "$HOME/Qt" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
             if [[ -n "$QT_VERSION" && -d "$HOME/Qt/$QT_VERSION/gcc_64" ]]; then
@@ -156,6 +164,12 @@ elif [[ "$OS" == "linux" ]]; then
     echo "Executable: $BUILD_DIR/$APP_NAME"
     echo "DEB package: $INSTALLER_DIR/"
     ls -lh "$INSTALLER_DIR"/*.deb 2>/dev/null || echo "No DEB found"
+    echo ""
+    echo "To install the DEB package:"
+    echo "  sudo dpkg -i $INSTALLER_DIR/*.deb"
+    echo "To update icon cache manually (if needed):"
+    echo "  sudo gtk-update-icon-cache -f -t /usr/share/icons/hicolor"
+    echo "  sudo update-desktop-database /usr/share/applications"
     
 elif [[ "$OS" == "windows" ]]; then
     echo "==> Deploying Qt dependencies (Windows)..."

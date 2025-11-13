@@ -55,11 +55,20 @@ install(TARGETS UnfuckMyTimeZoneMath
 
 # Install desktop file and icon for Linux
 if(UNIX AND NOT APPLE)
-    install(FILES unfuck-my-timezone-math.desktop
+    install(FILES ${CMAKE_SOURCE_DIR}/unfuck-my-timezone-math.desktop
         DESTINATION share/applications
     )
-    install(FILES icon.png
+    install(FILES ${CMAKE_SOURCE_DIR}/icon.png
         DESTINATION share/icons/hicolor/256x256/apps
+        RENAME unfuck-my-timezone-math.png
+    )
+    # Install smaller icon sizes for better system integration
+    install(FILES ${CMAKE_SOURCE_DIR}/icon.png
+        DESTINATION share/icons/hicolor/128x128/apps
+        RENAME unfuck-my-timezone-math.png
+    )
+    install(FILES ${CMAKE_SOURCE_DIR}/icon.png
+        DESTINATION share/icons/hicolor/48x48/apps
         RENAME unfuck-my-timezone-math.png
     )
 endif()
@@ -91,6 +100,7 @@ else()
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "qt6-base, libc6")
     set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
     set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+    set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/postinst")
 endif()
 
 include(CPack)
