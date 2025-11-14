@@ -7,6 +7,12 @@
 
 int main(int argc, char *argv[])
 {
+    // Fix cursor size scaling issue on Linux - only set if not already defined
+    if (qEnvironmentVariableIsEmpty("XCURSOR_SIZE"))
+    {
+        qputenv("XCURSOR_SIZE", "24");
+    }
+    
     QApplication app(argc, argv);
     
     QString serverName = "UnfuckMyTimeZoneMath_SingleInstance";
