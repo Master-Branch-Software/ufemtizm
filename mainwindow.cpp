@@ -25,6 +25,7 @@
 #include <QApplication>
 #include <QWindow>
 #include <QClipboard>
+#include <QCursor>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -1207,21 +1208,9 @@ void MainWindow::showSettings()
 
 void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
 {
-    switch (reason)
+    if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick)
     {
-    case QSystemTrayIcon::Trigger:
         toggleWindowVisibility();
-        break;
-    case QSystemTrayIcon::DoubleClick:
-        setWindowState(Qt::WindowNoState);
-        showNormal();
-        raise();
-        activateWindow();
-        break;
-    case QSystemTrayIcon::Context:
-        break;
-    default:
-        break;
     }
 }
 
@@ -1283,7 +1272,7 @@ void MainWindow::updateTrayMenu()
     
     trayMenu->clear();
     
-    QAction *showAction = trayMenu->addAction("💻 Show/Hide");
+    QAction *showAction = trayMenu->addAction("💻 Show/Hide (Double-click tray icon)");
     connect(showAction, &QAction::triggered, this, &MainWindow::toggleWindowVisibility);
     
     trayMenu->addSeparator();

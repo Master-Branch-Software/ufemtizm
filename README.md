@@ -5,6 +5,7 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
 ## Features
 
 - **Vertical time sliders** representing 24 hours with 15-minute intervals for intuitive time selection
+  - Sliders fill from the bottom to visually indicate time progression
 - **Editable friendly names** for each time zone widget (e.g., "Home", "Office", "Client")
 - **Clear day and time display** showing both day and time (e.g., "Wed, 12:00a")
 - **Comprehensive time zone selection** with dropdown containing all available time zones
@@ -12,6 +13,9 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
 - **Multiple time zone widgets** - add as many as you need
 - **Synchronized sliders** - moving any slider updates all others automatically
 - **Day offset display** showing relative day differences between zones (e.g., "+1 day", "-1 day")
+- **System tray integration** - minimize to tray for quick access
+  - Double-click tray icon to show/hide window
+  - Right-click for context menu with recent files and quick actions
 
 ## Supported Platforms
 

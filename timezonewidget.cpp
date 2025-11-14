@@ -114,6 +114,8 @@ void TimeZoneWidget::setupUI()
     timeSlider->setTickPosition(QSlider::TicksRight);
     timeSlider->setTickInterval(4);
     timeSlider->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    timeSlider->setInvertedAppearance(true);
+    timeSlider->setInvertedControls(true);
     timeSlider->setStyleSheet(
         "QSlider::groove:vertical {"
         "    background: #e0e0e0;"
@@ -132,7 +134,7 @@ void TimeZoneWidget::setupUI()
         "    background: #1976d2;"
         "    border: 2px solid #0d47a1;"
         "}"
-        "QSlider::sub-page:vertical {"
+        "QSlider::add-page:vertical {"
         "    background: #2196f3;"
         "    border-radius: 2px;"
         "}"
