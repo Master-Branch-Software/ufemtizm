@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "timezonewidget.h"
+#include "settingsdialog.h"
 #include "version.h"
 #include <QMenuBar>
 #include <QStatusBar>
@@ -16,10 +17,23 @@
 #include <QCloseEvent>
 #include <QIcon>
 #include <QToolBar>
+#include <QSystemTrayIcon>
+#include <QEvent>
+#include <QTimer>
+#include <QLocalServer>
+#include <QLocalSocket>
+#include <QApplication>
+#include <QWindow>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
-      isDirty(false)
+      isDirty(false),
+      trayIcon(nullptr),
+      trayMenu(nullptr),
+      trayRecentFilesMenu(nullptr),
+      settingsDialog(nullptr),
+      localServer(nullptr),
+      forceQuit(false)
 {
     setStyleSheet(
         "QMainWindow {"
@@ -71,6 +85,58 @@ MainWindow::MainWindow(QWidget *parent)
     setupMenuBar();
     setupToolBar();
     
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    
+    localServer = new QLocalServer(this);
+    QString serverName = "UnfuckMyTimeZoneMath_SingleInstance";
+    QLocalServer::removeServer(serverName);
+    if (localServer->listen(serverName))
+    {
+        connect(localServer, &QLocalServer::newConnection, this, &MainWindow::handleNewConnection);
+    }
+    
+    if (QSystemTrayIcon::isSystemTrayAvailable())
+    {
+        trayIcon = new QSystemTrayIcon(this);
+        trayMenu = new QMenu(this);
+        
+        QIcon trayIconImage(":/icons/icon.png");
+        
+        if (trayIconImage.isNull() && QFile::exists("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png"))
+        {
+            trayIconImage = QIcon("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png");
+        }
+        
+        if (trayIconImage.isNull())
+        {
+            trayIconImage = QIcon::fromTheme("unfuck-my-timezone-math");
+        }
+        
+        if (trayIconImage.isNull())
+        {
+            trayIconImage = QIcon::fromTheme("preferences-system");
+        }
+        
+        if (trayIconImage.isNull())
+        {
+            trayIconImage = QIcon::fromTheme("application-x-executable");
+        }
+        
+        trayIcon->setIcon(trayIconImage);
+        trayIcon->setToolTip("UnfuckMyTimeZoneMath");
+        
+        connect(trayIcon, &QSystemTrayIcon::activated, this, &MainWindow::onTrayIconActivated);
+        
+        updateTrayMenu();
+        trayIcon->show();
+    }
+    else
+    {
+        qWarning("System tray is not available on this system");
+    }
+    
+    setAttribute(Qt::WA_QuitOnClose, false);
+    
     centralWidget = new QWidget();
     QHBoxLayout *layout = new QHBoxLayout(centralWidget);
     layout->setAlignment(Qt::AlignLeft);
@@ -101,6 +167,7 @@ MainWindow::MainWindow(QWidget *parent)
                                 QString("The last opened file was not found:\n%1\n\nStarting with a new file.").arg(lastFile));
         }
     }
+    
 }
 
 MainWindow::~MainWindow()
@@ -158,11 +225,18 @@ void MainWindow::setupMenuBar()
     
     fileMenu->addSeparator();
     
+    QAction *settingsAction = fileMenu->addAction("⚙️ &Settings...");
+    settingsAction->setToolTip("Configure application settings");
+    settingsAction->setStatusTip("Configure application settings");
+    connect(settingsAction, &QAction::triggered, this, &MainWindow::showSettings);
+    
+    fileMenu->addSeparator();
+    
     QAction *exitAction = fileMenu->addAction("&Quit");
     exitAction->setShortcut(QKeySequence::Quit);
     exitAction->setToolTip("Exit the application");
     exitAction->setStatusTip("Exit the application");
-    connect(exitAction, &QAction::triggered, this, &QWidget::close);
+    connect(exitAction, &QAction::triggered, this, &MainWindow::quitApplication);
     
     QMenu *viewMenu = menuBar()->addMenu("&View");
     
@@ -262,6 +336,14 @@ void MainWindow::setupToolBar()
     
     toolBar->addSeparator();
     
+    QAction *settingsToolBarAction = toolBar->addAction("⚙️ Settings");
+    settingsToolBarAction->setToolTip("Configure application settings");
+    settingsToolBarAction->setStatusTip("Configure application settings");
+    connect(settingsToolBarAction, &QAction::triggered, this, &MainWindow::showSettings);
+    mainToolBarActions.append(settingsToolBarAction);
+    
+    toolBar->addSeparator();
+    
     toolBarTextToggleAction = toolBar->addAction("🔤");
     toolBarTextToggleAction->setCheckable(true);
     toolBarTextToggleAction->setChecked(true);
@@ -287,6 +369,7 @@ void MainWindow::setupToolBar()
         mainToolBarActions[2]->setText("💾");
         mainToolBarActions[3]->setText("➕");
         mainToolBarActions[4]->setText("🕐");
+        mainToolBarActions[5]->setText("⚙️");
         toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
     else
@@ -379,6 +462,16 @@ void MainWindow::onWidgetModified()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    bool closeToTray = settings.value("systemTray/closeToTray", true).toBool();
+    
+    if (!forceQuit && closeToTray && trayIcon && trayIcon->isVisible())
+    {
+        hide();
+        event->ignore();
+        return;
+    }
+    
     if (maybeSave())
     {
         saveWindowGeometry();
@@ -388,6 +481,24 @@ void MainWindow::closeEvent(QCloseEvent *event)
     {
         event->ignore();
     }
+}
+
+void MainWindow::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::WindowStateChange)
+    {
+        QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+        bool minimizeToTray = settings.value("systemTray/minimizeToTray", true).toBool();
+        
+        if (isMinimized() && minimizeToTray && trayIcon && trayIcon->isVisible())
+        {
+            QTimer::singleShot(0, this, &QWidget::hide);
+            event->ignore();
+            return;
+        }
+    }
+    
+    QMainWindow::changeEvent(event);
 }
 
 void MainWindow::newFile()
@@ -645,6 +756,8 @@ void MainWindow::updateRecentFilesMenu()
             connect(action, &QAction::triggered, this, &MainWindow::openRecentFile);
         }
     }
+    
+    updateTrayMenu();
 }
 
 bool MainWindow::maybeSave()
@@ -1029,6 +1142,7 @@ void MainWindow::toggleToolBarTextVisibility()
         mainToolBarActions[2]->setText("💾 Save");
         mainToolBarActions[3]->setText("➕ Add Zone");
         mainToolBarActions[4]->setText("🕐 Current Time");
+        mainToolBarActions[5]->setText("⚙️ Settings");
         toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     }
     else
@@ -1038,6 +1152,7 @@ void MainWindow::toggleToolBarTextVisibility()
         mainToolBarActions[2]->setText("💾");
         mainToolBarActions[3]->setText("➕");
         mainToolBarActions[4]->setText("🕐");
+        mainToolBarActions[5]->setText("⚙️");
         toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
     
@@ -1057,5 +1172,155 @@ void MainWindow::toggleToolBarTextVisibility()
     adjustWindowSize();
     
     statusBar()->showMessage((showText ? "Toolbar text shown" : "Toolbar text hidden"), 2000);
+}
+
+void MainWindow::showSettings()
+{
+    if (!settingsDialog)
+    {
+        settingsDialog = new SettingsDialog(this);
+    }
+    
+    if (settingsDialog->exec() == QDialog::Accepted)
+    {
+        statusBar()->showMessage("Settings updated", 2000);
+    }
+}
+
+void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
+{
+    switch (reason)
+    {
+    case QSystemTrayIcon::Trigger:
+        toggleWindowVisibility();
+        break;
+    case QSystemTrayIcon::DoubleClick:
+        setWindowState(Qt::WindowNoState);
+        showNormal();
+        raise();
+        activateWindow();
+        break;
+    case QSystemTrayIcon::Context:
+        break;
+    default:
+        break;
+    }
+}
+
+void MainWindow::toggleWindowVisibility()
+{
+    QTimer::singleShot(0, this, [this]() {
+        if (isVisible())
+        {
+            hide();
+        }
+        else
+        {
+            setWindowState(Qt::WindowNoState);
+            showNormal();
+            raise();
+            activateWindow();
+        }
+    });
+}
+
+void MainWindow::quitApplication()
+{
+    forceQuit = true;
+    
+    if (localServer)
+    {
+        localServer->close();
+    }
+    
+    QApplication::quit();
+}
+
+void MainWindow::openRecentFileFromTray()
+{
+    QAction *action = qobject_cast<QAction*>(sender());
+    
+    if (action)
+    {
+        setWindowState(Qt::WindowNoState);
+        showNormal();
+        raise();
+        activateWindow();
+        
+        if (!maybeSave())
+        {
+            return;
+        }
+        
+        loadFromFile(action->data().toString());
+    }
+}
+
+void MainWindow::updateTrayMenu()
+{
+    if (!trayMenu || !trayIcon)
+    {
+        return;
+    }
+    
+    trayMenu->clear();
+    
+    QAction *showAction = trayMenu->addAction("💻 Show/Hide");
+    connect(showAction, &QAction::triggered, this, &MainWindow::toggleWindowVisibility);
+    
+    trayMenu->addSeparator();
+    
+    trayRecentFilesMenu = trayMenu->addMenu("📂 Recent Files");
+    
+    QStringList recentFiles = getRecentFiles();
+    
+    if (recentFiles.isEmpty())
+    {
+        QAction *noFilesAction = trayRecentFilesMenu->addAction("No Recent Files");
+        noFilesAction->setEnabled(false);
+    }
+    else
+    {
+        for (const QString &filename : recentFiles)
+        {
+            QFileInfo fileInfo(filename);
+            QString displayName = fileInfo.completeBaseName();
+            QAction *action = trayRecentFilesMenu->addAction(displayName);
+            action->setData(filename);
+            connect(action, &QAction::triggered, this, &MainWindow::openRecentFileFromTray);
+        }
+    }
+    
+    trayMenu->addSeparator();
+    
+    QAction *newAction = trayMenu->addAction("📄 New");
+    connect(newAction, &QAction::triggered, this, &MainWindow::newFile);
+    
+    QAction *openAction = trayMenu->addAction("📂 Open...");
+    connect(openAction, &QAction::triggered, this, &MainWindow::openFile);
+    
+    QAction *settingsAction = trayMenu->addAction("⚙️ Settings...");
+    connect(settingsAction, &QAction::triggered, this, &MainWindow::showSettings);
+    
+    trayMenu->addSeparator();
+    
+    QAction *quitAction = trayMenu->addAction("❌ Quit");
+    connect(quitAction, &QAction::triggered, this, &MainWindow::quitApplication);
+    
+    trayIcon->setContextMenu(trayMenu);
+}
+
+void MainWindow::handleNewConnection()
+{
+    QLocalSocket *socket = localServer->nextPendingConnection();
+    if (socket)
+    {
+        socket->deleteLater();
+        
+        setWindowState(Qt::WindowNoState);
+        showNormal();
+        raise();
+        activateWindow();
+    }
 }
 

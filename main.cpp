@@ -1,10 +1,22 @@
 #include "mainwindow.h"
 #include <QApplication>
 #include <QStyleFactory>
+#include <QLocalSocket>
+#include <QMessageBox>
+#include <QSettings>
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    
+    QString serverName = "UnfuckMyTimeZoneMath_SingleInstance";
+    QLocalSocket socket;
+    socket.connectToServer(serverName);
+    
+    if (socket.waitForConnected(500))
+    {
+        return 0;
+    }
     
     app.setStyle(QStyleFactory::create("Fusion"));
     
@@ -77,7 +89,14 @@ int main(int argc, char *argv[])
     
     MainWindow window;
     window.setWindowIcon(QIcon(":/icons/icon.png"));
-    window.show();
+    
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    bool startMinimized = settings.value("systemTray/startMinimized", false).toBool();
+    
+    if (!startMinimized)
+    {
+        window.show();
+    }
     
     return app.exec();
 }

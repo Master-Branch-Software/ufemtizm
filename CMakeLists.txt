@@ -10,7 +10,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network)
 qt_standard_project_setup()
 configure_file(${CMAKE_SOURCE_DIR}/version.h.in ${CMAKE_BINARY_DIR}/version.h
                @ONLY)
@@ -18,11 +18,12 @@ if(WIN32)
   add_executable(
     UnfuckMyTimeZoneMath WIN32
     main.cpp mainwindow.h mainwindow.cpp timezonewidget.h timezonewidget.cpp
-    resources.qrc)
+    settingsdialog.h settingsdialog.cpp resources.qrc)
 elseif(APPLE)
   add_executable(
     UnfuckMyTimeZoneMath MACOSX_BUNDLE main.cpp mainwindow.h mainwindow.cpp
-                                       timezonewidget.h timezonewidget.cpp)
+                                       timezonewidget.h timezonewidget.cpp
+                                       settingsdialog.h settingsdialog.cpp)
   set_target_properties(
     UnfuckMyTimeZoneMath
     PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Unfuck My Time Zone Math"
@@ -35,11 +36,12 @@ elseif(APPLE)
 else()
   add_executable(
     UnfuckMyTimeZoneMath main.cpp mainwindow.h mainwindow.cpp timezonewidget.h
-                         timezonewidget.cpp resources.qrc)
+                         timezonewidget.cpp settingsdialog.h settingsdialog.cpp
+                         resources.qrc)
 endif()
 
 target_include_directories(UnfuckMyTimeZoneMath PRIVATE ${CMAKE_BINARY_DIR})
-target_link_libraries(UnfuckMyTimeZoneMath PRIVATE Qt6::Core Qt6::Widgets)
+target_link_libraries(UnfuckMyTimeZoneMath PRIVATE Qt6::Core Qt6::Widgets Qt6::Network)
 
 if(UNIX AND NOT APPLE)
   set_target_properties(

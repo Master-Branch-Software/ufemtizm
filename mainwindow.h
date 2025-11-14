@@ -5,10 +5,14 @@
 #include <QVector>
 #include <QString>
 #include <QStringList>
+#include <QSystemTrayIcon>
 
 class TimeZoneWidget;
 class QMenu;
 class QToolBar;
+class QSystemTrayIcon;
+class SettingsDialog;
+class QLocalServer;
 
 class MainWindow : public QMainWindow
 {
@@ -20,6 +24,7 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
+    void changeEvent(QEvent *event) override;
 
 private slots:
     void newFile();
@@ -36,6 +41,13 @@ private slots:
     void setToCurrentTime();
     void toggleToolBarVisibility();
     void toggleToolBarTextVisibility();
+    void showSettings();
+    void onTrayIconActivated(QSystemTrayIcon::ActivationReason reason);
+    void toggleWindowVisibility();
+    void quitApplication();
+    void openRecentFileFromTray();
+    void updateTrayMenu();
+    void handleNewConnection();
 
 private:
     void setupMenuBar();
@@ -64,6 +76,13 @@ private:
     QList<QAction*> mainToolBarActions;
     QString currentFilename;
     bool isDirty;
+    
+    QSystemTrayIcon *trayIcon;
+    QMenu *trayMenu;
+    QMenu *trayRecentFilesMenu;
+    SettingsDialog *settingsDialog;
+    QLocalServer *localServer;
+    bool forceQuit;
 };
 
 #endif // MAINWINDOW_H
