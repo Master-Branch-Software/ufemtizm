@@ -149,8 +149,8 @@ void MainWindow::setupMenuBar()
     fileMenu->addSeparator();
     
     QAction *currentTimeAction = fileMenu->addAction("🕐 Set to Current Time");
-    currentTimeAction->setShortcut(QKeySequence("Ctrl+N"));
-    currentTimeAction->setToolTip("Set all timezones to current time (Ctrl+N)");
+    currentTimeAction->setShortcut(QKeySequence("Alt+T"));
+    currentTimeAction->setToolTip("Set all timezones to current time (Alt+T)");
     currentTimeAction->setStatusTip("Set all timezones to current time");
     connect(currentTimeAction, &QAction::triggered, this, &MainWindow::setToCurrentTime);
     
