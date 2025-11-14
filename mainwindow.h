@@ -8,6 +8,7 @@
 
 class TimeZoneWidget;
 class QMenu;
+class QToolBar;
 
 class MainWindow : public QMainWindow
 {
@@ -33,9 +34,12 @@ private slots:
     void showAboutDialog();
     void onWidgetDropped(TimeZoneWidget *target, TimeZoneWidget *source);
     void setToCurrentTime();
+    void toggleToolBarVisibility();
+    void toggleToolBarTextVisibility();
 
 private:
     void setupMenuBar();
+    void setupToolBar();
     void updateAllWidgets(qint64 baseTimestamp, TimeZoneWidget *source);
     void updateWindowTitle();
     void updateRecentFilesMenu();
@@ -52,6 +56,12 @@ private:
     QWidget *centralWidget;
     QVector<TimeZoneWidget*> timeZoneWidgets;
     QMenu *recentFilesMenu;
+    QToolBar *toolBar;
+    QAction *toggleToolBarAction;
+    QAction *toggleToolBarTextAction;
+    QAction *toolBarTextToggleAction;
+    QAction *toolBarHideAction;
+    QList<QAction*> mainToolBarActions;
     QString currentFilename;
     bool isDirty;
 };

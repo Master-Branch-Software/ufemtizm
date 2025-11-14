@@ -15,6 +15,7 @@
 #include <QFileInfo>
 #include <QCloseEvent>
 #include <QIcon>
+#include <QToolBar>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -68,6 +69,7 @@ MainWindow::MainWindow(QWidget *parent)
     }
     
     setupMenuBar();
+    setupToolBar();
     
     centralWidget = new QWidget();
     QHBoxLayout *layout = new QHBoxLayout(centralWidget);
@@ -162,6 +164,22 @@ void MainWindow::setupMenuBar()
     exitAction->setStatusTip("Exit the application");
     connect(exitAction, &QAction::triggered, this, &QWidget::close);
     
+    QMenu *viewMenu = menuBar()->addMenu("&View");
+    
+    toggleToolBarAction = viewMenu->addAction("Show &Toolbar");
+    toggleToolBarAction->setCheckable(true);
+    toggleToolBarAction->setChecked(true);
+    toggleToolBarAction->setToolTip("Toggle toolbar visibility");
+    toggleToolBarAction->setStatusTip("Toggle toolbar visibility");
+    connect(toggleToolBarAction, &QAction::triggered, this, &MainWindow::toggleToolBarVisibility);
+    
+    toggleToolBarTextAction = viewMenu->addAction("Show Toolbar &Text");
+    toggleToolBarTextAction->setCheckable(true);
+    toggleToolBarTextAction->setChecked(true);
+    toggleToolBarTextAction->setToolTip("Toggle toolbar text labels");
+    toggleToolBarTextAction->setStatusTip("Toggle toolbar text labels");
+    connect(toggleToolBarTextAction, &QAction::triggered, this, &MainWindow::toggleToolBarTextVisibility);
+    
     QMenu *helpMenu = menuBar()->addMenu("&Help");
     
     QAction *aboutAction = helpMenu->addAction("&About");
@@ -178,6 +196,118 @@ void MainWindow::setupMenuBar()
         "}"
     );
     statusBar()->showMessage("Ready");
+}
+
+void MainWindow::setupToolBar()
+{
+    toolBar = addToolBar("Main Toolbar");
+    toolBar->setObjectName("MainToolBar");
+    toolBar->setMovable(false);
+    toolBar->setIconSize(QSize(22, 22));
+    toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    toolBar->setStyleSheet(
+        "QToolBar {"
+        "    background-color: #ffffff;"
+        "    border-bottom: 1px solid #e0e0e0;"
+        "    spacing: 4px;"
+        "    padding: 4px;"
+        "}"
+        "QToolButton {"
+        "    background-color: transparent;"
+        "    border: 1px solid transparent;"
+        "    border-radius: 4px;"
+        "    padding: 6px;"
+        "    margin: 2px;"
+        "}"
+        "QToolButton:hover {"
+        "    background-color: #e3f2fd;"
+        "    border: 1px solid #2196f3;"
+        "}"
+        "QToolButton:pressed {"
+        "    background-color: #bbdefb;"
+        "}"
+    );
+    
+    QAction *newAction = toolBar->addAction("📄 New");
+    newAction->setToolTip("Create a new timezone configuration (Ctrl+N)");
+    newAction->setStatusTip("Create a new timezone configuration");
+    connect(newAction, &QAction::triggered, this, &MainWindow::newFile);
+    mainToolBarActions.append(newAction);
+    
+    QAction *openAction = toolBar->addAction("📂 Open");
+    openAction->setToolTip("Open an existing timezone configuration (Ctrl+O)");
+    openAction->setStatusTip("Open an existing timezone configuration");
+    connect(openAction, &QAction::triggered, this, &MainWindow::openFile);
+    mainToolBarActions.append(openAction);
+    
+    QAction *saveAction = toolBar->addAction("💾 Save");
+    saveAction->setToolTip("Save the current configuration (Ctrl+S)");
+    saveAction->setStatusTip("Save the current configuration");
+    connect(saveAction, &QAction::triggered, this, &MainWindow::saveFile);
+    mainToolBarActions.append(saveAction);
+    
+    toolBar->addSeparator();
+    
+    QAction *addAction = toolBar->addAction("➕ Add Zone");
+    addAction->setToolTip("Add a new timezone widget (Ctrl+T)");
+    addAction->setStatusTip("Add a new timezone widget");
+    connect(addAction, &QAction::triggered, this, &MainWindow::addTimeZoneWidget);
+    mainToolBarActions.append(addAction);
+    
+    QAction *currentTimeAction = toolBar->addAction("🕐 Current Time");
+    currentTimeAction->setToolTip("Set all timezones to current time (Alt+T)");
+    currentTimeAction->setStatusTip("Set all timezones to current time");
+    connect(currentTimeAction, &QAction::triggered, this, &MainWindow::setToCurrentTime);
+    mainToolBarActions.append(currentTimeAction);
+    
+    toolBar->addSeparator();
+    
+    toolBarTextToggleAction = toolBar->addAction("🔤");
+    toolBarTextToggleAction->setCheckable(true);
+    toolBarTextToggleAction->setChecked(true);
+    toolBarTextToggleAction->setToolTip("Toggle toolbar text labels");
+    toolBarTextToggleAction->setStatusTip("Toggle toolbar text labels");
+    connect(toolBarTextToggleAction, &QAction::triggered, this, &MainWindow::toggleToolBarTextVisibility);
+    
+    toolBarHideAction = toolBar->addAction("✖️");
+    toolBarHideAction->setToolTip("Hide toolbar");
+    toolBarHideAction->setStatusTip("Hide toolbar");
+    connect(toolBarHideAction, &QAction::triggered, this, &MainWindow::toggleToolBarVisibility);
+    
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    bool toolBarVisible = settings.value("toolBarVisible", true).toBool();
+    toolBar->setVisible(toolBarVisible);
+    
+    bool toolBarTextVisible = settings.value("toolBarTextVisible", true).toBool();
+    
+    if (!toolBarTextVisible)
+    {
+        mainToolBarActions[0]->setText("📄");
+        mainToolBarActions[1]->setText("📂");
+        mainToolBarActions[2]->setText("💾");
+        mainToolBarActions[3]->setText("➕");
+        mainToolBarActions[4]->setText("🕐");
+        toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    }
+    else
+    {
+        toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    }
+    
+    if (toggleToolBarAction)
+    {
+        toggleToolBarAction->setChecked(toolBarVisible);
+    }
+    
+    if (toggleToolBarTextAction)
+    {
+        toggleToolBarTextAction->setChecked(toolBarTextVisible);
+    }
+    
+    if (toolBarTextToggleAction)
+    {
+        toolBarTextToggleAction->setChecked(toolBarTextVisible);
+    }
 }
 
 void MainWindow::addTimeZoneWidget()
@@ -772,9 +902,15 @@ void MainWindow::adjustWindowSize()
     int margins = 32;
     
     int totalWidth = (widgetWidth * widgetCount) + (spacing * (widgetCount - 1)) + margins;
-    int minHeight = 700;
+    int contentHeight = 700;
     
-    setFixedSize(totalWidth, minHeight);
+    int menuBarHeight = menuBar()->height();
+    int toolBarHeight = toolBar->isVisible() ? toolBar->height() : 0;
+    int statusBarHeight = statusBar()->height();
+    
+    int totalHeight = contentHeight + menuBarHeight + toolBarHeight + statusBarHeight;
+    
+    setFixedSize(totalWidth, totalHeight);
 }
 
 void MainWindow::saveWindowGeometry()
@@ -863,3 +999,63 @@ void MainWindow::setToCurrentTime()
         statusBar()->showMessage("Set to current time", 2000);
     }
 }
+
+void MainWindow::toggleToolBarVisibility()
+{
+    bool isVisible = toolBar->isVisible();
+    toolBar->setVisible(!isVisible);
+    
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    settings.setValue("toolBarVisible", !isVisible);
+    
+    if (toggleToolBarAction)
+    {
+        toggleToolBarAction->setChecked(!isVisible);
+    }
+    
+    adjustWindowSize();
+    
+    statusBar()->showMessage((!isVisible ? "Toolbar shown" : "Toolbar hidden"), 2000);
+}
+
+void MainWindow::toggleToolBarTextVisibility()
+{
+    bool showText = toolBarTextToggleAction->isChecked();
+    
+    if (showText)
+    {
+        mainToolBarActions[0]->setText("📄 New");
+        mainToolBarActions[1]->setText("📂 Open");
+        mainToolBarActions[2]->setText("💾 Save");
+        mainToolBarActions[3]->setText("➕ Add Zone");
+        mainToolBarActions[4]->setText("🕐 Current Time");
+        toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    }
+    else
+    {
+        mainToolBarActions[0]->setText("📄");
+        mainToolBarActions[1]->setText("📂");
+        mainToolBarActions[2]->setText("💾");
+        mainToolBarActions[3]->setText("➕");
+        mainToolBarActions[4]->setText("🕐");
+        toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    }
+    
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    settings.setValue("toolBarTextVisible", showText);
+    
+    if (toggleToolBarTextAction)
+    {
+        toggleToolBarTextAction->setChecked(showText);
+    }
+    
+    if (toolBarTextToggleAction)
+    {
+        toolBarTextToggleAction->setChecked(showText);
+    }
+    
+    adjustWindowSize();
+    
+    statusBar()->showMessage((showText ? "Toolbar text shown" : "Toolbar text hidden"), 2000);
+}
+
