@@ -279,6 +279,8 @@ void MainWindow::newFile()
         timeZoneWidgets.first()->setFriendlyName("My Wonderful Self");
     }
     
+    adjustWindowSize();
+    
     currentFilename.clear();
     isDirty = false;
     updateWindowTitle();
@@ -528,6 +530,7 @@ bool MainWindow::maybeSave()
     msgBox.setInformativeText("Do you want to save your changes before continuing?");
     msgBox.setStandardButtons(QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
     msgBox.setDefaultButton(QMessageBox::Save);
+    msgBox.button(QMessageBox::Discard)->setText("Discard");
     msgBox.setIcon(QMessageBox::Question);
     msgBox.setStyleSheet(
         "QMessageBox {"
