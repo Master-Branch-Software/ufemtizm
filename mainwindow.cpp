@@ -24,6 +24,7 @@
 #include <QLocalSocket>
 #include <QApplication>
 #include <QWindow>
+#include <QClipboard>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -238,6 +239,14 @@ void MainWindow::setupMenuBar()
     exitAction->setStatusTip("Exit the application");
     connect(exitAction, &QAction::triggered, this, &MainWindow::quitApplication);
     
+    QMenu *editMenu = menuBar()->addMenu("&Edit");
+    
+    QAction *copyAction = editMenu->addAction("📋 &Copy");
+    copyAction->setShortcut(QKeySequence::Copy);
+    copyAction->setToolTip("Copy timezone information to clipboard (Ctrl+C)");
+    copyAction->setStatusTip("Copy timezone information to clipboard");
+    connect(copyAction, &QAction::triggered, this, &MainWindow::copyToClipboard);
+    
     QMenu *viewMenu = menuBar()->addMenu("&View");
     
     toggleToolBarAction = viewMenu->addAction("Show &Toolbar");
@@ -322,6 +331,12 @@ void MainWindow::setupToolBar()
     
     toolBar->addSeparator();
     
+    QAction *copyAction = toolBar->addAction("📋 Copy");
+    copyAction->setToolTip("Copy timezone information to clipboard (Ctrl+C)");
+    copyAction->setStatusTip("Copy timezone information to clipboard");
+    connect(copyAction, &QAction::triggered, this, &MainWindow::copyToClipboard);
+    mainToolBarActions.append(copyAction);
+    
     QAction *addAction = toolBar->addAction("➕ Add Zone");
     addAction->setToolTip("Add a new timezone widget (Ctrl+T)");
     addAction->setStatusTip("Add a new timezone widget");
@@ -367,9 +382,10 @@ void MainWindow::setupToolBar()
         mainToolBarActions[0]->setText("📄");
         mainToolBarActions[1]->setText("📂");
         mainToolBarActions[2]->setText("💾");
-        mainToolBarActions[3]->setText("➕");
-        mainToolBarActions[4]->setText("🕐");
-        mainToolBarActions[5]->setText("⚙️");
+        mainToolBarActions[3]->setText("📋");
+        mainToolBarActions[4]->setText("➕");
+        mainToolBarActions[5]->setText("🕐");
+        mainToolBarActions[6]->setText("⚙️");
         toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
     else
@@ -1140,9 +1156,10 @@ void MainWindow::toggleToolBarTextVisibility()
         mainToolBarActions[0]->setText("📄 New");
         mainToolBarActions[1]->setText("📂 Open");
         mainToolBarActions[2]->setText("💾 Save");
-        mainToolBarActions[3]->setText("➕ Add Zone");
-        mainToolBarActions[4]->setText("🕐 Current Time");
-        mainToolBarActions[5]->setText("⚙️ Settings");
+        mainToolBarActions[3]->setText("📋 Copy");
+        mainToolBarActions[4]->setText("➕ Add Zone");
+        mainToolBarActions[5]->setText("🕐 Current Time");
+        mainToolBarActions[6]->setText("⚙️ Settings");
         toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     }
     else
@@ -1150,9 +1167,10 @@ void MainWindow::toggleToolBarTextVisibility()
         mainToolBarActions[0]->setText("📄");
         mainToolBarActions[1]->setText("📂");
         mainToolBarActions[2]->setText("💾");
-        mainToolBarActions[3]->setText("➕");
-        mainToolBarActions[4]->setText("🕐");
-        mainToolBarActions[5]->setText("⚙️");
+        mainToolBarActions[3]->setText("📋");
+        mainToolBarActions[4]->setText("➕");
+        mainToolBarActions[5]->setText("🕐");
+        mainToolBarActions[6]->setText("⚙️");
         toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
     
@@ -1322,5 +1340,37 @@ void MainWindow::handleNewConnection()
         raise();
         activateWindow();
     }
+}
+
+void MainWindow::copyToClipboard()
+{
+    if (timeZoneWidgets.isEmpty())
+    {
+        return;
+    }
+    
+    QStringList clipboardLines;
+    
+    for (TimeZoneWidget *widget : timeZoneWidgets)
+    {
+        QString name = widget->getFriendlyName();
+        qint64 timestamp = widget->getBaseTimestamp();
+        QString timezoneId = widget->getTimeZoneId();
+        
+        QDateTime dateTime = QDateTime::fromSecsSinceEpoch(timestamp, QTimeZone(timezoneId.toUtf8()));
+        QString formattedTime = dateTime.toString("h:mma");
+        
+        QString line = QString("%1, %2, %3").arg(name, formattedTime, timezoneId);
+        clipboardLines.append(line);
+    }
+    
+    QString clipboardText = clipboardLines.join("\n");
+    
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setText(clipboardText);
+    
+    statusBar()->showMessage(QString("Copied %1 timezone%2 to clipboard")
+        .arg(timeZoneWidgets.size())
+        .arg(timeZoneWidgets.size() != 1 ? "s" : ""), 2000);
 }
 

@@ -48,6 +48,7 @@ private slots:
     void openRecentFileFromTray();
     void updateTrayMenu();
     void handleNewConnection();
+    void copyToClipboard();
 
 private:
     void setupMenuBar();

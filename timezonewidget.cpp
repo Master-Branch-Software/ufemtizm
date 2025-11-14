@@ -412,11 +412,9 @@ void TimeZoneWidget::updateDisplay()
     QDateTime baseDateTime = QDateTime::fromSecsSinceEpoch(baseTimestamp, QTimeZone::utc());
     QDateTime localDateTime = baseDateTime.toTimeZone(currentTimeZone);
     
-    QString dayFormat = "ddd";
     QString timeFormat = is24HourFormat ? "HH:mm" : "h:mma";
-    QString displayFormat = dayFormat + ", " + timeFormat;
     
-    dateTimeLabel->setText(localDateTime.toString(displayFormat));
+    dateTimeLabel->setText(localDateTime.toString(timeFormat));
     
     QDateTime referenceDateTime = QDateTime::fromSecsSinceEpoch(baseTimestamp, QTimeZone::utc());
     QDateTime referenceLocal = referenceDateTime.toTimeZone(QTimeZone::systemTimeZone());
