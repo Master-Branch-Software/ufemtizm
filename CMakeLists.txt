@@ -74,6 +74,11 @@ endif()
 include(GNUInstallDirs)
 include(InstallRequiredSystemLibraries)
 
+# Set install prefix to /usr instead of /usr/local for consistency with DEB package
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND UNIX AND NOT APPLE)
+  set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install path prefix" FORCE)
+endif()
+
 set(COMPONENT_NAME_MAIN "unfuckmytimezonemath")
 set(CONF_DISPLAY_NAME "Unfuck My TimeZone Math")
 set(CONF_PUBLISHER "Ray Parker & Vojtěch Gistr")

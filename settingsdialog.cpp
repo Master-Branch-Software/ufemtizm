@@ -228,7 +228,7 @@ void SettingsDialog::setupAutostart(bool enable)
             out << "Type=Application\n";
             out << "Name=Unfuck My TimeZone Math\n";
             out << "Comment=A timezone conversion utility\n";
-            out << "Exec=" << QCoreApplication::applicationFilePath() << "\n";
+            out << "Exec=UnfuckMyTimeZoneMath\n";
             out << "Icon=unfuck-my-timezone-math\n";
             out << "Terminal=false\n";
             out << "Categories=Utility;\n";

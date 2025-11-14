@@ -3,7 +3,7 @@ timezones:
     timezone: "America/New_York"
     format24hour: false
   - name: "Bert"
-    timezone: "Asia/Dhaka"
+    timezone: "Europe/Paris"
     format24hour: false
   - name: "David"
     timezone: "America/Chicago"
