@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(
   UnfuckMyTimeZoneMath
-  VERSION 1.0.2
+  VERSION 1.0.3
   LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -17,13 +17,24 @@ configure_file(${CMAKE_SOURCE_DIR}/version.h.in ${CMAKE_BINARY_DIR}/version.h
 if(WIN32)
   add_executable(
     UnfuckMyTimeZoneMath WIN32
-    main.cpp mainwindow.h mainwindow.cpp timezonewidget.h timezonewidget.cpp
-    settingsdialog.h settingsdialog.cpp resources.qrc)
+    main.cpp
+    mainwindow.h
+    mainwindow.cpp
+    timezonewidget.h
+    timezonewidget.cpp
+    settingsdialog.h
+    settingsdialog.cpp
+    resources.qrc)
 elseif(APPLE)
   add_executable(
-    UnfuckMyTimeZoneMath MACOSX_BUNDLE main.cpp mainwindow.h mainwindow.cpp
-                                       timezonewidget.h timezonewidget.cpp
-                                       settingsdialog.h settingsdialog.cpp)
+    UnfuckMyTimeZoneMath MACOSX_BUNDLE
+    main.cpp
+    mainwindow.h
+    mainwindow.cpp
+    timezonewidget.h
+    timezonewidget.cpp
+    settingsdialog.h
+    settingsdialog.cpp)
   set_target_properties(
     UnfuckMyTimeZoneMath
     PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Unfuck My Time Zone Math"
@@ -35,13 +46,20 @@ elseif(APPLE)
                "A Qt-based timezone conversion utility")
 else()
   add_executable(
-    UnfuckMyTimeZoneMath main.cpp mainwindow.h mainwindow.cpp timezonewidget.h
-                         timezonewidget.cpp settingsdialog.h settingsdialog.cpp
-                         resources.qrc)
+    UnfuckMyTimeZoneMath
+    main.cpp
+    mainwindow.h
+    mainwindow.cpp
+    timezonewidget.h
+    timezonewidget.cpp
+    settingsdialog.h
+    settingsdialog.cpp
+    resources.qrc)
 endif()
 
 target_include_directories(UnfuckMyTimeZoneMath PRIVATE ${CMAKE_BINARY_DIR})
-target_link_libraries(UnfuckMyTimeZoneMath PRIVATE Qt6::Core Qt6::Widgets Qt6::Network)
+target_link_libraries(UnfuckMyTimeZoneMath PRIVATE Qt6::Core Qt6::Widgets
+                                                   Qt6::Network)
 
 if(UNIX AND NOT APPLE)
   set_target_properties(
@@ -74,9 +92,14 @@ endif()
 include(GNUInstallDirs)
 include(InstallRequiredSystemLibraries)
 
-# Set install prefix to /usr instead of /usr/local for consistency with DEB package
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND UNIX AND NOT APPLE)
-  set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install path prefix" FORCE)
+# Set install prefix to /usr instead of /usr/local for consistency with DEB
+# package
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT
+   AND UNIX
+   AND NOT APPLE)
+  set(CMAKE_INSTALL_PREFIX
+      "/usr"
+      CACHE PATH "Install path prefix" FORCE)
 endif()
 
 set(COMPONENT_NAME_MAIN "unfuckmytimezonemath")
