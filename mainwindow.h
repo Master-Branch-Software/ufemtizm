@@ -49,6 +49,7 @@ private slots:
     void updateTrayMenu();
     void handleNewConnection();
     void copyToClipboard();
+    void initializeSystemTray();
 
 private:
     void setupMenuBar();
@@ -84,6 +85,8 @@ private:
     SettingsDialog *settingsDialog;
     QLocalServer *localServer;
     bool forceQuit;
+    QTimer *trayInitTimer;
+    int trayInitAttempts;
 };
 
 #endif // MAINWINDOW_H

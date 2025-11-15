@@ -232,7 +232,9 @@ void SettingsDialog::setupAutostart(bool enable)
             out << "Icon=unfuck-my-timezone-math\n";
             out << "Terminal=false\n";
             out << "Categories=Utility;\n";
+            out << "StartupNotify=false\n";
             out << "X-GNOME-Autostart-enabled=true\n";
+            out << "X-KDE-autostart-after=panel\n";
             desktopFile.close();
         }
     }
