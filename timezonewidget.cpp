@@ -489,12 +489,12 @@ int TimeZoneWidget::timestampToSliderValue(qint64 timestamp) const
     
     int quarterHours = (hour * 4) + (minute / 15);
     
-    return 96 - quarterHours;
+    return quarterHours;
 }
 
 qint64 TimeZoneWidget::sliderValueToTimestamp(int value) const
 {
-    int quarterHours = 96 - value;
+    int quarterHours = value;
     
     QDateTime dt = QDateTime::fromSecsSinceEpoch(baseTimestamp, currentTimeZone);
     QDate currentDate = dt.date();
