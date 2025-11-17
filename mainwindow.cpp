@@ -1309,9 +1309,11 @@ void MainWindow::copyToClipboard()
         QString name = widget->getFriendlyName();
         qint64 timestamp = widget->getBaseTimestamp();
         QString timezoneId = widget->getTimeZoneId();
+        bool is24Hour = widget->getIs24HourFormat();
         
         QDateTime dateTime = QDateTime::fromSecsSinceEpoch(timestamp, QTimeZone(timezoneId.toUtf8()));
-        QString formattedTime = dateTime.toString("h:mma");
+        QString timeFormat = is24Hour ? "HH:mm" : "h:mma";
+        QString formattedTime = dateTime.toString(timeFormat);
         
         QString line = QString("%1, %2, %3").arg(name, formattedTime, timezoneId);
         clipboardLines.append(line);
