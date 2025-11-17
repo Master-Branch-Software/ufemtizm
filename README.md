@@ -1,5 +1,7 @@
 # UnfuckMyTimeZoneMath
 
+![UnfuckMyTimeZoneMath in Action](/home/ray/Pictures/Screenshots/InAction.png)
+
 A Qt6 application for visualizing and synchronizing times across multiple time zones. Perfect for coordinating meetings, calls, or events across different geographical locations.
 
 ## Features
