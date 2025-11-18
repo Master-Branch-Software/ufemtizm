@@ -120,6 +120,11 @@ MainWindow::MainWindow(QWidget *parent)
     
     setAttribute(Qt::WA_QuitOnClose, false);
     
+    // Hide from taskbar on Windows/Linux (macOS uses LSUIElement in Info.plist)
+#if !defined(Q_OS_MACOS)
+    setWindowFlags(windowFlags() | Qt::Tool);
+#endif
+    
     centralWidget = new QWidget();
     QHBoxLayout *layout = new QHBoxLayout(centralWidget);
     layout->setAlignment(Qt::AlignLeft);
