@@ -15,6 +15,7 @@
 #include <QTextStream>
 #include <QFileInfo>
 #include <QCloseEvent>
+#include <QShowEvent>
 #include <QIcon>
 #include <QToolBar>
 #include <QSystemTrayIcon>
@@ -35,7 +36,8 @@ MainWindow::MainWindow(QWidget *parent)
       trayRecentFilesMenu(nullptr),
       settingsDialog(nullptr),
       localServer(nullptr),
-      forceQuit(false)
+      forceQuit(false),
+      initialSizeSet(false)
 {
     setStyleSheet(
         "QMainWindow {"
@@ -103,27 +105,6 @@ MainWindow::MainWindow(QWidget *parent)
         trayMenu = new QMenu(this);
         
         QIcon trayIconImage(":/icons/icon.png");
-        
-        if (trayIconImage.isNull() && QFile::exists("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png"))
-        {
-            trayIconImage = QIcon("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png");
-        }
-        
-        if (trayIconImage.isNull())
-        {
-            trayIconImage = QIcon::fromTheme("unfuck-my-timezone-math");
-        }
-        
-        if (trayIconImage.isNull())
-        {
-            trayIconImage = QIcon::fromTheme("preferences-system");
-        }
-        
-        if (trayIconImage.isNull())
-        {
-            trayIconImage = QIcon::fromTheme("application-x-executable");
-        }
-        
         trayIcon->setIcon(trayIconImage);
         trayIcon->setToolTip("UnfuckMyTimeZoneMath");
         
@@ -150,8 +131,6 @@ MainWindow::MainWindow(QWidget *parent)
     addTimeZoneWidget();
     updateWindowTitle();
     isDirty = false;
-    
-    restoreWindowGeometry();
     
     QStringList recentFiles = getRecentFiles();
     
@@ -516,6 +495,18 @@ void MainWindow::changeEvent(QEvent *event)
     }
     
     QMainWindow::changeEvent(event);
+}
+
+void MainWindow::showEvent(QShowEvent *event)
+{
+    QMainWindow::showEvent(event);
+    
+    if (!initialSizeSet)
+    {
+        initialSizeSet = true;
+        adjustWindowSize();
+        restoreWindowGeometry();
+    }
 }
 
 void MainWindow::newFile()
@@ -1208,9 +1199,10 @@ void MainWindow::showSettings()
 
 void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
 {
-    if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick)
+    // Update menu to reflect current window state when user clicks tray icon
+    if (reason == QSystemTrayIcon::Context || reason == QSystemTrayIcon::Trigger)
     {
-        toggleWindowVisibility();
+        updateTrayMenu();
     }
 }
 
@@ -1272,7 +1264,7 @@ void MainWindow::updateTrayMenu()
     
     trayMenu->clear();
     
-    QAction *showAction = trayMenu->addAction("💻 Show/Hide (Double-click tray icon)");
+    QAction *showAction = trayMenu->addAction(isVisible() ? "🙈 Hide Window" : "👁️ Show Window");
     connect(showAction, &QAction::triggered, this, &MainWindow::toggleWindowVisibility);
     
     trayMenu->addSeparator();
