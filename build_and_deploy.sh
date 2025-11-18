@@ -8,8 +8,10 @@ BUILD_DIR="build"
 INSTALLER_DIR="installers"
 
 # Extract project version from CMakeLists.txt so artifacts can be versioned
-PROJECT_VERSION=$(grep -E '^project\(' CMakeLists.txt 2>/dev/null | \
-    sed -E 's/.*VERSION[ ]+([^ ]+).*/\1/' )
+# CMakeLists.txt uses a multi-line project() definition, so search for the
+# VERSION line separately and grab the value after the keyword.
+PROJECT_VERSION=$(grep -E '^[[:space:]]*VERSION[[:space:]]+' CMakeLists.txt 2>/dev/null | \
+    sed -E 's/^[[:space:]]*VERSION[[:space:]]+([^[:space:]]+).*/\1/' )
 
 # Default DMG filename (used on macOS)
 if [[ -n "$PROJECT_VERSION" ]]; then
