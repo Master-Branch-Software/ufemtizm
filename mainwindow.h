@@ -13,6 +13,7 @@ class QToolBar;
 class QSystemTrayIcon;
 class SettingsDialog;
 class QLocalServer;
+class QTimer;
 
 class MainWindow : public QMainWindow
 {
@@ -25,6 +26,7 @@ public:
 protected:
     void closeEvent(QCloseEvent *event) override;
     void changeEvent(QEvent *event) override;
+    void showEvent(QShowEvent *event) override;
 
 private slots:
     void newFile();
@@ -85,6 +87,7 @@ private:
     SettingsDialog *settingsDialog;
     QLocalServer *localServer;
     bool forceQuit;
+    bool initialSizeSet;
     QTimer *trayInitTimer;
     int trayInitAttempts;
 };

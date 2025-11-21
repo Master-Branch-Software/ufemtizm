@@ -15,6 +15,7 @@
 #include <QTextStream>
 #include <QFileInfo>
 #include <QCloseEvent>
+#include <QShowEvent>
 #include <QIcon>
 #include <QToolBar>
 #include <QSystemTrayIcon>
@@ -36,6 +37,7 @@ MainWindow::MainWindow(QWidget *parent)
       settingsDialog(nullptr),
       localServer(nullptr),
       forceQuit(false),
+      initialSizeSet(false),
       trayInitTimer(nullptr),
       trayInitAttempts(0)
 {
@@ -103,6 +105,11 @@ MainWindow::MainWindow(QWidget *parent)
     
     setAttribute(Qt::WA_QuitOnClose, false);
     
+    // Hide from taskbar on Windows/Linux (macOS uses LSUIElement in Info.plist)
+#if !defined(Q_OS_MACOS)
+    setWindowFlags(windowFlags() | Qt::Tool);
+#endif
+    
     centralWidget = new QWidget();
     QHBoxLayout *layout = new QHBoxLayout(centralWidget);
     layout->setAlignment(Qt::AlignLeft);
@@ -114,8 +121,6 @@ MainWindow::MainWindow(QWidget *parent)
     addTimeZoneWidget();
     updateWindowTitle();
     isDirty = false;
-    
-    restoreWindowGeometry();
     
     QStringList recentFiles = getRecentFiles();
     
@@ -480,6 +485,18 @@ void MainWindow::changeEvent(QEvent *event)
     }
     
     QMainWindow::changeEvent(event);
+}
+
+void MainWindow::showEvent(QShowEvent *event)
+{
+    QMainWindow::showEvent(event);
+    
+    if (!initialSizeSet)
+    {
+        initialSizeSet = true;
+        adjustWindowSize();
+        restoreWindowGeometry();
+    }
 }
 
 void MainWindow::newFile()
@@ -1172,9 +1189,10 @@ void MainWindow::showSettings()
 
 void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
 {
-    if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick)
+    // Update menu to reflect current window state when user clicks tray icon
+    if (reason == QSystemTrayIcon::Context || reason == QSystemTrayIcon::Trigger)
     {
-        toggleWindowVisibility();
+        updateTrayMenu();
     }
 }
 
@@ -1236,7 +1254,7 @@ void MainWindow::updateTrayMenu()
     
     trayMenu->clear();
     
-    QAction *showAction = trayMenu->addAction("💻 Show/Hide (Double-click tray icon)");
+    QAction *showAction = trayMenu->addAction(isVisible() ? "🙈 Hide Window" : "👁️ Show Window");
     connect(showAction, &QAction::triggered, this, &MainWindow::toggleWindowVisibility);
     
     trayMenu->addSeparator();

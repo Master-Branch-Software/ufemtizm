@@ -15,6 +15,9 @@ int main(int argc, char *argv[])
     
     QApplication app(argc, argv);
     
+    // Hide from dock/taskbar on all platforms - app is only accessible via system tray
+    app.setQuitOnLastWindowClosed(false);
+    
     QString serverName = "UnfuckMyTimeZoneMath_SingleInstance";
     QLocalSocket socket;
     socket.connectToServer(serverName);
@@ -99,6 +102,7 @@ int main(int argc, char *argv[])
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
     bool startMinimized = settings.value("systemTray/startMinimized", false).toBool();
     
+    // Show window unless user has explicitly configured to start minimized
     if (!startMinimized)
     {
         window.show();
