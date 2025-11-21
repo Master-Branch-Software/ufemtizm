@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(
   UnfuckMyTimeZoneMath
-  VERSION 1.0.2
+  VERSION 1.0.3
   LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -21,33 +21,55 @@ set(CONF_DISPLAY_NAME "Unfuck My TimeZone Math")
 set(CONF_PUBLISHER "Ray Parker & Vojtěch Gistr")
 set(CONF_DESCRIPTION "A Qt-based timezone conversion utility")
 
-# Source files
-set(SOURCES
-    main.cpp
-    mainwindow.h mainwindow.cpp
-    timezonewidget.h timezonewidget.cpp
-    settingsdialog.h settingsdialog.cpp
-    resources.qrc)
-
 # Create executable with platform-specific flags
 if(WIN32)
-  add_executable(UnfuckMyTimeZoneMath WIN32 ${SOURCES})
+  add_executable(
+    UnfuckMyTimeZoneMath WIN32
+    main.cpp
+    mainwindow.h
+    mainwindow.cpp
+    timezonewidget.h
+    timezonewidget.cpp
+    settingsdialog.h
+    settingsdialog.cpp
+    resources.qrc)
 elseif(APPLE)
-  add_executable(UnfuckMyTimeZoneMath MACOSX_BUNDLE ${SOURCES})
-  set_target_properties(UnfuckMyTimeZoneMath PROPERTIES
-    MACOSX_BUNDLE_BUNDLE_NAME "Unfuck My Time Zone Math"
-    OUTPUT_NAME "Unfuck My Time Zone Math"
-    MACOSX_BUNDLE_GUI_IDENTIFIER "com.ows.unfuckmytimezonemath"
-    MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
-    MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
-    MACOSX_BUNDLE_INFO_STRING "${CONF_DESCRIPTION}"
-    MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/Info.plist.in")
+  add_executable(
+    UnfuckMyTimeZoneMath MACOSX_BUNDLE
+    main.cpp
+    mainwindow.h
+    mainwindow.cpp
+    timezonewidget.h
+    timezonewidget.cpp
+    settingsdialog.h
+    settingsdialog.cpp
+    resources.qrc)
+  set_target_properties(
+    UnfuckMyTimeZoneMath
+    PROPERTIES
+      MACOSX_BUNDLE_BUNDLE_NAME "Unfuck My Time Zone Math"
+      OUTPUT_NAME "Unfuck My Time Zone Math"
+      MACOSX_BUNDLE_GUI_IDENTIFIER "com.ows.unfuckmytimezonemath"
+      MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+      MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
+      MACOSX_BUNDLE_INFO_STRING "${CONF_DESCRIPTION}"
+      MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/Info.plist.in")
 else()
-  add_executable(UnfuckMyTimeZoneMath ${SOURCES})
+  add_executable(
+    UnfuckMyTimeZoneMath
+    main.cpp
+    mainwindow.h
+    mainwindow.cpp
+    timezonewidget.h
+    timezonewidget.cpp
+    settingsdialog.h
+    settingsdialog.cpp
+    resources.qrc)
 endif()
 
 target_include_directories(UnfuckMyTimeZoneMath PRIVATE ${CMAKE_BINARY_DIR})
-target_link_libraries(UnfuckMyTimeZoneMath PRIVATE Qt6::Core Qt6::Widgets Qt6::Network)
+target_link_libraries(UnfuckMyTimeZoneMath PRIVATE Qt6::Core Qt6::Widgets
+                                                   Qt6::Network)
 
 if(UNIX AND NOT APPLE)
   set_target_properties(UnfuckMyTimeZoneMath PROPERTIES

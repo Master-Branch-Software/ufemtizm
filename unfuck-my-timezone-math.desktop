@@ -7,3 +7,6 @@ Exec=UnfuckMyTimeZoneMath
 Icon=unfuck-my-timezone-math
 Terminal=false
 Categories=Utility;Qt;
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
+X-KDE-autostart-after=panel

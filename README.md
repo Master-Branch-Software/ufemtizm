@@ -1,5 +1,7 @@
 # UnfuckMyTimeZoneMath
 
+![UnfuckMyTimeZoneMath in Action](InAction.png)
+
 A Qt6 application for visualizing and synchronizing times across multiple time zones. Perfect for coordinating meetings, calls, or events across different geographical locations.
 
 ## Features
@@ -132,6 +134,7 @@ cmake --build . --config Release
 - **Adjust time**: Drag any slider up or down - all widgets update automatically to show the corresponding time
 - **Remove widget**: Click the "Remove" button (minimum one widget must remain)
 - **Toggle format**: Use the "24-hour format" checkbox to switch between 12 and 24-hour time display
+- **Copy to clipboard**: Use Edit → Copy (Ctrl+C) to copy all timezone information. Each widget's time is copied in its configured format (24-hour or 12-hour)
 
 ### Understanding Day Offsets
 

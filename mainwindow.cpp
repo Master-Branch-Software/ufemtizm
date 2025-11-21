@@ -37,7 +37,9 @@ MainWindow::MainWindow(QWidget *parent)
       settingsDialog(nullptr),
       localServer(nullptr),
       forceQuit(false),
-      initialSizeSet(false)
+      initialSizeSet(false),
+      trayInitTimer(nullptr),
+      trayInitAttempts(0)
 {
     setStyleSheet(
         "QMainWindow {"
@@ -99,24 +101,7 @@ MainWindow::MainWindow(QWidget *parent)
         connect(localServer, &QLocalServer::newConnection, this, &MainWindow::handleNewConnection);
     }
     
-    if (QSystemTrayIcon::isSystemTrayAvailable())
-    {
-        trayIcon = new QSystemTrayIcon(this);
-        trayMenu = new QMenu(this);
-        
-        QIcon trayIconImage(":/icons/icon.png");
-        trayIcon->setIcon(trayIconImage);
-        trayIcon->setToolTip("UnfuckMyTimeZoneMath");
-        
-        connect(trayIcon, &QSystemTrayIcon::activated, this, &MainWindow::onTrayIconActivated);
-        
-        updateTrayMenu();
-        trayIcon->show();
-    }
-    else
-    {
-        qWarning("System tray is not available on this system");
-    }
+    initializeSystemTray();
     
     setAttribute(Qt::WA_QuitOnClose, false);
     
@@ -1342,9 +1327,11 @@ void MainWindow::copyToClipboard()
         QString name = widget->getFriendlyName();
         qint64 timestamp = widget->getBaseTimestamp();
         QString timezoneId = widget->getTimeZoneId();
+        bool is24Hour = widget->getIs24HourFormat();
         
         QDateTime dateTime = QDateTime::fromSecsSinceEpoch(timestamp, QTimeZone(timezoneId.toUtf8()));
-        QString formattedTime = dateTime.toString("h:mma");
+        QString timeFormat = is24Hour ? "HH:mm" : "h:mma";
+        QString formattedTime = dateTime.toString(timeFormat);
         
         QString line = QString("%1, %2, %3").arg(name, formattedTime, timezoneId);
         clipboardLines.append(line);
@@ -1358,5 +1345,85 @@ void MainWindow::copyToClipboard()
     statusBar()->showMessage(QString("Copied %1 timezone%2 to clipboard")
         .arg(timeZoneWidgets.size())
         .arg(timeZoneWidgets.size() != 1 ? "s" : ""), 2000);
+}
+
+void MainWindow::initializeSystemTray()
+{
+    if (trayIcon && trayIcon->isVisible())
+    {
+        return;
+    }
+
+    if (QSystemTrayIcon::isSystemTrayAvailable())
+    {
+        if (trayInitTimer)
+        {
+            trayInitTimer->stop();
+            trayInitTimer->deleteLater();
+            trayInitTimer = nullptr;
+        }
+
+        trayIcon = new QSystemTrayIcon(this);
+        trayMenu = new QMenu(this);
+
+        QIcon trayIconImage(":/icons/icon.png");
+
+        if (trayIconImage.isNull() && QFile::exists("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png"))
+        {
+            trayIconImage = QIcon("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png");
+        }
+
+        if (trayIconImage.isNull())
+        {
+            trayIconImage = QIcon::fromTheme("unfuck-my-timezone-math");
+        }
+
+        if (trayIconImage.isNull())
+        {
+            trayIconImage = QIcon::fromTheme("preferences-system");
+        }
+
+        if (trayIconImage.isNull())
+        {
+            trayIconImage = QIcon::fromTheme("application-x-executable");
+        }
+
+        trayIcon->setIcon(trayIconImage);
+        trayIcon->setToolTip("UnfuckMyTimeZoneMath");
+
+        connect(trayIcon, &QSystemTrayIcon::activated, this, &MainWindow::onTrayIconActivated);
+
+        updateTrayMenu();
+        trayIcon->show();
+
+        qDebug() << "System tray icon initialized successfully";
+    }
+    else
+    {
+        trayInitAttempts++;
+
+        if (trayInitAttempts <= 30)
+        {
+            if (!trayInitTimer)
+            {
+                trayInitTimer = new QTimer(this);
+                connect(trayInitTimer, &QTimer::timeout, this, &MainWindow::initializeSystemTray);
+            }
+
+            trayInitTimer->start(1000);
+            qDebug() << "System tray not available yet, retry attempt" << trayInitAttempts << "of 30";
+        }
+        else
+        {
+            qWarning("System tray is not available after 30 attempts");
+
+            if (trayInitTimer)
+            {
+                trayInitTimer->stop();
+                trayInitTimer->deleteLater();
+                trayInitTimer = nullptr;
+            }
+        }
+    }
 }
 

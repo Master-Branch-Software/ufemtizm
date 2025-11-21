@@ -13,6 +13,7 @@ class QToolBar;
 class QSystemTrayIcon;
 class SettingsDialog;
 class QLocalServer;
+class QTimer;
 
 class MainWindow : public QMainWindow
 {
@@ -50,6 +51,7 @@ private slots:
     void updateTrayMenu();
     void handleNewConnection();
     void copyToClipboard();
+    void initializeSystemTray();
 
 private:
     void setupMenuBar();
@@ -86,6 +88,8 @@ private:
     QLocalServer *localServer;
     bool forceQuit;
     bool initialSizeSet;
+    QTimer *trayInitTimer;
+    int trayInitAttempts;
 };
 
 #endif // MAINWINDOW_H
