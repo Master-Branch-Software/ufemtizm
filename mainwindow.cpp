@@ -1189,7 +1189,18 @@ void MainWindow::showSettings()
 
 void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
 {
-    // Update menu to reflect current window state when user clicks tray icon
+    // Double-click: bring the main window to the foreground
+    if (reason == QSystemTrayIcon::DoubleClick)
+    {
+        setWindowState(Qt::WindowNoState);
+        showNormal();
+        raise();
+        activateWindow();
+        updateTrayMenu();
+        return;
+    }
+
+    // Right-click or single-click: just refresh the tray menu state
     if (reason == QSystemTrayIcon::Context || reason == QSystemTrayIcon::Trigger)
     {
         updateTrayMenu();
