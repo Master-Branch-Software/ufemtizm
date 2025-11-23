@@ -105,7 +105,11 @@ int main(int argc, char *argv[])
     // Show window unless user has explicitly configured to start minimized
     if (!startMinimized)
     {
+        // Process pending events to ensure window is properly initialized before showing
+        app.processEvents();
         window.show();
+        // Force a paint event to avoid black/corrupt window on first display
+        window.repaint();
     }
     
     return app.exec();

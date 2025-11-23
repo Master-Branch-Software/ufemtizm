@@ -1189,21 +1189,9 @@ void MainWindow::showSettings()
 
 void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
 {
-    // Double-click: bring the main window to the foreground
-    if (reason == QSystemTrayIcon::DoubleClick)
+    if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick)
     {
-        setWindowState(Qt::WindowNoState);
-        showNormal();
-        raise();
-        activateWindow();
-        updateTrayMenu();
-        return;
-    }
-
-    // Right-click or single-click: just refresh the tray menu state
-    if (reason == QSystemTrayIcon::Context || reason == QSystemTrayIcon::Trigger)
-    {
-        updateTrayMenu();
+        toggleWindowVisibility();
     }
 }
 
@@ -1221,6 +1209,8 @@ void MainWindow::toggleWindowVisibility()
             raise();
             activateWindow();
         }
+        
+        updateTrayMenu();
     });
 }
 
