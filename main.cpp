@@ -105,11 +105,20 @@ int main(int argc, char *argv[])
     // Show window unless user has explicitly configured to start minimized
     if (!startMinimized)
     {
+#ifdef Q_OS_LINUX
+        // On Linux, ensure window is fully initialized before showing
+        // This prevents the black window issue on KDE/Plasma
+        window.show();
+        window.activateWindow();
+        window.raise();
+        app.processEvents();
+#else
         // Process pending events to ensure window is properly initialized before showing
         app.processEvents();
         window.show();
         // Force a paint event to avoid black/corrupt window on first display
         window.repaint();
+#endif
     }
     
     return app.exec();

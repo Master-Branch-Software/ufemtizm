@@ -105,8 +105,15 @@ MainWindow::MainWindow(QWidget *parent)
     
     setAttribute(Qt::WA_QuitOnClose, false);
     
-    // Hide from taskbar on Windows/Linux (macOS uses LSUIElement in Info.plist)
-#if !defined(Q_OS_MACOS)
+    // Fix black window on Linux by ensuring proper paint events
+#ifdef Q_OS_LINUX
+    setAttribute(Qt::WA_OpaquePaintEvent, false);
+    setAttribute(Qt::WA_NoSystemBackground, false);
+#endif
+    
+    // Hide from taskbar on Windows only (macOS uses LSUIElement in Info.plist)
+    // On Linux, we want the window to appear in Alt+Tab when visible
+#ifdef Q_OS_WIN
     setWindowFlags(windowFlags() | Qt::Tool);
 #endif
     
@@ -1189,10 +1196,19 @@ void MainWindow::showSettings()
 
 void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
 {
+#ifdef Q_OS_WIN
+    // On Windows, only DoubleClick is emitted for double-click
+    if (reason == QSystemTrayIcon::DoubleClick)
+    {
+        toggleWindowVisibility();
+    }
+#else
+    // On Linux/macOS, Trigger is emitted for single click
     if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick)
     {
         toggleWindowVisibility();
     }
+#endif
 }
 
 void MainWindow::toggleWindowVisibility()
@@ -1208,6 +1224,11 @@ void MainWindow::toggleWindowVisibility()
             showNormal();
             raise();
             activateWindow();
+            
+#ifdef Q_OS_LINUX
+            // Process events to prevent black window on KDE/Plasma
+            QApplication::processEvents();
+#endif
         }
         
         updateTrayMenu();
@@ -1236,6 +1257,11 @@ void MainWindow::openRecentFileFromTray()
         showNormal();
         raise();
         activateWindow();
+        
+#ifdef Q_OS_LINUX
+        // Process events to prevent black window on KDE/Plasma
+        QApplication::processEvents();
+#endif
         
         if (!maybeSave())
         {
@@ -1311,6 +1337,11 @@ void MainWindow::handleNewConnection()
         showNormal();
         raise();
         activateWindow();
+        
+#ifdef Q_OS_LINUX
+        // Process events to prevent black window on KDE/Plasma
+        QApplication::processEvents();
+#endif
     }
 }
 
