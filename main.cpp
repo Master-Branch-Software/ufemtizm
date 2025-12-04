@@ -1,29 +1,26 @@
-#include "mainwindow.h"
+#include "mainwindow.hpp"
 #include <QApplication>
 #include <QStyleFactory>
 #include <QLocalSocket>
 #include <QMessageBox>
 #include <QSettings>
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]){
     // Fix cursor size scaling issue on Linux - only set if not already defined
-    if (qEnvironmentVariableIsEmpty("XCURSOR_SIZE"))
-    {
+    if (qEnvironmentVariableIsEmpty("XCURSOR_SIZE")){
         qputenv("XCURSOR_SIZE", "24");
     }
-    
+
     QApplication app(argc, argv);
-    
+
     // Hide from dock/taskbar on all platforms - app is only accessible via system tray
     app.setQuitOnLastWindowClosed(false);
-    
+
     QString serverName = "UnfuckMyTimeZoneMath_SingleInstance";
     QLocalSocket socket;
     socket.connectToServer(serverName);
-    
-    if (socket.waitForConnected(500))
-    {
+
+    if (socket.waitForConnected(500)){
         return 0;
     }
     
@@ -103,8 +100,7 @@ int main(int argc, char *argv[])
     bool startMinimized = settings.value("systemTray/startMinimized", false).toBool();
     
     // Show window unless user has explicitly configured to start minimized
-    if (!startMinimized)
-    {
+    if (!startMinimized){
 #ifdef Q_OS_LINUX
         // On Linux, ensure window is fully initialized before showing
         // This prevents the black window issue on KDE/Plasma

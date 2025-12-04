@@ -1,4 +1,4 @@
-#include "settingsdialog.h"
+#include "settingsdialog.hpp"
 #include <QCheckBox>
 #include <QDialogButtonBox>
 #include <QVBoxLayout>
@@ -47,8 +47,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
     
     connect(runAtLoginCheckBox, &QCheckBox::toggled, [this](bool checked) {
-        if (checked)
-        {
+        if (checked){
             startMinimizedCheckBox->setEnabled(true);
             startMinimizedCheckBox->setChecked(true);
         }
@@ -172,14 +171,12 @@ void SettingsDialog::setRunAtLogin(bool run)
     runAtLoginCheckBox->setChecked(run);
 }
 
-void SettingsDialog::onAccepted()
-{
+void SettingsDialog::onAccepted(){
     saveSettings();
     accept();
 }
 
-void SettingsDialog::loadSettings()
-{
+void SettingsDialog::loadSettings(){
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
     
     bool minimizeTray = settings.value("systemTray/minimizeToTray", true).toBool();
@@ -193,8 +190,7 @@ void SettingsDialog::loadSettings()
     runAtLoginCheckBox->setChecked(runLogin);
 }
 
-void SettingsDialog::saveSettings()
-{
+void SettingsDialog::saveSettings(){
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
     
     settings.setValue("systemTray/minimizeToTray", minimizeToTrayCheckBox->isChecked());
@@ -211,18 +207,15 @@ void SettingsDialog::setupAutostart(bool enable)
     QString autostartPath = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/autostart";
     QDir autostartDir(autostartPath);
     
-    if (!autostartDir.exists())
-    {
+    if (!autostartDir.exists()){
         autostartDir.mkpath(".");
     }
     
     QString desktopFilePath = autostartPath + "/unfuck-my-timezone-math.desktop";
     
-    if (enable)
-    {
+    if (enable){
         QFile desktopFile(desktopFilePath);
-        if (desktopFile.open(QIODevice::WriteOnly | QIODevice::Text))
-        {
+        if (desktopFile.open(QIODevice::WriteOnly | QIODevice::Text)){
             QTextStream out(&desktopFile);
             out << "[Desktop Entry]\n";
             out << "Type=Application\n";
@@ -238,37 +231,31 @@ void SettingsDialog::setupAutostart(bool enable)
             desktopFile.close();
         }
     }
-    else
-    {
+    else{
         QFile::remove(desktopFilePath);
     }
 #elif defined(Q_OS_WIN)
     QSettings autostartSettings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", QSettings::NativeFormat);
     
-    if (enable)
-    {
+    if (enable){
         autostartSettings.setValue("UnfuckMyTimeZoneMath", QCoreApplication::applicationFilePath().replace('/', '\\'));
     }
-    else
-    {
+    else{
         autostartSettings.remove("UnfuckMyTimeZoneMath");
     }
 #elif defined(Q_OS_MACOS)
     QString launchAgentsPath = QDir::homePath() + "/Library/LaunchAgents";
     QDir launchAgentsDir(launchAgentsPath);
     
-    if (!launchAgentsDir.exists())
-    {
+    if (!launchAgentsDir.exists()){
         launchAgentsDir.mkpath(".");
     }
     
     QString plistPath = launchAgentsPath + "/com.ows.unfuckmytimezonemath.plist";
     
-    if (enable)
-    {
+    if (enable){
         QFile plistFile(plistPath);
-        if (plistFile.open(QIODevice::WriteOnly | QIODevice::Text))
-        {
+        if (plistFile.open(QIODevice::WriteOnly | QIODevice::Text)){
             QTextStream out(&plistFile);
             out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
             out << "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n";
@@ -287,8 +274,7 @@ void SettingsDialog::setupAutostart(bool enable)
             plistFile.close();
         }
     }
-    else
-    {
+    else{
         QFile::remove(plistPath);
     }
 #endif

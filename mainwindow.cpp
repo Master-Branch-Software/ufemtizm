@@ -1,6 +1,6 @@
-#include "mainwindow.h"
-#include "timezonewidget.h"
-#include "settingsdialog.h"
+#include "mainwindow.hpp"
+#include "timezonewidget.hpp"
+#include "settingsdialog.hpp"
 #include "version.h"
 #include <QMenuBar>
 #include <QStatusBar>
@@ -28,19 +28,17 @@
 #include <QClipboard>
 #include <QCursor>
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent),
-      isDirty(false),
-      trayIcon(nullptr),
-      trayMenu(nullptr),
-      trayRecentFilesMenu(nullptr),
-      settingsDialog(nullptr),
-      localServer(nullptr),
-      forceQuit(false),
-      initialSizeSet(false),
-      trayInitTimer(nullptr),
-      trayInitAttempts(0)
-{
+MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
+    isDirty(false),
+    trayIcon(nullptr),
+    trayMenu(nullptr),
+    trayRecentFilesMenu(nullptr),
+    settingsDialog(nullptr),
+    localServer(nullptr),
+    forceQuit(false),
+    initialSizeSet(false),
+    trayInitTimer(nullptr),
+    trayInitAttempts(0){
     setStyleSheet(
         "QMainWindow {"
         "    background-color: #f5f5f5;"
@@ -79,12 +77,11 @@ MainWindow::MainWindow(QWidget *parent)
     );
     
     QIcon icon = QIcon::fromTheme("unfuck-my-timezone-math");
-    if (icon.isNull())
-    {
+    if (icon.isNull()){
         icon = QIcon("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png");
     }
-    if (!icon.isNull())
-    {
+
+    if (!icon.isNull()){
         setWindowIcon(icon);
     }
     
@@ -96,8 +93,8 @@ MainWindow::MainWindow(QWidget *parent)
     localServer = new QLocalServer(this);
     QString serverName = "UnfuckMyTimeZoneMath_SingleInstance";
     QLocalServer::removeServer(serverName);
-    if (localServer->listen(serverName))
-    {
+
+    if (localServer->listen(serverName)){
         connect(localServer, &QLocalServer::newConnection, this, &MainWindow::handleNewConnection);
     }
     
@@ -130,17 +127,14 @@ MainWindow::MainWindow(QWidget *parent)
     isDirty = false;
     
     QStringList recentFiles = getRecentFiles();
-    
-    if (!recentFiles.isEmpty())
-    {
+
+    if (!recentFiles.isEmpty()){
         QString lastFile = recentFiles.first();
-        
-        if (QFile::exists(lastFile))
-        {
+
+        if (QFile::exists(lastFile)){
             loadFromFile(lastFile);
         }
-        else
-        {
+        else{
             QMessageBox::warning(this, "File Not Found",
                                 QString("The last opened file was not found:\n%1\n\nStarting with a new file.").arg(lastFile));
         }
@@ -152,8 +146,7 @@ MainWindow::~MainWindow()
 {
 }
 
-void MainWindow::setupMenuBar()
-{
+void MainWindow::setupMenuBar(){
     QMenu *fileMenu = menuBar()->addMenu("&File");
     
     QAction *newAction = fileMenu->addAction("&New");
@@ -258,8 +251,7 @@ void MainWindow::setupMenuBar()
     statusBar()->showMessage("Ready");
 }
 
-void MainWindow::setupToolBar()
-{
+void MainWindow::setupToolBar(){
     toolBar = addToolBar("Main Toolbar");
     toolBar->setObjectName("MainToolBar");
     toolBar->setMovable(false);
@@ -353,9 +345,8 @@ void MainWindow::setupToolBar()
     toolBar->setVisible(toolBarVisible);
     
     bool toolBarTextVisible = settings.value("toolBarTextVisible", true).toBool();
-    
-    if (!toolBarTextVisible)
-    {
+
+    if (!toolBarTextVisible){
         mainToolBarActions[0]->setText("📄");
         mainToolBarActions[1]->setText("📂");
         mainToolBarActions[2]->setText("💾");
@@ -365,38 +356,32 @@ void MainWindow::setupToolBar()
         mainToolBarActions[6]->setText("⚙️");
         toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
-    else
-    {
+    else{
         toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     }
     
-    if (toggleToolBarAction)
-    {
+    if (toggleToolBarAction){
         toggleToolBarAction->setChecked(toolBarVisible);
     }
-    
-    if (toggleToolBarTextAction)
-    {
+
+    if (toggleToolBarTextAction){
         toggleToolBarTextAction->setChecked(toolBarTextVisible);
     }
-    
-    if (toolBarTextToggleAction)
-    {
+
+    if (toolBarTextToggleAction){
         toolBarTextToggleAction->setChecked(toolBarTextVisible);
     }
 }
 
-void MainWindow::addTimeZoneWidget()
-{
+void MainWindow::addTimeZoneWidget(){
     TimeZoneWidget *widget = new TimeZoneWidget(centralWidget);
     
     connect(widget, &TimeZoneWidget::timeChanged, this, &MainWindow::onTimeChanged);
     connect(widget, &TimeZoneWidget::removeRequested, this, &MainWindow::removeTimeZoneWidget);
     connect(widget, &TimeZoneWidget::widgetModified, this, &MainWindow::onWidgetModified);
     connect(widget, &TimeZoneWidget::dropReceived, this, &MainWindow::onWidgetDropped);
-    
-    if (!timeZoneWidgets.isEmpty())
-    {
+
+    if (!timeZoneWidgets.isEmpty()){
         widget->setBaseTimestamp(timeZoneWidgets.first()->getBaseTimestamp());
         widget->setIs24HourFormat(timeZoneWidgets.first()->getIs24HourFormat());
     }
@@ -414,10 +399,8 @@ void MainWindow::addTimeZoneWidget()
     statusBar()->showMessage("Timezone added", 2000);
 }
 
-void MainWindow::removeTimeZoneWidget(TimeZoneWidget *widget)
-{
-    if (timeZoneWidgets.size() <= 1)
-    {
+void MainWindow::removeTimeZoneWidget(TimeZoneWidget *widget){
+    if (timeZoneWidgets.size() <= 1){
         return;
     }
     
@@ -430,25 +413,20 @@ void MainWindow::removeTimeZoneWidget(TimeZoneWidget *widget)
     updateWindowTitle();
 }
 
-void MainWindow::onTimeChanged(qint64 baseTimestamp)
-{
+void MainWindow::onTimeChanged(qint64 baseTimestamp){
     TimeZoneWidget *source = qobject_cast<TimeZoneWidget*>(sender());
     updateAllWidgets(baseTimestamp, source);
 }
 
-void MainWindow::updateAllWidgets(qint64 baseTimestamp, TimeZoneWidget *source)
-{
-    for (TimeZoneWidget *widget : timeZoneWidgets)
-    {
-        if (widget != source)
-        {
+void MainWindow::updateAllWidgets(qint64 baseTimestamp, TimeZoneWidget *source){
+    for (TimeZoneWidget *widget : timeZoneWidgets){
+        if (widget != source){
             widget->setBaseTimestamp(baseTimestamp);
         }
     }
 }
 
-void MainWindow::onWidgetModified()
-{
+void MainWindow::onWidgetModified(){
     isDirty = true;
     updateWindowTitle();
 }
@@ -458,33 +436,28 @@ void MainWindow::closeEvent(QCloseEvent *event)
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
     bool closeToTray = settings.value("systemTray/closeToTray", true).toBool();
     
-    if (!forceQuit && closeToTray && trayIcon && trayIcon->isVisible())
-    {
+    if (!forceQuit && closeToTray && trayIcon && trayIcon->isVisible()){
         hide();
         event->ignore();
         return;
     }
     
-    if (maybeSave())
-    {
+    if (maybeSave()){
         saveWindowGeometry();
         event->accept();
     }
-    else
-    {
+    else{
         event->ignore();
     }
 }
 
 void MainWindow::changeEvent(QEvent *event)
 {
-    if (event->type() == QEvent::WindowStateChange)
-    {
+    if (event->type() == QEvent::WindowStateChange){
         QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
         bool minimizeToTray = settings.value("systemTray/minimizeToTray", true).toBool();
         
-        if (isMinimized() && minimizeToTray && trayIcon && trayIcon->isVisible())
-        {
+        if (isMinimized() && minimizeToTray && trayIcon && trayIcon->isVisible()){
             QTimer::singleShot(0, this, &QWidget::hide);
             event->ignore();
             return;
@@ -498,30 +471,25 @@ void MainWindow::showEvent(QShowEvent *event)
 {
     QMainWindow::showEvent(event);
     
-    if (!initialSizeSet)
-    {
+    if (!initialSizeSet){
         initialSizeSet = true;
         adjustWindowSize();
         restoreWindowGeometry();
     }
 }
 
-void MainWindow::newFile()
-{
-    if (!maybeSave())
-    {
+void MainWindow::newFile(){
+    if (!maybeSave()){
         return;
     }
     
-    while (timeZoneWidgets.size() > 1)
-    {
+    while (timeZoneWidgets.size() > 1){
         TimeZoneWidget *widget = timeZoneWidgets.last();
         timeZoneWidgets.removeLast();
         widget->deleteLater();
     }
     
-    if (!timeZoneWidgets.isEmpty())
-    {
+    if (!timeZoneWidgets.isEmpty()){
         timeZoneWidgets.first()->setFriendlyName("My Wonderful Self");
     }
     
@@ -532,10 +500,8 @@ void MainWindow::newFile()
     updateWindowTitle();
 }
 
-void MainWindow::openFile()
-{
-    if (!maybeSave())
-    {
+void MainWindow::openFile(){
+    if (!maybeSave()){
         return;
     }
     
@@ -600,30 +566,24 @@ void MainWindow::openFile()
         "}"
     );
     
-    if (dialog.exec() == QDialog::Accepted)
-    {
+    if (dialog.exec() == QDialog::Accepted){
         QStringList files = dialog.selectedFiles();
-        if (!files.isEmpty())
-        {
+        if (!files.isEmpty()){
             loadFromFile(files.first());
         }
     }
 }
 
-void MainWindow::saveFile()
-{
-    if (currentFilename.isEmpty())
-    {
+void MainWindow::saveFile(){
+    if (currentFilename.isEmpty()){
         saveFileAs();
     }
-    else
-    {
+    else{
         saveToFile(currentFilename);
     }
 }
 
-void MainWindow::saveFileAs()
-{
+void MainWindow::saveFileAs(){
     QFileDialog dialog(this);
     dialog.setWindowTitle("Save Configuration");
     dialog.setDirectory(QDir::homePath());
@@ -686,14 +646,11 @@ void MainWindow::saveFileAs()
         "}"
     );
     
-    if (dialog.exec() == QDialog::Accepted)
-    {
+    if (dialog.exec() == QDialog::Accepted){
         QStringList files = dialog.selectedFiles();
-        if (!files.isEmpty())
-        {
+        if (!files.isEmpty()){
             QString filename = files.first();
-            if (!filename.endsWith(".yaml", Qt::CaseInsensitive) && !filename.endsWith(".yml", Qt::CaseInsensitive))
-            {
+            if (!filename.endsWith(".yaml", Qt::CaseInsensitive) && !filename.endsWith(".yml", Qt::CaseInsensitive)){
                 filename += ".yaml";
             }
             saveToFile(filename);
@@ -701,14 +658,11 @@ void MainWindow::saveFileAs()
     }
 }
 
-void MainWindow::openRecentFile()
-{
+void MainWindow::openRecentFile(){
     QAction *action = qobject_cast<QAction*>(sender());
     
-    if (action)
-    {
-        if (!maybeSave())
-        {
+    if (action){
+        if (!maybeSave()){
             return;
         }
         
@@ -716,22 +670,18 @@ void MainWindow::openRecentFile()
     }
 }
 
-void MainWindow::updateWindowTitle()
-{
+void MainWindow::updateWindowTitle(){
     QString title;
     
-    if (currentFilename.isEmpty())
-    {
+    if (currentFilename.isEmpty()){
         title = "Untitled";
     }
-    else
-    {
+    else{
         QFileInfo fileInfo(currentFilename);
         title = fileInfo.completeBaseName();
     }
     
-    if (isDirty)
-    {
+    if (isDirty){
         title += " *";
     }
     
@@ -739,21 +689,17 @@ void MainWindow::updateWindowTitle()
     setWindowTitle(title);
 }
 
-void MainWindow::updateRecentFilesMenu()
-{
+void MainWindow::updateRecentFilesMenu(){
     recentFilesMenu->clear();
     
     QStringList recentFiles = getRecentFiles();
     
-    if (recentFiles.isEmpty())
-    {
+    if (recentFiles.isEmpty()){
         QAction *noFilesAction = recentFilesMenu->addAction("No Recent Files");
         noFilesAction->setEnabled(false);
     }
-    else
-    {
-        for (const QString &filename : recentFiles)
-        {
+    else{
+        for (const QString &filename : recentFiles){
             QFileInfo fileInfo(filename);
             QString displayName = fileInfo.completeBaseName();
             QAction *action = recentFilesMenu->addAction(displayName);
@@ -765,10 +711,8 @@ void MainWindow::updateRecentFilesMenu()
     updateTrayMenu();
 }
 
-bool MainWindow::maybeSave()
-{
-    if (!isDirty)
-    {
+bool MainWindow::maybeSave(){
+    if (!isDirty){
         return true;
     }
     
@@ -807,8 +751,7 @@ bool MainWindow::maybeSave()
     
     int reply = msgBox.exec();
     
-    if (reply == QMessageBox::Save)
-    {
+    if (reply == QMessageBox::Save){
         saveFile();
         return !isDirty;
     }
@@ -816,8 +759,7 @@ bool MainWindow::maybeSave()
     {
         return true;
     }
-    else
-    {
+    else{
         return false;
     }
 }
@@ -826,8 +768,7 @@ bool MainWindow::saveToFile(const QString &filename)
 {
     QFile file(filename);
     
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-    {
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)){
         QMessageBox::critical(this, "Error", "Could not save file: " + file.errorString());
         return false;
     }
@@ -835,8 +776,7 @@ bool MainWindow::saveToFile(const QString &filename)
     QTextStream out(&file);
     out << "timezones:\n";
     
-    for (TimeZoneWidget *widget : timeZoneWidgets)
-    {
+    for (TimeZoneWidget *widget : timeZoneWidgets){
         out << "  - name: \"" << widget->getFriendlyName() << "\"\n";
         out << "    timezone: \"" << widget->getTimeZoneId() << "\"\n";
         out << "    format24hour: " << (widget->getIs24HourFormat() ? "true" : "false") << "\n";
@@ -858,14 +798,12 @@ bool MainWindow::loadFromFile(const QString &filename)
 {
     QFile file(filename);
     
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-    {
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)){
         QMessageBox::critical(this, "Error", "Could not open file: " + file.errorString());
         return false;
     }
     
-    while (!timeZoneWidgets.isEmpty())
-    {
+    while (!timeZoneWidgets.isEmpty()){
         TimeZoneWidget *widget = timeZoneWidgets.takeLast();
         widget->deleteLater();
     }
@@ -878,20 +816,16 @@ bool MainWindow::loadFromFile(const QString &filename)
     bool inTimezones = false;
     bool inEntry = false;
     
-    while (!in.atEnd())
-    {
+    while (!in.atEnd()){
         line = in.readLine().trimmed();
         
-        if (line == "timezones:")
-        {
+        if (line == "timezones:"){
             inTimezones = true;
             continue;
         }
         
-        if (inTimezones && line.startsWith("- name:"))
-        {
-            if (inEntry && !currentName.isEmpty())
-            {
+        if (inTimezones && line.startsWith("- name:")){
+            if (inEntry && !currentName.isEmpty()){
                 TimeZoneWidget *widget = new TimeZoneWidget(centralWidget);
                 widget->setFriendlyName(currentName);
                 widget->setTimeZoneId(currentTz);
@@ -924,8 +858,7 @@ bool MainWindow::loadFromFile(const QString &filename)
         }
     }
     
-    if (inEntry && !currentName.isEmpty())
-    {
+    if (inEntry && !currentName.isEmpty()){
         TimeZoneWidget *widget = new TimeZoneWidget(centralWidget);
         widget->setFriendlyName(currentName);
         widget->setTimeZoneId(currentTz);
@@ -940,16 +873,13 @@ bool MainWindow::loadFromFile(const QString &filename)
         centralWidget->layout()->addWidget(widget);
     }
     
-    if (timeZoneWidgets.isEmpty())
-    {
+    if (timeZoneWidgets.isEmpty()){
         addTimeZoneWidget();
     }
-    else
-    {
+    else{
         qint64 currentTime = QDateTime::currentSecsSinceEpoch();
         
-        for (TimeZoneWidget *widget : timeZoneWidgets)
-        {
+        for (TimeZoneWidget *widget : timeZoneWidgets){
             widget->setBaseTimestamp(currentTime);
         }
         
@@ -986,8 +916,7 @@ void MainWindow::addRecentFile(const QString &filename)
     recentFiles.removeAll(filename);
     recentFiles.prepend(filename);
     
-    while (recentFiles.size() > 10)
-    {
+    while (recentFiles.size() > 10){
         recentFiles.removeLast();
     }
     
@@ -1001,10 +930,8 @@ QStringList MainWindow::getRecentFiles() const
     
     QStringList existingFiles;
     
-    for (const QString &filename : recentFiles)
-    {
-        if (QFile::exists(filename))
-        {
+    for (const QString &filename : recentFiles){
+        if (QFile::exists(filename)){
             existingFiles.append(filename);
         }
     }
@@ -1012,8 +939,7 @@ QStringList MainWindow::getRecentFiles() const
     return existingFiles;
 }
 
-void MainWindow::adjustWindowSize()
-{
+void MainWindow::adjustWindowSize(){
     int widgetWidth = 240;
     int widgetCount = timeZoneWidgets.size();
     int spacing = 12;
@@ -1031,25 +957,21 @@ void MainWindow::adjustWindowSize()
     setFixedSize(totalWidth, totalHeight);
 }
 
-void MainWindow::saveWindowGeometry()
-{
+void MainWindow::saveWindowGeometry(){
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
     settings.setValue("windowPosition", pos());
 }
 
-void MainWindow::restoreWindowGeometry()
-{
+void MainWindow::restoreWindowGeometry(){
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
     
-    if (settings.contains("windowPosition"))
-    {
+    if (settings.contains("windowPosition")){
         QPoint pos = settings.value("windowPosition").toPoint();
         move(pos);
     }
 }
 
-void MainWindow::showAboutDialog()
-{
+void MainWindow::showAboutDialog(){
     QMessageBox aboutBox(this);
     aboutBox.setWindowTitle("About UnfuckMyTimeZoneMath");
     aboutBox.setTextFormat(Qt::RichText);
@@ -1085,15 +1007,13 @@ void MainWindow::onWidgetDropped(TimeZoneWidget *target, TimeZoneWidget *source)
     int sourceIndex = timeZoneWidgets.indexOf(source);
     int targetIndex = timeZoneWidgets.indexOf(target);
 
-    if (sourceIndex == -1 || targetIndex == -1 || sourceIndex == targetIndex)
-    {
+    if (sourceIndex == -1 || targetIndex == -1 || sourceIndex == targetIndex){
         return;
     }
 
     QHBoxLayout *layout = qobject_cast<QHBoxLayout*>(centralWidget->layout());
 
-    if (!layout)
-    {
+    if (!layout){
         return;
     }
 
@@ -1107,27 +1027,23 @@ void MainWindow::onWidgetDropped(TimeZoneWidget *target, TimeZoneWidget *source)
     statusBar()->showMessage("Widget reordered", 2000);
 }
 
-void MainWindow::setToCurrentTime()
-{
+void MainWindow::setToCurrentTime(){
     qint64 currentTime = QDateTime::currentSecsSinceEpoch();
     
-    if (!timeZoneWidgets.isEmpty())
-    {
+    if (!timeZoneWidgets.isEmpty()){
         updateAllWidgets(currentTime, nullptr);
         statusBar()->showMessage("Set to current time", 2000);
     }
 }
 
-void MainWindow::toggleToolBarVisibility()
-{
+void MainWindow::toggleToolBarVisibility(){
     bool isVisible = toolBar->isVisible();
     toolBar->setVisible(!isVisible);
     
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
     settings.setValue("toolBarVisible", !isVisible);
     
-    if (toggleToolBarAction)
-    {
+    if (toggleToolBarAction){
         toggleToolBarAction->setChecked(!isVisible);
     }
     
@@ -1136,12 +1052,10 @@ void MainWindow::toggleToolBarVisibility()
     statusBar()->showMessage((!isVisible ? "Toolbar shown" : "Toolbar hidden"), 2000);
 }
 
-void MainWindow::toggleToolBarTextVisibility()
-{
+void MainWindow::toggleToolBarTextVisibility(){
     bool showText = toolBarTextToggleAction->isChecked();
     
-    if (showText)
-    {
+    if (showText){
         mainToolBarActions[0]->setText("📄 New");
         mainToolBarActions[1]->setText("📂 Open");
         mainToolBarActions[2]->setText("💾 Save");
@@ -1151,8 +1065,7 @@ void MainWindow::toggleToolBarTextVisibility()
         mainToolBarActions[6]->setText("⚙️ Settings");
         toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     }
-    else
-    {
+    else{
         mainToolBarActions[0]->setText("📄");
         mainToolBarActions[1]->setText("📂");
         mainToolBarActions[2]->setText("💾");
@@ -1166,13 +1079,11 @@ void MainWindow::toggleToolBarTextVisibility()
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
     settings.setValue("toolBarTextVisible", showText);
     
-    if (toggleToolBarTextAction)
-    {
+    if (toggleToolBarTextAction){
         toggleToolBarTextAction->setChecked(showText);
     }
     
-    if (toolBarTextToggleAction)
-    {
+    if (toolBarTextToggleAction){
         toolBarTextToggleAction->setChecked(showText);
     }
     
@@ -1181,15 +1092,12 @@ void MainWindow::toggleToolBarTextVisibility()
     statusBar()->showMessage((showText ? "Toolbar text shown" : "Toolbar text hidden"), 2000);
 }
 
-void MainWindow::showSettings()
-{
-    if (!settingsDialog)
-    {
+void MainWindow::showSettings(){
+    if (!settingsDialog){
         settingsDialog = new SettingsDialog(this);
     }
     
-    if (settingsDialog->exec() == QDialog::Accepted)
-    {
+    if (settingsDialog->exec() == QDialog::Accepted){
         statusBar()->showMessage("Settings updated", 2000);
     }
 }
@@ -1198,28 +1106,23 @@ void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
 {
 #ifdef Q_OS_WIN
     // On Windows, only DoubleClick is emitted for double-click
-    if (reason == QSystemTrayIcon::DoubleClick)
-    {
+    if (reason == QSystemTrayIcon::DoubleClick){
         toggleWindowVisibility();
     }
 #else
     // On Linux/macOS, Trigger is emitted for single click
-    if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick)
-    {
+    if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick){
         toggleWindowVisibility();
     }
 #endif
 }
 
-void MainWindow::toggleWindowVisibility()
-{
+void MainWindow::toggleWindowVisibility(){
     QTimer::singleShot(0, this, [this]() {
-        if (isVisible())
-        {
+        if (isVisible()){
             hide();
         }
-        else
-        {
+        else{
             setWindowState(Qt::WindowNoState);
             showNormal();
             raise();
@@ -1235,24 +1138,20 @@ void MainWindow::toggleWindowVisibility()
     });
 }
 
-void MainWindow::quitApplication()
-{
+void MainWindow::quitApplication(){
     forceQuit = true;
     
-    if (localServer)
-    {
+    if (localServer){
         localServer->close();
     }
     
     QApplication::quit();
 }
 
-void MainWindow::openRecentFileFromTray()
-{
+void MainWindow::openRecentFileFromTray(){
     QAction *action = qobject_cast<QAction*>(sender());
     
-    if (action)
-    {
+    if (action){
         setWindowState(Qt::WindowNoState);
         showNormal();
         raise();
@@ -1263,8 +1162,7 @@ void MainWindow::openRecentFileFromTray()
         QApplication::processEvents();
 #endif
         
-        if (!maybeSave())
-        {
+        if (!maybeSave()){
             return;
         }
         
@@ -1272,10 +1170,8 @@ void MainWindow::openRecentFileFromTray()
     }
 }
 
-void MainWindow::updateTrayMenu()
-{
-    if (!trayMenu || !trayIcon)
-    {
+void MainWindow::updateTrayMenu(){
+    if (!trayMenu || !trayIcon){
         return;
     }
     
@@ -1290,15 +1186,12 @@ void MainWindow::updateTrayMenu()
     
     QStringList recentFiles = getRecentFiles();
     
-    if (recentFiles.isEmpty())
-    {
+    if (recentFiles.isEmpty()){
         QAction *noFilesAction = trayRecentFilesMenu->addAction("No Recent Files");
         noFilesAction->setEnabled(false);
     }
-    else
-    {
-        for (const QString &filename : recentFiles)
-        {
+    else{
+        for (const QString &filename : recentFiles){
             QFileInfo fileInfo(filename);
             QString displayName = fileInfo.completeBaseName();
             QAction *action = trayRecentFilesMenu->addAction(displayName);
@@ -1326,11 +1219,9 @@ void MainWindow::updateTrayMenu()
     trayIcon->setContextMenu(trayMenu);
 }
 
-void MainWindow::handleNewConnection()
-{
+void MainWindow::handleNewConnection(){
     QLocalSocket *socket = localServer->nextPendingConnection();
-    if (socket)
-    {
+    if (socket){
         socket->deleteLater();
         
         setWindowState(Qt::WindowNoState);
@@ -1345,17 +1236,14 @@ void MainWindow::handleNewConnection()
     }
 }
 
-void MainWindow::copyToClipboard()
-{
-    if (timeZoneWidgets.isEmpty())
-    {
+void MainWindow::copyToClipboard(){
+    if (timeZoneWidgets.isEmpty()){
         return;
     }
     
     QStringList clipboardLines;
     
-    for (TimeZoneWidget *widget : timeZoneWidgets)
-    {
+    for (TimeZoneWidget *widget : timeZoneWidgets){
         QString name = widget->getFriendlyName();
         qint64 timestamp = widget->getBaseTimestamp();
         QString timezoneId = widget->getTimeZoneId();
@@ -1379,17 +1267,13 @@ void MainWindow::copyToClipboard()
         .arg(timeZoneWidgets.size() != 1 ? "s" : ""), 2000);
 }
 
-void MainWindow::initializeSystemTray()
-{
-    if (trayIcon && trayIcon->isVisible())
-    {
+void MainWindow::initializeSystemTray(){
+    if (trayIcon && trayIcon->isVisible()){
         return;
     }
 
-    if (QSystemTrayIcon::isSystemTrayAvailable())
-    {
-        if (trayInitTimer)
-        {
+    if (QSystemTrayIcon::isSystemTrayAvailable()){
+        if (trayInitTimer){
             trayInitTimer->stop();
             trayInitTimer->deleteLater();
             trayInitTimer = nullptr;
@@ -1400,23 +1284,19 @@ void MainWindow::initializeSystemTray()
 
         QIcon trayIconImage(":/icons/icon.png");
 
-        if (trayIconImage.isNull() && QFile::exists("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png"))
-        {
+        if (trayIconImage.isNull() && QFile::exists("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png")){
             trayIconImage = QIcon("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png");
         }
 
-        if (trayIconImage.isNull())
-        {
+        if (trayIconImage.isNull()){
             trayIconImage = QIcon::fromTheme("unfuck-my-timezone-math");
         }
 
-        if (trayIconImage.isNull())
-        {
+        if (trayIconImage.isNull()){
             trayIconImage = QIcon::fromTheme("preferences-system");
         }
 
-        if (trayIconImage.isNull())
-        {
+        if (trayIconImage.isNull()){
             trayIconImage = QIcon::fromTheme("application-x-executable");
         }
 
@@ -1430,14 +1310,11 @@ void MainWindow::initializeSystemTray()
 
         qDebug() << "System tray icon initialized successfully";
     }
-    else
-    {
+    else{
         trayInitAttempts++;
 
-        if (trayInitAttempts <= 30)
-        {
-            if (!trayInitTimer)
-            {
+        if (trayInitAttempts <= 30){
+            if (!trayInitTimer){
                 trayInitTimer = new QTimer(this);
                 connect(trayInitTimer, &QTimer::timeout, this, &MainWindow::initializeSystemTray);
             }
@@ -1445,12 +1322,10 @@ void MainWindow::initializeSystemTray()
             trayInitTimer->start(1000);
             qDebug() << "System tray not available yet, retry attempt" << trayInitAttempts << "of 30";
         }
-        else
-        {
+        else{
             qWarning("System tray is not available after 30 attempts");
 
-            if (trayInitTimer)
-            {
+            if (trayInitTimer){
                 trayInitTimer->stop();
                 trayInitTimer->deleteLater();
                 trayInitTimer = nullptr;

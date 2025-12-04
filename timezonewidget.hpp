@@ -1,5 +1,5 @@
-#ifndef TIMEZONEWIDGET_H
-#define TIMEZONEWIDGET_H
+#ifndef TIMEZONEWIDGET_HPP
+#define TIMEZONEWIDGET_HPP
 
 #include <QWidget>
 #include <QLineEdit>
@@ -83,4 +83,4 @@ private:
     QFrame *dropIndicator;
 };
 
-#endif // TIMEZONEWIDGET_H
+#endif // TIMEZONEWIDGET_HPP

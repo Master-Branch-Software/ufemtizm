@@ -1,4 +1,4 @@
-#include "timezonewidget.h"
+#include "timezonewidget.hpp"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFrame>
@@ -21,8 +21,7 @@ TimeZoneWidget::TimeZoneWidget(QWidget *parent)
     updateSliderLabels();
 }
 
-void TimeZoneWidget::setupUI()
-{
+void TimeZoneWidget::setupUI(){
     setMinimumWidth(240);
     setMaximumWidth(280);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
@@ -123,20 +122,22 @@ void TimeZoneWidget::setupUI()
         "    border-radius: 2px;"
         "}"
         "QSlider::handle:vertical {"
-        "    background: #2196f3;"
-        "    border: 2px solid #1976d2;"
+        "    background: #9e9e9e;"
+        "    border: 2px solid #757575;"
         "    width: 16px;"
         "    height: 16px;"
         "    margin: -8px -6px;"
         "    border-radius: 8px;"
         "}"
         "QSlider::handle:vertical:hover {"
-        "    background: #1976d2;"
-        "    border: 2px solid #0d47a1;"
+        "    background: #757575;"
+        "    border: 2px solid #616161;"
         "}"
         "QSlider::add-page:vertical {"
-        "    background: #2196f3;"
-        "    border-radius: 2px;"
+        "    background: transparent;"
+        "}"
+        "QSlider::sub-page:vertical {"
+        "    background: transparent;"
         "}"
     );
     timeSlider->setToolTip("Drag to adjust time");
@@ -154,8 +155,7 @@ void TimeZoneWidget::setupUI()
     labelsLayout->setContentsMargins(0, 0, 0, 0);
     labelsLayout->setSpacing(0);
     
-    for (int i = 0; i <= 24; i++)
-    {
+    for (int i = 0; i <= 24; i++){
         QLabel *hourLabel = new QLabel();
         hourLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
         hourLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
@@ -171,8 +171,7 @@ void TimeZoneWidget::setupUI()
         hourLabels.append(hourLabel);
         labelsLayout->addWidget(hourLabel, 1);
         
-        if (i < 24)
-        {
+        if (i < 24){
             labelsLayout->addSpacing(0);
         }
     }
@@ -291,8 +290,7 @@ void TimeZoneWidget::setupUI()
     mainLayout->addWidget(frame);
 }
 
-void TimeZoneWidget::populateTimeZones()
-{
+void TimeZoneWidget::populateTimeZones(){
     struct TimeZoneEntry
     {
         QString displayName;
@@ -344,14 +342,11 @@ void TimeZoneWidget::populateTimeZones()
     QVector<TimeZoneEntry> usCities;
     QVector<TimeZoneEntry> otherCities;
     
-    for (const TimeZoneEntry &entry : majorCities)
-    {
-        if (entry.isUS)
-        {
+    for (const TimeZoneEntry &entry : majorCities){
+        if (entry.isUS){
             usCities.append(entry);
         }
-        else
-        {
+        else{
             otherCities.append(entry);
         }
     }
@@ -366,31 +361,27 @@ void TimeZoneWidget::populateTimeZones()
         return a.offsetSeconds < b.offsetSeconds;
     });
     
-    for (const TimeZoneEntry &entry : usCities)
-    {
+    for (const TimeZoneEntry &entry : usCities){
         timeZoneCombo->addItem(entry.displayName, entry.tzId);
     }
     
     timeZoneCombo->insertSeparator(timeZoneCombo->count());
     
-    for (const TimeZoneEntry &entry : otherCities)
-    {
+    for (const TimeZoneEntry &entry : otherCities){
         timeZoneCombo->addItem(entry.displayName, entry.tzId);
     }
     
     QByteArray systemTzId = QTimeZone::systemTimeZoneId();
     int index = timeZoneCombo->findData(systemTzId);
     
-    if (index != -1)
-    {
+    if (index != -1){
         timeZoneCombo->setCurrentIndex(index);
     }
 }
 
 void TimeZoneWidget::setBaseTimestamp(qint64 timestamp)
 {
-    if (baseTimestamp == timestamp)
-    {
+    if (baseTimestamp == timestamp){
         return;
     }
     
@@ -409,8 +400,7 @@ qint64 TimeZoneWidget::getBaseTimestamp() const
     return baseTimestamp;
 }
 
-void TimeZoneWidget::updateDisplay()
-{
+void TimeZoneWidget::updateDisplay(){
     QDateTime baseDateTime = QDateTime::fromSecsSinceEpoch(baseTimestamp, QTimeZone::utc());
     QDateTime localDateTime = baseDateTime.toTimeZone(currentTimeZone);
     
@@ -426,24 +416,21 @@ void TimeZoneWidget::updateDisplay()
     int widgetDay = widgetLocal.date().toJulianDay();
     int dayOffset = widgetDay - refDay;
     
-    if (dayOffset == 0)
-    {
+    if (dayOffset == 0){
         dayOffsetLabel->setText("Same Day");
     }
     else if (dayOffset > 0)
     {
         dayOffsetLabel->setText(QString("+%1 Day%2").arg(dayOffset).arg(dayOffset > 1 ? "s" : ""));
     }
-    else
-    {
+    else{
         dayOffsetLabel->setText(QString("%1 Day%2").arg(dayOffset).arg(dayOffset < -1 ? "s" : ""));
     }
 }
 
 void TimeZoneWidget::onSliderValueChanged(int value)
 {
-    if (updatingInternally)
-    {
+    if (updatingInternally){
         return;
     }
     
@@ -455,8 +442,7 @@ void TimeZoneWidget::onSliderValueChanged(int value)
 
 void TimeZoneWidget::onTimeZoneChanged(int index)
 {
-    if (index < 0 || updatingInternally)
-    {
+    if (index < 0 || updatingInternally){
         return;
     }
     
@@ -532,8 +518,7 @@ void TimeZoneWidget::setTimeZoneId(const QString &tzId)
     
     int index = timeZoneCombo->findData(tzId.toUtf8());
     
-    if (index != -1)
-    {
+    if (index != -1){
         updatingInternally = true;
         timeZoneCombo->setCurrentIndex(index);
         updatingInternally = false;
@@ -560,26 +545,20 @@ void TimeZoneWidget::setIs24HourFormat(bool is24Hour)
     updateSliderLabels();
 }
 
-void TimeZoneWidget::selectName()
-{
+void TimeZoneWidget::selectName(){
     nameEdit->setFocus();
     nameEdit->selectAll();
 }
 
-void TimeZoneWidget::updateSliderLabels()
-{
-    for (int hour = 0; hour <= 24; hour++)
-    {
+void TimeZoneWidget::updateSliderLabels(){
+    for (int hour = 0; hour <= 24; hour++){
         QString label;
         
-        if (is24HourFormat)
-        {
+        if (is24HourFormat){
             label = QString("%1").arg(hour, 2, 10, QChar('0'));
         }
-        else
-        {
-            if (hour == 0)
-            {
+        else{
+            if (hour == 0){
                 label = "12a";
             }
             else if (hour < 12)
@@ -590,8 +569,7 @@ void TimeZoneWidget::updateSliderLabels()
             {
                 label = "12p";
             }
-            else
-            {
+            else{
                 label = QString::number(hour - 12) + "p";
             }
         }
@@ -602,8 +580,7 @@ void TimeZoneWidget::updateSliderLabels()
 
 void TimeZoneWidget::mousePressEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::LeftButton)
-    {
+    if (event->button() == Qt::LeftButton){
         dragStartPosition = event->pos();
     }
 
@@ -612,14 +589,12 @@ void TimeZoneWidget::mousePressEvent(QMouseEvent *event)
 
 void TimeZoneWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    if (!(event->buttons() & Qt::LeftButton))
-    {
+    if (!(event->buttons() & Qt::LeftButton)){
         QWidget::mouseMoveEvent(event);
         return;
     }
 
-    if ((event->pos() - dragStartPosition).manhattanLength() < QApplication::startDragDistance())
-    {
+    if ((event->pos() - dragStartPosition).manhattanLength() < QApplication::startDragDistance()){
         QWidget::mouseMoveEvent(event);
         return;
     }
@@ -656,12 +631,10 @@ void TimeZoneWidget::mouseMoveEvent(QMouseEvent *event)
 
 void TimeZoneWidget::dragEnterEvent(QDragEnterEvent *event)
 {
-    if (event->mimeData()->hasFormat("application/x-timezonewidget"))
-    {
+    if (event->mimeData()->hasFormat("application/x-timezonewidget")){
         TimeZoneWidget *source = reinterpret_cast<TimeZoneWidget*>(event->mimeData()->data("application/x-timezonewidget").toULongLong());
         
-        if (source != this)
-        {
+        if (source != this){
             event->acceptProposedAction();
             showDropIndicator(event->position().toPoint());
         }
@@ -670,12 +643,10 @@ void TimeZoneWidget::dragEnterEvent(QDragEnterEvent *event)
 
 void TimeZoneWidget::dragMoveEvent(QDragMoveEvent *event)
 {
-    if (event->mimeData()->hasFormat("application/x-timezonewidget"))
-    {
+    if (event->mimeData()->hasFormat("application/x-timezonewidget")){
         TimeZoneWidget *source = reinterpret_cast<TimeZoneWidget*>(event->mimeData()->data("application/x-timezonewidget").toULongLong());
         
-        if (source != this)
-        {
+        if (source != this){
             event->acceptProposedAction();
             showDropIndicator(event->position().toPoint());
         }
@@ -692,12 +663,10 @@ void TimeZoneWidget::dropEvent(QDropEvent *event)
 {
     hideDropIndicator();
     
-    if (event->mimeData()->hasFormat("application/x-timezonewidget"))
-    {
+    if (event->mimeData()->hasFormat("application/x-timezonewidget")){
         TimeZoneWidget *source = reinterpret_cast<TimeZoneWidget*>(event->mimeData()->data("application/x-timezonewidget").toULongLong());
         
-        if (source != this)
-        {
+        if (source != this){
             emit dropReceived(this, source);
             event->acceptProposedAction();
         }
@@ -717,12 +686,10 @@ void TimeZoneWidget::showDropIndicator(const QPoint &pos)
 {
     int widgetCenter = width() / 2;
     
-    if (pos.x() < widgetCenter)
-    {
+    if (pos.x() < widgetCenter){
         dropIndicator->setGeometry(-2, 0, 4, height());
     }
-    else
-    {
+    else{
         dropIndicator->setGeometry(width() - 2, 0, 4, height());
     }
 
@@ -730,7 +697,6 @@ void TimeZoneWidget::showDropIndicator(const QPoint &pos)
     dropIndicator->show();
 }
 
-void TimeZoneWidget::hideDropIndicator()
-{
+void TimeZoneWidget::hideDropIndicator(){
     dropIndicator->hide();
 }

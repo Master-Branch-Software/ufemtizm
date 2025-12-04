@@ -27,22 +27,22 @@ if(WIN32)
   add_executable(
     UnfuckMyTimeZoneMath WIN32
     main.cpp
-    mainwindow.h
+    mainwindow.hpp
     mainwindow.cpp
-    timezonewidget.h
+    timezonewidget.hpp
     timezonewidget.cpp
-    settingsdialog.h
+    settingsdialog.hpp
     settingsdialog.cpp
     resources.qrc)
 elseif(APPLE)
   add_executable(
     UnfuckMyTimeZoneMath MACOSX_BUNDLE
     main.cpp
-    mainwindow.h
+    mainwindow.hpp
     mainwindow.cpp
-    timezonewidget.h
+    timezonewidget.hpp
     timezonewidget.cpp
-    settingsdialog.h
+    settingsdialog.hpp
     settingsdialog.cpp
     resources.qrc)
   set_target_properties(
@@ -59,11 +59,11 @@ else()
   add_executable(
     UnfuckMyTimeZoneMath
     main.cpp
-    mainwindow.h
+    mainwindow.hpp
     mainwindow.cpp
-    timezonewidget.h
+    timezonewidget.hpp
     timezonewidget.cpp
-    settingsdialog.h
+    settingsdialog.hpp
     settingsdialog.cpp
     resources.qrc)
 endif()

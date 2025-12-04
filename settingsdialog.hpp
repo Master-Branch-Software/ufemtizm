@@ -1,5 +1,5 @@
-#ifndef SETTINGSDIALOG_H
-#define SETTINGSDIALOG_H
+#ifndef SETTINGSDIALOG_HPP
+#define SETTINGSDIALOG_HPP
 
 #include <QDialog>
 
@@ -43,4 +43,4 @@ private:
     void setupAutostart(bool enable);
 };
 
-#endif
+#endif // SETTINGSDIALOG_HPP

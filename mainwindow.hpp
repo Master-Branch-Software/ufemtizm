@@ -1,5 +1,5 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#ifndef MAINWINDOW_HPP
+#define MAINWINDOW_HPP
 
 #include <QMainWindow>
 #include <QVector>
@@ -92,4 +92,4 @@ private:
     int trayInitAttempts;
 };
 
-#endif // MAINWINDOW_H
+#endif // MAINWINDOW_HPP
