@@ -15,6 +15,32 @@
 #include <QDragMoveEvent>
 #include <QDragLeaveEvent>
 #include <QDropEvent>
+#include <QResizeEvent>
+#include <QToolButton>
+#include <QButtonGroup>
+
+class EditableLabel : public QWidget
+{
+    Q_OBJECT
+
+public:
+    explicit EditableLabel(const QString &text = "", QWidget *parent = nullptr);
+    QString text() const;
+    void setText(const QString &text);
+    void selectAll();
+    bool isEditing() const;
+    void finishEditing();
+
+signals:
+    void textChanged(const QString &text);
+
+protected:
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
+
+private:
+    QLabel *mLabel;
+    QLineEdit *mLineEdit;
+};
 
 class TimeZoneWidget : public QWidget
 {
@@ -63,15 +89,18 @@ private:
     void hideDropIndicator();
     int timestampToSliderValue(qint64 timestamp) const;
     qint64 sliderValueToTimestamp(int value) const;
+    void updateTimeZoneLabel();
     
-    QLineEdit *nameEdit;
+    EditableLabel *nameEdit;
     QLabel *dateTimeLabel;
+    QLabel *timeZoneLabel;
     QLabel *dayOffsetLabel;
     QSlider *timeSlider;
     QWidget *sliderContainer;
     QVector<QLabel*> hourLabels;
     QComboBox *timeZoneCombo;
-    QCheckBox *format24HourCheck;
+    QToolButton *format24Button;
+    QToolButton *globeButton;
     QPushButton *removeButton;
     
     qint64 baseTimestamp;

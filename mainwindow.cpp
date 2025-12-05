@@ -16,6 +16,7 @@
 #include <QFileInfo>
 #include <QCloseEvent>
 #include <QShowEvent>
+#include <QMouseEvent>
 #include <QIcon>
 #include <QToolBar>
 #include <QSystemTrayIcon>
@@ -144,6 +145,17 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::mousePressEvent(QMouseEvent *event){
+    for (TimeZoneWidget *widget : timeZoneWidgets){
+        QPoint widgetPos = widget->mapFrom(this, event->pos());
+        if (widget->rect().contains(widgetPos)){
+            QMainWindow::mousePressEvent(event);
+            return;
+        }
+    }
+    QMainWindow::mousePressEvent(event);
 }
 
 void MainWindow::setupMenuBar(){

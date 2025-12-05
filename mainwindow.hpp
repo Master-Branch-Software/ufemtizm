@@ -27,6 +27,7 @@ protected:
     void closeEvent(QCloseEvent *event) override;
     void changeEvent(QEvent *event) override;
     void showEvent(QShowEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
 
 private slots:
     void newFile();

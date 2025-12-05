@@ -6,15 +6,22 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
 
 ## Features
 
+- **Compact toolbar interface** with intuitive icon buttons:
+  - Single toggle button to switch between 12/24-hour format
+  - Globe icon (🌍) for quick timezone selection via dropdown menu
+  - X button to remove widgets
 - **Vertical time sliders** representing 24 hours with 15-minute intervals for intuitive time selection
   - Sliders fill from the bottom to visually indicate time progression
-- **Editable friendly names** for each time zone widget (e.g., "Home", "Office", "Client")
-- **Clear day and time display** showing both day and time (e.g., "Wed, 12:00a")
-- **Comprehensive time zone selection** with dropdown containing all available time zones
-- **12/24-hour format toggle** to match your preference
+- **Double-click to edit names** - Widget names display as labels and become editable on double-click
+  - Click anywhere outside the field to save and exit edit mode
+- **Clear time and timezone display**:
+  - Large, centered time display in your chosen format
+  - Timezone name shown below the time
+  - Day offset indicator showing relative day differences between zones (e.g., "+1 day", "-1 day")
+- **Comprehensive time zone selection** with organized dropdown containing major cities worldwide
 - **Multiple time zone widgets** - add as many as you need
 - **Synchronized sliders** - moving any slider updates all others automatically
-- **Day offset display** showing relative day differences between zones (e.g., "+1 day", "-1 day")
+- **Drag and drop reordering** - click and drag widgets to reorder them
 - **System tray integration** - minimize to tray for quick access
   - Double-click tray icon to show/hide window
   - Right-click for context menu with recent files and quick actions
@@ -128,12 +135,13 @@ cmake --build . --config Release
 
 ### Working with Time Zones
 
-- **Add a time zone**: File → Add Time Zone
-- **Change time zone**: Click the dropdown menu at the top of any widget
-- **Rename widget**: Click on the friendly name (e.g., "Time Zone 1") and type a new name
+- **Add a time zone**: File → Add Time Zone (or Ctrl+T)
+- **Change time zone**: Click the globe icon (🌍) in the toolbar and select from the menu
+- **Rename widget**: Double-click on the friendly name and type a new name. Click anywhere outside to save
 - **Adjust time**: Drag any slider up or down - all widgets update automatically to show the corresponding time
-- **Remove widget**: Click the "Remove" button (minimum one widget must remain)
-- **Toggle format**: Use the "24-hour format" checkbox to switch between 12 and 24-hour time display
+- **Remove widget**: Click the X button in the top-right of the toolbar (minimum one widget must remain)
+- **Toggle format**: Click the format button (shows "12" or "24") to toggle between 12 and 24-hour time display
+- **Reorder widgets**: Click and drag any widget to reorder them horizontally
 - **Copy to clipboard**: Use Edit → Copy (Ctrl+C) to copy all timezone information. Each widget's time is copied in its configured format (24-hour or 12-hour)
 
 ### Understanding Day Offsets
