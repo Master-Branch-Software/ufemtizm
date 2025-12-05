@@ -40,6 +40,16 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     trayGroup->setLayout(trayLayout);
     mainLayout->addWidget(trayGroup);
     
+    QGroupBox *appearanceGroup = new QGroupBox("Appearance");
+    QVBoxLayout *appearanceLayout = new QVBoxLayout();
+    
+    skyColorCheckBox = new QCheckBox("Enable sky color theme");
+    skyColorCheckBox->setToolTip("Subtly change widget background color based on time of day (blue during day, dark at night, warm at sunrise/sunset)");
+    appearanceLayout->addWidget(skyColorCheckBox);
+    
+    appearanceGroup->setLayout(appearanceLayout);
+    mainLayout->addWidget(appearanceGroup);
+    
     buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     mainLayout->addWidget(buttonBox);
     
@@ -146,6 +156,11 @@ bool SettingsDialog::runAtLogin() const
     return runAtLoginCheckBox->isChecked();
 }
 
+bool SettingsDialog::skyColorEnabled() const
+{
+    return skyColorCheckBox->isChecked();
+}
+
 void SettingsDialog::setShowInTaskBar(bool show)
 {
     Q_UNUSED(show);
@@ -171,6 +186,11 @@ void SettingsDialog::setRunAtLogin(bool run)
     runAtLoginCheckBox->setChecked(run);
 }
 
+void SettingsDialog::setSkyColorEnabled(bool enabled)
+{
+    skyColorCheckBox->setChecked(enabled);
+}
+
 void SettingsDialog::onAccepted(){
     saveSettings();
     accept();
@@ -183,11 +203,13 @@ void SettingsDialog::loadSettings(){
     bool closeTray = settings.value("systemTray/closeToTray", true).toBool();
     bool startMin = settings.value("systemTray/startMinimized", false).toBool();
     bool runLogin = settings.value("systemTray/runAtLogin", false).toBool();
+    bool skyColor = settings.value("appearance/skyColor", true).toBool();
     
     minimizeToTrayCheckBox->setChecked(minimizeTray);
     closeToTrayCheckBox->setChecked(closeTray);
     startMinimizedCheckBox->setChecked(startMin);
     runAtLoginCheckBox->setChecked(runLogin);
+    skyColorCheckBox->setChecked(skyColor);
 }
 
 void SettingsDialog::saveSettings(){
@@ -197,6 +219,7 @@ void SettingsDialog::saveSettings(){
     settings.setValue("systemTray/closeToTray", closeToTrayCheckBox->isChecked());
     settings.setValue("systemTray/startMinimized", startMinimizedCheckBox->isChecked());
     settings.setValue("systemTray/runAtLogin", runAtLoginCheckBox->isChecked());
+    settings.setValue("appearance/skyColor", skyColorCheckBox->isChecked());
     
     setupAutostart(runAtLoginCheckBox->isChecked());
 }

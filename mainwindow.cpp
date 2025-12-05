@@ -332,6 +332,15 @@ void MainWindow::setupToolBar(){
     
     toolBar->addSeparator();
     
+    QAction *skyColorAction = toolBar->addAction("🎨 Colors");
+    skyColorAction->setCheckable(true);
+    QSettings skySettings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    skyColorAction->setChecked(skySettings.value("appearance/skyColor", true).toBool());
+    skyColorAction->setToolTip("Toggle sky color theme");
+    skyColorAction->setStatusTip("Toggle sky color theme based on time of day");
+    connect(skyColorAction, &QAction::triggered, this, &MainWindow::toggleSkyColor);
+    mainToolBarActions.append(skyColorAction);
+    
     QAction *settingsToolBarAction = toolBar->addAction("⚙️ Settings");
     settingsToolBarAction->setToolTip("Configure application settings");
     settingsToolBarAction->setStatusTip("Configure application settings");
@@ -365,7 +374,8 @@ void MainWindow::setupToolBar(){
         mainToolBarActions[3]->setText("📋");
         mainToolBarActions[4]->setText("➕");
         mainToolBarActions[5]->setText("🕐");
-        mainToolBarActions[6]->setText("⚙️");
+        mainToolBarActions[6]->setText("🎨");
+        mainToolBarActions[7]->setText("⚙️");
         toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
     else{
@@ -1074,7 +1084,8 @@ void MainWindow::toggleToolBarTextVisibility(){
         mainToolBarActions[3]->setText("📋 Copy");
         mainToolBarActions[4]->setText("➕ Add Zone");
         mainToolBarActions[5]->setText("🕐 Current Time");
-        mainToolBarActions[6]->setText("⚙️ Settings");
+        mainToolBarActions[6]->setText("🎨 Colors");
+        mainToolBarActions[7]->setText("⚙️ Settings");
         toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     }
     else{
@@ -1084,7 +1095,8 @@ void MainWindow::toggleToolBarTextVisibility(){
         mainToolBarActions[3]->setText("📋");
         mainToolBarActions[4]->setText("➕");
         mainToolBarActions[5]->setText("🕐");
-        mainToolBarActions[6]->setText("⚙️");
+        mainToolBarActions[6]->setText("🎨");
+        mainToolBarActions[7]->setText("⚙️");
         toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
     
@@ -1110,8 +1122,36 @@ void MainWindow::showSettings(){
     }
     
     if (settingsDialog->exec() == QDialog::Accepted){
+        for (TimeZoneWidget *widget : timeZoneWidgets){
+            widget->reloadSettings();
+        }
+        
+        QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+        bool skyColorEnabled = settings.value("appearance/skyColor", true).toBool();
+        if (mainToolBarActions.size() > 6){
+            mainToolBarActions[6]->setChecked(skyColorEnabled);
+        }
+        
         statusBar()->showMessage("Settings updated", 2000);
     }
+}
+
+void MainWindow::toggleSkyColor(){
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    bool currentState = settings.value("appearance/skyColor", true).toBool();
+    bool newState = !currentState;
+    
+    settings.setValue("appearance/skyColor", newState);
+    
+    for (TimeZoneWidget *widget : timeZoneWidgets){
+        widget->reloadSettings();
+    }
+    
+    if (mainToolBarActions.size() > 6){
+        mainToolBarActions[6]->setChecked(newState);
+    }
+    
+    statusBar()->showMessage(newState ? "Sky colors enabled" : "Sky colors disabled", 2000);
 }
 
 void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)

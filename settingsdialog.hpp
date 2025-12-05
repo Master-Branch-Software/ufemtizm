@@ -19,12 +19,14 @@ public:
     bool closeToTray() const;
     bool startMinimized() const;
     bool runAtLogin() const;
+    bool skyColorEnabled() const;
 
     void setShowInTaskBar(bool show);
     void setMinimizeToTray(bool minimize);
     void setCloseToTray(bool close);
     void setStartMinimized(bool start);
     void setRunAtLogin(bool run);
+    void setSkyColorEnabled(bool enabled);
 
 private slots:
     void onAccepted();
@@ -38,6 +40,7 @@ private:
     QCheckBox *closeToTrayCheckBox;
     QCheckBox *startMinimizedCheckBox;
     QCheckBox *runAtLoginCheckBox;
+    QCheckBox *skyColorCheckBox;
     QDialogButtonBox *buttonBox;
     
     void setupAutostart(bool enable);

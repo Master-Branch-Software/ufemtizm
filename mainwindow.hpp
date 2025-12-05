@@ -53,6 +53,7 @@ private slots:
     void handleNewConnection();
     void copyToClipboard();
     void initializeSystemTray();
+    void toggleSkyColor();
 
 private:
     void setupMenuBar();

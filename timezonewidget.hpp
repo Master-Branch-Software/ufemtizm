@@ -19,6 +19,8 @@
 #include <QToolButton>
 #include <QButtonGroup>
 
+class QGraphicsDropShadowEffect;
+
 class EditableLabel : public QWidget
 {
     Q_OBJECT
@@ -30,6 +32,7 @@ public:
     void selectAll();
     bool isEditing() const;
     void finishEditing();
+    void setTextColor(const QColor &color);
 
 signals:
     void textChanged(const QString &text);
@@ -60,6 +63,7 @@ public:
     bool getIs24HourFormat() const;
     void setIs24HourFormat(bool is24Hour);
     void selectName();
+    void reloadSettings();
 
 signals:
     void timeChanged(qint64 baseTimestamp);
@@ -90,6 +94,9 @@ private:
     int timestampToSliderValue(qint64 timestamp) const;
     qint64 sliderValueToTimestamp(int value) const;
     void updateTimeZoneLabel();
+    void updateSkyColor();
+    QColor calculateSkyColor(const QDateTime &localTime) const;
+    double calculateSunPosition(const QDateTime &localTime) const;
     
     EditableLabel *nameEdit;
     QLabel *dateTimeLabel;
@@ -107,9 +114,11 @@ private:
     QTimeZone currentTimeZone;
     bool is24HourFormat;
     bool updatingInternally;
+    bool skyColorEnabled;
     QPoint dragStartPosition;
     QFrame *frame;
     QFrame *dropIndicator;
+    QGraphicsDropShadowEffect *frameShadow;
 };
 
 #endif // TIMEZONEWIDGET_HPP

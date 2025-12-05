@@ -7,6 +7,9 @@
 #include <QApplication>
 #include <QMenu>
 #include <QFocusEvent>
+#include <QGraphicsDropShadowEffect>
+#include <QSettings>
+#include <QtMath>
 #include <algorithm>
 
 EditableLabel::EditableLabel(const QString &text, QWidget *parent)
@@ -69,6 +72,25 @@ void EditableLabel::setText(const QString &text){
     mLineEdit->setText(text);
 }
 
+void EditableLabel::setTextColor(const QColor &color){
+    QString styleSheet = QString(
+        "QLabel {"
+        "    background-color: transparent;"
+        "    border: 1px solid transparent;"
+        "    border-radius: 6px;"
+        "    padding: 8px 12px;"
+        "    font-size: 13px;"
+        "    font-weight: 500;"
+        "    color: %1;"
+        "}"
+        "QLabel:hover {"
+        "    background-color: #f5f5f5;"
+        "    border: 1px solid #e0e0e0;"
+        "}"
+    ).arg(color.name());
+    mLabel->setStyleSheet(styleSheet);
+}
+
 void EditableLabel::selectAll(){
     mLineEdit->setFocus();
     mLineEdit->selectAll();
@@ -102,8 +124,13 @@ TimeZoneWidget::TimeZoneWidget(QWidget *parent)
       currentTimeZone(QTimeZone::systemTimeZone()),
       is24HourFormat(true),
       updatingInternally(false),
-      dropIndicator(nullptr)
+      skyColorEnabled(true),
+      dropIndicator(nullptr),
+      frameShadow(nullptr)
 {
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    skyColorEnabled = settings.value("appearance/skyColor", true).toBool();
+    
     setupUI();
     populateTimeZones();
     updateDisplay();
@@ -134,11 +161,18 @@ void TimeZoneWidget::setupUI(){
     frame->setStyleSheet(
         "QFrame#timeZoneCard {"
         "    background-color: #ffffff;"
-        "    border: 1px solid #e0e0e0;"
+        "    border: 1px solid #d0d0d0;"
         "    border-radius: 12px;"
         "    padding: 0px;"
         "}"
     );
+    frame->setGraphicsEffect(nullptr);
+    frameShadow = new QGraphicsDropShadowEffect();
+    frameShadow->setBlurRadius(12);
+    frameShadow->setXOffset(0);
+    frameShadow->setYOffset(2);
+    frameShadow->setColor(QColor(0, 0, 0, 30));
+    frame->setGraphicsEffect(frameShadow);
     
     QVBoxLayout *frameLayout = new QVBoxLayout(frame);
     frameLayout->setContentsMargins(12, 12, 12, 12);
@@ -269,7 +303,8 @@ void TimeZoneWidget::setupUI(){
     dateTimeLabel->setStyleSheet(
         "QLabel {"
         "    color: #212121;"
-        "    padding: 4px;"
+        "    padding: 2px 4px 0px 4px;"
+        "    margin-bottom: 0px;"
         "}"
     );
     frameLayout->addWidget(dateTimeLabel);
@@ -282,7 +317,9 @@ void TimeZoneWidget::setupUI(){
     timeZoneLabel->setStyleSheet(
         "QLabel {"
         "    color: #9e9e9e;"
-        "    padding: 2px;"
+        "    padding: 0px 2px 0px 2px;"
+        "    margin-top: 0px;"
+        "    margin-bottom: 8px;"
         "}"
     );
     frameLayout->addWidget(timeZoneLabel);
@@ -297,6 +334,7 @@ void TimeZoneWidget::setupUI(){
         "QLabel {"
         "    color: #757575;"
         "    padding: 4px;"
+        "    margin-top: 4px;"
         "}"
     );
     frameLayout->addWidget(dayOffsetLabel);
@@ -501,6 +539,7 @@ void TimeZoneWidget::updateDisplay(){
     
     dateTimeLabel->setText(localDateTime.toString(timeFormat));
     updateTimeZoneLabel();
+    updateSkyColor();
     
     QDateTime referenceDateTime = QDateTime::fromSecsSinceEpoch(baseTimestamp, QTimeZone::utc());
     QDateTime referenceLocal = referenceDateTime.toTimeZone(QTimeZone::systemTimeZone());
@@ -565,6 +604,327 @@ void TimeZoneWidget::updateTimeZoneLabel(){
     tzName = tzName.section('/', -1);
     tzName.replace('_', ' ');
     timeZoneLabel->setText(tzName);
+}
+
+void TimeZoneWidget::updateSkyColor(){
+    QDateTime baseDateTime = QDateTime::fromSecsSinceEpoch(baseTimestamp, QTimeZone::utc());
+    QDateTime localDateTime = baseDateTime.toTimeZone(currentTimeZone);
+    
+    int hour = localDateTime.time().hour();
+    int minute = localDateTime.time().minute();
+    double timeInHours = hour + (minute / 60.0);
+    
+    double sunriseHour = 6.5;
+    double sunsetHour = 18.5;
+    bool isNightTime = (timeInHours >= sunsetHour + 1 || timeInHours < sunriseHour - 1);
+    
+    if (!skyColorEnabled){
+        frame->setStyleSheet(
+            "QFrame#timeZoneCard {"
+            "    background-color: #ffffff;"
+            "    border: 1px solid #d0d0d0;"
+            "    border-radius: 12px;"
+            "    padding: 0px;"
+            "}"
+        );
+        dateTimeLabel->setStyleSheet(
+            "QLabel {"
+            "    color: #212121;"
+            "    padding: 2px 4px 0px 4px;"
+            "    margin-bottom: 0px;"
+            "}"
+        );
+        timeZoneLabel->setStyleSheet(
+            "QLabel {"
+            "    color: #9e9e9e;"
+            "    padding: 0px 2px 0px 2px;"
+            "    margin-top: 0px;"
+            "    margin-bottom: 8px;"
+            "}"
+        );
+        dayOffsetLabel->setStyleSheet(
+            "QLabel {"
+            "    color: #757575;"
+            "    padding: 4px;"
+            "    margin-top: 4px;"
+            "}"
+        );
+        nameEdit->setTextColor(QColor(33, 33, 33));
+        
+        format24Button->setStyleSheet(
+            "QToolButton {"
+            "    background-color: #f5f5f5;"
+            "    color: #616161;"
+            "    border: 1px solid #e0e0e0;"
+            "    border-radius: 6px;"
+            "    font-size: 11px;"
+            "    font-weight: 500;"
+            "}"
+            "QToolButton:hover {"
+            "    background-color: #eeeeee;"
+            "    border: 1px solid #bdbdbd;"
+            "}"
+            "QToolButton:pressed {"
+            "    background-color: #e0e0e0;"
+            "}"
+        );
+        
+        globeButton->setStyleSheet(
+            "QToolButton {"
+            "    background-color: #f5f5f5;"
+            "    color: #616161;"
+            "    border: 1px solid #e0e0e0;"
+            "    border-radius: 6px;"
+            "    font-size: 14px;"
+            "}"
+            "QToolButton:hover {"
+            "    background-color: #eeeeee;"
+            "    border: 1px solid #bdbdbd;"
+            "}"
+            "QToolButton:pressed {"
+            "    background-color: #e0e0e0;"
+            "}"
+        );
+        
+        removeButton->setStyleSheet(
+            "QPushButton {"
+            "    background-color: transparent;"
+            "    color: #9e9e9e;"
+            "    border: none;"
+            "    border-radius: 12px;"
+            "    font-size: 20px;"
+            "    font-weight: bold;"
+            "    padding: 0px;"
+            "}"
+            "QPushButton:hover {"
+            "    background-color: #f5f5f5;"
+            "    color: #424242;"
+            "}"
+            "QPushButton:pressed {"
+            "    background-color: #eeeeee;"
+            "}"
+        );
+        
+        return;
+    }
+    
+    QColor skyColor = calculateSkyColor(localDateTime);
+    
+    frame->setStyleSheet(
+        QString("QFrame#timeZoneCard {"
+        "    background-color: %1;"
+        "    border: 1px solid #d0d0d0;"
+        "    border-radius: 12px;"
+        "    padding: 0px;"
+        "}").arg(skyColor.name())
+    );
+    
+    if (isNightTime){
+        dateTimeLabel->setStyleSheet(
+            "QLabel {"
+            "    color: #ff6b6b;"
+            "    padding: 2px 4px 0px 4px;"
+            "    margin-bottom: 0px;"
+            "}"
+        );
+        timeZoneLabel->setStyleSheet(
+            "QLabel {"
+            "    color: #ffaaaa;"
+            "    padding: 0px 2px 0px 2px;"
+            "    margin-top: 0px;"
+            "    margin-bottom: 8px;"
+            "}"
+        );
+        dayOffsetLabel->setStyleSheet(
+            "QLabel {"
+            "    color: #ff9999;"
+            "    padding: 4px;"
+            "    margin-top: 4px;"
+            "}"
+        );
+        nameEdit->setTextColor(QColor(255, 107, 107));
+        
+        format24Button->setStyleSheet(
+            "QToolButton {"
+            "    background-color: #000000;"
+            "    color: #ffffff;"
+            "    border: 1px solid #333333;"
+            "    border-radius: 6px;"
+            "    font-size: 11px;"
+            "    font-weight: 500;"
+            "}"
+            "QToolButton:hover {"
+            "    background-color: #1a1a1a;"
+            "    border: 1px solid #555555;"
+            "}"
+            "QToolButton:pressed {"
+            "    background-color: #0a0a0a;"
+            "}"
+        );
+        
+        globeButton->setStyleSheet(
+            "QToolButton {"
+            "    background-color: #000000;"
+            "    color: #ffffff;"
+            "    border: 1px solid #333333;"
+            "    border-radius: 6px;"
+            "    font-size: 14px;"
+            "}"
+            "QToolButton:hover {"
+            "    background-color: #1a1a1a;"
+            "    border: 1px solid #555555;"
+            "}"
+            "QToolButton:pressed {"
+            "    background-color: #0a0a0a;"
+            "}"
+        );
+        
+        removeButton->setStyleSheet(
+            "QPushButton {"
+            "    background-color: #000000;"
+            "    color: #ff6b6b;"
+            "    border: 1px solid #333333;"
+            "    border-radius: 12px;"
+            "    font-size: 20px;"
+            "    font-weight: bold;"
+            "    padding: 0px;"
+            "}"
+            "QPushButton:hover {"
+            "    background-color: #1a1a1a;"
+            "    color: #ff9999;"
+            "}"
+            "QPushButton:pressed {"
+            "    background-color: #0a0a0a;"
+            "}"
+        );
+    }
+    else{
+        dateTimeLabel->setStyleSheet(
+            "QLabel {"
+            "    color: #212121;"
+            "    padding: 2px 4px 0px 4px;"
+            "    margin-bottom: 0px;"
+            "}"
+        );
+        timeZoneLabel->setStyleSheet(
+            "QLabel {"
+            "    color: #9e9e9e;"
+            "    padding: 0px 2px 0px 2px;"
+            "    margin-top: 0px;"
+            "    margin-bottom: 8px;"
+            "}"
+        );
+        dayOffsetLabel->setStyleSheet(
+            "QLabel {"
+            "    color: #757575;"
+            "    padding: 4px;"
+            "    margin-top: 4px;"
+            "}"
+        );
+        nameEdit->setTextColor(QColor(33, 33, 33));
+        
+        format24Button->setStyleSheet(
+            "QToolButton {"
+            "    background-color: #f5f5f5;"
+            "    color: #616161;"
+            "    border: 1px solid #e0e0e0;"
+            "    border-radius: 6px;"
+            "    font-size: 11px;"
+            "    font-weight: 500;"
+            "}"
+            "QToolButton:hover {"
+            "    background-color: #eeeeee;"
+            "    border: 1px solid #bdbdbd;"
+            "}"
+            "QToolButton:pressed {"
+            "    background-color: #e0e0e0;"
+            "}"
+        );
+        
+        globeButton->setStyleSheet(
+            "QToolButton {"
+            "    background-color: #f5f5f5;"
+            "    color: #616161;"
+            "    border: 1px solid #e0e0e0;"
+            "    border-radius: 6px;"
+            "    font-size: 14px;"
+            "}"
+            "QToolButton:hover {"
+            "    background-color: #eeeeee;"
+            "    border: 1px solid #bdbdbd;"
+            "}"
+            "QToolButton:pressed {"
+            "    background-color: #e0e0e0;"
+            "}"
+        );
+        
+        removeButton->setStyleSheet(
+            "QPushButton {"
+            "    background-color: transparent;"
+            "    color: #9e9e9e;"
+            "    border: none;"
+            "    border-radius: 12px;"
+            "    font-size: 20px;"
+            "    font-weight: bold;"
+            "    padding: 0px;"
+            "}"
+            "QPushButton:hover {"
+            "    background-color: #f5f5f5;"
+            "    color: #424242;"
+            "}"
+            "QPushButton:pressed {"
+            "    background-color: #eeeeee;"
+            "}"
+        );
+    }
+}
+
+QColor TimeZoneWidget::calculateSkyColor(const QDateTime &localTime) const{
+    int hour = localTime.time().hour();
+    int minute = localTime.time().minute();
+    double timeInHours = hour + (minute / 60.0);
+    
+    double sunriseHour = 6.5;
+    double sunsetHour = 18.5;
+    
+    QColor color;
+    
+    if (timeInHours >= sunriseHour - 1 && timeInHours < sunriseHour + 1){
+        double progress = (timeInHours - (sunriseHour - 1)) / 2.0;
+        QColor dawn(255, 200, 150);
+        QColor day(220, 235, 255);
+        color = QColor(
+            dawn.red() + progress * (day.red() - dawn.red()),
+            dawn.green() + progress * (day.green() - dawn.green()),
+            dawn.blue() + progress * (day.blue() - dawn.blue())
+        );
+    }
+    else if (timeInHours >= sunriseHour + 1 && timeInHours < sunsetHour - 1){
+        color = QColor(220, 235, 255);
+    }
+    else if (timeInHours >= sunsetHour - 1 && timeInHours < sunsetHour + 1){
+        double progress = (timeInHours - (sunsetHour - 1)) / 2.0;
+        QColor day(220, 235, 255);
+        QColor dusk(255, 180, 140);
+        color = QColor(
+            day.red() + progress * (dusk.red() - day.red()),
+            day.green() + progress * (dusk.green() - day.green()),
+            day.blue() + progress * (dusk.blue() - day.blue())
+        );
+    }
+    else if (timeInHours >= sunsetHour + 1 || timeInHours < sunriseHour - 1){
+        color = QColor(30, 40, 60);
+    }
+    else{
+        color = QColor(255, 255, 255);
+    }
+    
+    return color;
+}
+
+double TimeZoneWidget::calculateSunPosition(const QDateTime &localTime) const{
+    Q_UNUSED(localTime);
+    return 0.0;
 }
 
 int TimeZoneWidget::timestampToSliderValue(qint64 timestamp) const
@@ -648,6 +1008,12 @@ void TimeZoneWidget::setIs24HourFormat(bool is24Hour)
 
 void TimeZoneWidget::selectName(){
     nameEdit->selectAll();
+}
+
+void TimeZoneWidget::reloadSettings(){
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    skyColorEnabled = settings.value("appearance/skyColor", true).toBool();
+    updateDisplay();
 }
 
 void TimeZoneWidget::updateSliderLabels(){
