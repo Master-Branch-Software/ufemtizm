@@ -614,9 +614,7 @@ void TimeZoneWidget::updateSkyColor(){
     int minute = localDateTime.time().minute();
     double timeInHours = hour + (minute / 60.0);
     
-    double sunriseHour = 6.5;
-    double sunsetHour = 18.5;
-    bool isNightTime = (timeInHours >= sunsetHour + 1 || timeInHours < sunriseHour - 1);
+    bool isNightTime = (timeInHours >= 20.0 || timeInHours < 7.0);
     
     if (!skyColorEnabled){
         frame->setStyleSheet(
@@ -710,6 +708,9 @@ void TimeZoneWidget::updateSkyColor(){
     
     QColor skyColor = calculateSkyColor(localDateTime);
     
+    // Calculate darker button color (20% darker than background)
+    QColor buttonColor = skyColor.darker(120);
+    
     frame->setStyleSheet(
         QString("QFrame#timeZoneCard {"
         "    background-color: %1;"
@@ -719,164 +720,115 @@ void TimeZoneWidget::updateSkyColor(){
         "}").arg(skyColor.name())
     );
     
-    if (isNightTime){
-        dateTimeLabel->setStyleSheet(
-            "QLabel {"
-            "    color: #ff6b6b;"
-            "    padding: 2px 4px 0px 4px;"
-            "    margin-bottom: 0px;"
-            "}"
-        );
-        timeZoneLabel->setStyleSheet(
-            "QLabel {"
-            "    color: #ffaaaa;"
-            "    padding: 0px 2px 0px 2px;"
-            "    margin-top: 0px;"
-            "    margin-bottom: 8px;"
-            "}"
-        );
-        dayOffsetLabel->setStyleSheet(
-            "QLabel {"
-            "    color: #ff9999;"
-            "    padding: 4px;"
-            "    margin-top: 4px;"
-            "}"
-        );
-        nameEdit->setTextColor(QColor(255, 107, 107));
-        
-        format24Button->setStyleSheet(
-            "QToolButton {"
-            "    background-color: #000000;"
-            "    color: #ffffff;"
-            "    border: 1px solid #333333;"
-            "    border-radius: 6px;"
-            "    font-size: 11px;"
-            "    font-weight: 500;"
-            "}"
-            "QToolButton:hover {"
-            "    background-color: #1a1a1a;"
-            "    border: 1px solid #555555;"
-            "}"
-            "QToolButton:pressed {"
-            "    background-color: #0a0a0a;"
-            "}"
-        );
-        
-        globeButton->setStyleSheet(
-            "QToolButton {"
-            "    background-color: #000000;"
-            "    color: #ffffff;"
-            "    border: 1px solid #333333;"
-            "    border-radius: 6px;"
-            "    font-size: 14px;"
-            "}"
-            "QToolButton:hover {"
-            "    background-color: #1a1a1a;"
-            "    border: 1px solid #555555;"
-            "}"
-            "QToolButton:pressed {"
-            "    background-color: #0a0a0a;"
-            "}"
-        );
-        
-        removeButton->setStyleSheet(
-            "QPushButton {"
-            "    background-color: #000000;"
-            "    color: #ff6b6b;"
-            "    border: 1px solid #333333;"
-            "    border-radius: 12px;"
-            "    font-size: 20px;"
-            "    font-weight: bold;"
-            "    padding: 0px;"
-            "}"
-            "QPushButton:hover {"
-            "    background-color: #1a1a1a;"
-            "    color: #ff9999;"
-            "}"
-            "QPushButton:pressed {"
-            "    background-color: #0a0a0a;"
-            "}"
-        );
-    }
-    else{
-        dateTimeLabel->setStyleSheet(
-            "QLabel {"
-            "    color: #212121;"
-            "    padding: 2px 4px 0px 4px;"
-            "    margin-bottom: 0px;"
-            "}"
-        );
-        timeZoneLabel->setStyleSheet(
-            "QLabel {"
-            "    color: #9e9e9e;"
-            "    padding: 0px 2px 0px 2px;"
-            "    margin-top: 0px;"
-            "    margin-bottom: 8px;"
-            "}"
-        );
-        dayOffsetLabel->setStyleSheet(
-            "QLabel {"
-            "    color: #757575;"
-            "    padding: 4px;"
-            "    margin-top: 4px;"
-            "}"
-        );
-        nameEdit->setTextColor(QColor(33, 33, 33));
-        
-        format24Button->setStyleSheet(
-            "QToolButton {"
-            "    background-color: #f5f5f5;"
-            "    color: #616161;"
-            "    border: 1px solid #e0e0e0;"
-            "    border-radius: 6px;"
-            "    font-size: 11px;"
-            "    font-weight: 500;"
-            "}"
-            "QToolButton:hover {"
-            "    background-color: #eeeeee;"
-            "    border: 1px solid #bdbdbd;"
-            "}"
-            "QToolButton:pressed {"
-            "    background-color: #e0e0e0;"
-            "}"
-        );
-        
-        globeButton->setStyleSheet(
-            "QToolButton {"
-            "    background-color: #f5f5f5;"
-            "    color: #616161;"
-            "    border: 1px solid #e0e0e0;"
-            "    border-radius: 6px;"
-            "    font-size: 14px;"
-            "}"
-            "QToolButton:hover {"
-            "    background-color: #eeeeee;"
-            "    border: 1px solid #bdbdbd;"
-            "}"
-            "QToolButton:pressed {"
-            "    background-color: #e0e0e0;"
-            "}"
-        );
-        
-        removeButton->setStyleSheet(
-            "QPushButton {"
-            "    background-color: transparent;"
-            "    color: #9e9e9e;"
-            "    border: none;"
-            "    border-radius: 12px;"
-            "    font-size: 20px;"
-            "    font-weight: bold;"
-            "    padding: 0px;"
-            "}"
-            "QPushButton:hover {"
-            "    background-color: #f5f5f5;"
-            "    color: #424242;"
-            "}"
-            "QPushButton:pressed {"
-            "    background-color: #eeeeee;"
-            "}"
-        );
-    }
+    // Determine text color based on sky color brightness
+    int brightness = (skyColor.red() * 299 + skyColor.green() * 587 + skyColor.blue() * 114) / 1000;
+    QColor textColor = (isNightTime) ? QColor(255, 107, 107) : QColor(33, 33, 33);
+    QColor secondaryTextColor = (isNightTime) ? QColor(255, 170, 170) : QColor(158, 158, 158);
+    QColor tertiaryTextColor = (isNightTime) ? QColor(255, 153, 153) : QColor(117, 117, 117);
+    
+    // Button text should be red in night mode, white during day
+    QColor buttonTextColor = (isNightTime) ? QColor(255, 107, 107) : QColor(255, 255, 255);
+    QColor removeButtonTextColor = (isNightTime) ? QColor(255, 107, 107) : QColor(255, 255, 255);
+    
+    // Calculate hover color (slightly lighter)
+    QColor hoverColor = buttonColor.lighter(110);
+    QColor pressedColor = buttonColor.darker(110);
+    
+    // Calculate border color
+    QColor borderColor = buttonColor.darker(120);
+    
+    dateTimeLabel->setStyleSheet(
+        QString("QLabel {"
+        "    color: %1;"
+        "    padding: 2px 4px 0px 4px;"
+        "    margin-bottom: 0px;"
+        "}").arg(textColor.name())
+    );
+    timeZoneLabel->setStyleSheet(
+        QString("QLabel {"
+        "    color: %1;"
+        "    padding: 0px 2px 0px 2px;"
+        "    margin-top: 0px;"
+        "    margin-bottom: 8px;"
+        "}").arg(secondaryTextColor.name())
+    );
+    dayOffsetLabel->setStyleSheet(
+        QString("QLabel {"
+        "    color: %1;"
+        "    padding: 4px;"
+        "    margin-top: 4px;"
+        "}").arg(tertiaryTextColor.name())
+    );
+    nameEdit->setTextColor(textColor);
+    
+    format24Button->setStyleSheet(
+        QString("QToolButton {"
+        "    background-color: %1;"
+        "    color: %2;"
+        "    border: 1px solid %3;"
+        "    border-radius: 6px;"
+        "    font-size: 11px;"
+        "    font-weight: 500;"
+        "}"
+        "QToolButton:hover {"
+        "    background-color: %4;"
+        "    border: 1px solid %3;"
+        "}"
+        "QToolButton:pressed {"
+        "    background-color: %5;"
+        "}")
+        .arg(buttonColor.name())
+        .arg(buttonTextColor.name())
+        .arg(borderColor.name())
+        .arg(hoverColor.name())
+        .arg(pressedColor.name())
+    );
+    
+    globeButton->setStyleSheet(
+        QString("QToolButton {"
+        "    background-color: %1;"
+        "    color: %2;"
+        "    border: 1px solid %3;"
+        "    border-radius: 6px;"
+        "    font-size: 14px;"
+        "}"
+        "QToolButton:hover {"
+        "    background-color: %4;"
+        "    border: 1px solid %3;"
+        "}"
+        "QToolButton:pressed {"
+        "    background-color: %5;"
+        "}")
+        .arg(buttonColor.name())
+        .arg(buttonTextColor.name())
+        .arg(borderColor.name())
+        .arg(hoverColor.name())
+        .arg(pressedColor.name())
+    );
+    
+    removeButton->setStyleSheet(
+        QString("QPushButton {"
+        "    background-color: %1;"
+        "    color: %2;"
+        "    border: 1px solid %3;"
+        "    border-radius: 12px;"
+        "    font-size: 20px;"
+        "    font-weight: bold;"
+        "    padding: 0px;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: %4;"
+        "    color: %2;"
+        "}"
+        "QPushButton:pressed {"
+        "    background-color: %5;"
+        "}")
+        .arg(buttonColor.name())
+        .arg(removeButtonTextColor.name())
+        .arg(borderColor.name())
+        .arg(hoverColor.name())
+        .arg(pressedColor.name())
+    );
 }
 
 QColor TimeZoneWidget::calculateSkyColor(const QDateTime &localTime) const{
@@ -884,36 +836,70 @@ QColor TimeZoneWidget::calculateSkyColor(const QDateTime &localTime) const{
     int minute = localTime.time().minute();
     double timeInHours = hour + (minute / 60.0);
     
-    double sunriseHour = 6.5;
-    double sunsetHour = 18.5;
-    
     QColor color;
     
-    if (timeInHours >= sunriseHour - 1 && timeInHours < sunriseHour + 1){
-        double progress = (timeInHours - (sunriseHour - 1)) / 2.0;
-        QColor dawn(255, 200, 150);
-        QColor day(220, 235, 255);
-        color = QColor(
-            dawn.red() + progress * (day.red() - dawn.red()),
-            dawn.green() + progress * (day.green() - dawn.green()),
-            dawn.blue() + progress * (day.blue() - dawn.blue())
-        );
-    }
-    else if (timeInHours >= sunriseHour + 1 && timeInHours < sunsetHour - 1){
-        color = QColor(220, 235, 255);
-    }
-    else if (timeInHours >= sunsetHour - 1 && timeInHours < sunsetHour + 1){
-        double progress = (timeInHours - (sunsetHour - 1)) / 2.0;
-        QColor day(220, 235, 255);
-        QColor dusk(255, 180, 140);
-        color = QColor(
-            day.red() + progress * (dusk.red() - day.red()),
-            day.green() + progress * (dusk.green() - day.green()),
-            day.blue() + progress * (dusk.blue() - day.blue())
-        );
-    }
-    else if (timeInHours >= sunsetHour + 1 || timeInHours < sunriseHour - 1){
+    // Night: 8 PM to 5 AM (dark blue)
+    if (timeInHours >= 20.0 || timeInHours < 5.0){
         color = QColor(30, 40, 60);
+    }
+    // Dawn transition: 5 AM to 10 AM (night fading to morning blue)
+    else if (timeInHours >= 5.0 && timeInHours < 10.0){
+        double progress = (timeInHours - 5.0) / 5.0;
+        QColor night(30, 40, 60);
+        QColor morning(210, 230, 255);
+        color = QColor(
+            night.red() + progress * (morning.red() - night.red()),
+            night.green() + progress * (morning.green() - night.green()),
+            night.blue() + progress * (morning.blue() - night.blue())
+        );
+    }
+    // Late morning to noon: 10 AM to 12 PM (blue to yellow)
+    else if (timeInHours >= 10.0 && timeInHours < 12.0){
+        double progress = (timeInHours - 10.0) / 2.0;
+        QColor morning(200, 220, 255);
+        QColor noon(255, 255, 220);
+        color = QColor(
+            morning.red() + progress * (noon.red() - morning.red()),
+            morning.green() + progress * (noon.green() - morning.green()),
+            morning.blue() + progress * (noon.blue() - morning.blue())
+        );
+    }
+    // Noon to afternoon: 12 PM to 2 PM (yellow at peak)
+    else if (timeInHours >= 12.0 && timeInHours < 14.0){
+        color = QColor(255, 255, 220);
+    }
+    // Afternoon: 2 PM to 5 PM (yellow back to blue)
+    else if (timeInHours >= 14.0 && timeInHours < 17.0){
+        double progress = (timeInHours - 14.0) / 3.0;
+        QColor noon(255, 255, 220);
+        QColor afternoon(200, 220, 255);
+        color = QColor(
+            noon.red() + progress * (afternoon.red() - noon.red()),
+            noon.green() + progress * (afternoon.green() - noon.green()),
+            noon.blue() + progress * (afternoon.blue() - noon.blue())
+        );
+    }
+    // Evening to sunset: 5 PM to 7 PM (blue to reddish sunset)
+    else if (timeInHours >= 17.0 && timeInHours < 19.0){
+        double progress = (timeInHours - 17.0) / 2.0;
+        QColor afternoon(200, 220, 255);
+        QColor sunset(255, 140, 120);
+        color = QColor(
+            afternoon.red() + progress * (sunset.red() - afternoon.red()),
+            afternoon.green() + progress * (sunset.green() - afternoon.green()),
+            afternoon.blue() + progress * (sunset.blue() - afternoon.blue())
+        );
+    }
+    // Dusk: 7 PM to 8 PM (sunset to night)
+    else if (timeInHours >= 19.0 && timeInHours < 20.0){
+        double progress = (timeInHours - 19.0) / 1.0;
+        QColor sunset(255, 140, 120);
+        QColor night(30, 40, 60);
+        color = QColor(
+            sunset.red() + progress * (night.red() - sunset.red()),
+            sunset.green() + progress * (night.green() - sunset.green()),
+            sunset.blue() + progress * (night.blue() - sunset.blue())
+        );
     }
     else{
         color = QColor(255, 255, 255);

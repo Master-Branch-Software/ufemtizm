@@ -6,6 +6,22 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
 
 ## Features
 
+### Visual Design
+- **3D appearance** - Subtle drop shadows on widgets for depth and polish
+- **Dynamic sky color theme** - Widget backgrounds change color based on time of day:
+  - **Night (8 PM - 5 AM)**: Deep blue background with red text for visibility
+  - **Dawn (5 AM - 7 AM)**: Gradual lightening from dark to morning blue
+  - **Morning (7 AM - 10 AM)**: Soft morning blue
+  - **Late Morning (10 AM - 12 PM)**: Blue fading to warm yellow
+  - **Noon (12 PM - 2 PM)**: Bright yellow representing peak sun
+  - **Afternoon (2 PM - 5 PM)**: Yellow fading back to blue
+  - **Evening/Sunset (5 PM - 7 PM)**: Blue transitioning to reddish sunset
+  - **Dusk (7 PM - 8 PM)**: Sunset colors fading to night
+- **Adaptive toolbar buttons** - Button backgrounds and text colors fade along with the sky color throughout the day
+- **Quick toggle** - Color palette button (🎨) on main toolbar for instant theme on/off
+- **Preference control** - Enable/disable sky colors in Settings → Appearance
+
+### User Interface
 - **Compact toolbar interface** with intuitive icon buttons:
   - Single toggle button to switch between 12/24-hour format
   - Globe icon (🌍) for quick timezone selection via dropdown menu
@@ -18,10 +34,12 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
   - Large, centered time display in your chosen format
   - Timezone name shown below the time
   - Day offset indicator showing relative day differences between zones (e.g., "+1 day", "-1 day")
+
+### Functionality
 - **Comprehensive time zone selection** with organized dropdown containing major cities worldwide
 - **Multiple time zone widgets** - add as many as you need
 - **Synchronized sliders** - moving any slider updates all others automatically
-- **Drag and drop reordering** - click and drag widgets to reorder them
+- **Drag and drop reordering** - click and drag widgets to reorder them horizontally
 - **System tray integration** - minimize to tray for quick access
   - Double-click tray icon to show/hide window
   - Right-click for context menu with recent files and quick actions
@@ -136,13 +154,24 @@ cmake --build . --config Release
 ### Working with Time Zones
 
 - **Add a time zone**: File → Add Time Zone (or Ctrl+T)
-- **Change time zone**: Click the globe icon (🌍) in the toolbar and select from the menu
+- **Change time zone**: Click the globe icon (🌍) in the widget toolbar and select from the menu
 - **Rename widget**: Double-click on the friendly name and type a new name. Click anywhere outside to save
 - **Adjust time**: Drag any slider up or down - all widgets update automatically to show the corresponding time
-- **Remove widget**: Click the X button in the top-right of the toolbar (minimum one widget must remain)
-- **Toggle format**: Click the format button (shows "12" or "24") to toggle between 12 and 24-hour time display
+- **Remove widget**: Click the X button in the widget toolbar (minimum one widget must remain)
+- **Toggle format**: Click the format button (shows "12" or "24") in the widget toolbar to toggle between 12 and 24-hour time display
+- **Toggle sky colors**: Click the color palette button (🎨) on the main toolbar to instantly enable/disable the sky color theme
 - **Reorder widgets**: Click and drag any widget to reorder them horizontally
 - **Copy to clipboard**: Use Edit → Copy (Ctrl+C) to copy all timezone information. Each widget's time is copied in its configured format (24-hour or 12-hour)
+
+### Sky Color Theme
+
+The optional sky color theme provides visual context for time of day:
+
+- **Smooth color transitions** - Background colors gradually fade as you move the time slider, creating a natural progression through the day
+- **Adaptive text colors** - Text automatically switches between black and red for optimal readability against changing backgrounds
+- **Coordinated button colors** - Widget toolbar buttons dynamically adjust their background and text colors to match the sky theme
+- **Quick toggle** - Use the 🎨 button on the main toolbar or visit Settings → Appearance to enable/disable the feature
+- **Saves your preference** - Your color theme choice persists across application restarts
 
 ### Understanding Day Offsets
 
