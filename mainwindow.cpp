@@ -3,7 +3,6 @@
 #include "settingsdialog.hpp"
 #include "version.h"
 #include <QMenuBar>
-#include <QStatusBar>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QScrollArea>
@@ -42,7 +41,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
     trayInitAttempts(0){
     setStyleSheet(
         "QMainWindow {"
-        "    background-color: #f5f5f5;"
+        "    background-color: #1a2332;"
         "}"
         "QMenuBar {"
         "    background-color: #ffffff;"
@@ -251,16 +250,6 @@ void MainWindow::setupMenuBar(){
     aboutAction->setToolTip("About this application");
     aboutAction->setStatusTip("About this application");
     connect(aboutAction, &QAction::triggered, this, &MainWindow::showAboutDialog);
-    
-    statusBar()->setStyleSheet(
-        "QStatusBar {"
-        "    background-color: #ffffff;"
-        "    border-top: 1px solid #e0e0e0;"
-        "    color: #757575;"
-        "    font-size: 11px;"
-        "}"
-    );
-    statusBar()->showMessage("Ready");
 }
 
 void MainWindow::setupToolBar(){
@@ -417,8 +406,6 @@ void MainWindow::addTimeZoneWidget(){
     
     isDirty = true;
     updateWindowTitle();
-    
-    statusBar()->showMessage("Timezone added", 2000);
 }
 
 void MainWindow::removeTimeZoneWidget(TimeZoneWidget *widget){
@@ -810,9 +797,6 @@ bool MainWindow::saveToFile(const QString &filename)
     isDirty = false;
     updateWindowTitle();
     
-    QFileInfo fileInfo(filename);
-    statusBar()->showMessage(QString("Saved: %1").arg(fileInfo.fileName()), 3000);
-    
     return true;
 }
 
@@ -914,12 +898,6 @@ bool MainWindow::loadFromFile(const QString &filename)
     isDirty = false;
     updateWindowTitle();
     
-    QFileInfo fileInfo(filename);
-    statusBar()->showMessage(QString("Loaded: %1 (%2 timezone%3)")
-        .arg(fileInfo.fileName())
-        .arg(timeZoneWidgets.size())
-        .arg(timeZoneWidgets.size() != 1 ? "s" : ""), 3000);
-    
     return true;
 }
 
@@ -972,9 +950,8 @@ void MainWindow::adjustWindowSize(){
     
     int menuBarHeight = menuBar()->height();
     int toolBarHeight = toolBar->isVisible() ? toolBar->height() : 0;
-    int statusBarHeight = statusBar()->height();
     
-    int totalHeight = contentHeight + menuBarHeight + toolBarHeight + statusBarHeight;
+    int totalHeight = contentHeight + menuBarHeight + toolBarHeight;
     
     setFixedSize(totalWidth, totalHeight);
 }
@@ -1045,8 +1022,6 @@ void MainWindow::onWidgetDropped(TimeZoneWidget *target, TimeZoneWidget *source)
 
     isDirty = true;
     updateWindowTitle();
-    
-    statusBar()->showMessage("Widget reordered", 2000);
 }
 
 void MainWindow::setToCurrentTime(){
@@ -1054,7 +1029,6 @@ void MainWindow::setToCurrentTime(){
     
     if (!timeZoneWidgets.isEmpty()){
         updateAllWidgets(currentTime, nullptr);
-        statusBar()->showMessage("Set to current time", 2000);
     }
 }
 
@@ -1070,8 +1044,6 @@ void MainWindow::toggleToolBarVisibility(){
     }
     
     adjustWindowSize();
-    
-    statusBar()->showMessage((!isVisible ? "Toolbar shown" : "Toolbar hidden"), 2000);
 }
 
 void MainWindow::toggleToolBarTextVisibility(){
@@ -1112,8 +1084,6 @@ void MainWindow::toggleToolBarTextVisibility(){
     }
     
     adjustWindowSize();
-    
-    statusBar()->showMessage((showText ? "Toolbar text shown" : "Toolbar text hidden"), 2000);
 }
 
 void MainWindow::showSettings(){
@@ -1131,8 +1101,6 @@ void MainWindow::showSettings(){
         if (mainToolBarActions.size() > 6){
             mainToolBarActions[6]->setChecked(skyColorEnabled);
         }
-        
-        statusBar()->showMessage("Settings updated", 2000);
     }
 }
 
@@ -1150,8 +1118,6 @@ void MainWindow::toggleSkyColor(){
     if (mainToolBarActions.size() > 6){
         mainToolBarActions[6]->setChecked(newState);
     }
-    
-    statusBar()->showMessage(newState ? "Sky colors enabled" : "Sky colors disabled", 2000);
 }
 
 void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
@@ -1313,10 +1279,6 @@ void MainWindow::copyToClipboard(){
     
     QClipboard *clipboard = QApplication::clipboard();
     clipboard->setText(clipboardText);
-    
-    statusBar()->showMessage(QString("Copied %1 timezone%2 to clipboard")
-        .arg(timeZoneWidgets.size())
-        .arg(timeZoneWidgets.size() != 1 ? "s" : ""), 2000);
 }
 
 void MainWindow::initializeSystemTray(){
