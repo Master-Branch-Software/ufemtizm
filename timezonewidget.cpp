@@ -905,7 +905,12 @@ QColor TimeZoneWidget::calculateSkyColor(const QDateTime &localTime) const{
         color = QColor(255, 255, 255);
     }
     
-    return color;
+    // Blend 20% with white to reduce opacity/intensity
+    int r = color.red() * 0.8 + 255 * 0.2;
+    int g = color.green() * 0.8 + 255 * 0.2;
+    int b = color.blue() * 0.8 + 255 * 0.2;
+    
+    return QColor(r, g, b);
 }
 
 double TimeZoneWidget::calculateSunPosition(const QDateTime &localTime) const{
