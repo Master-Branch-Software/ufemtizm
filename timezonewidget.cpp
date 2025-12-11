@@ -391,6 +391,7 @@ void TimeZoneWidget::setupUI(){
     for (int i = 0; i <= 24; i++){
         QLabel *hourLabel = new QLabel();
         hourLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        hourLabel->setFixedWidth(32);
         hourLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
         QFont labelFont = hourLabel->font();
         labelFont.setPointSize(9);
@@ -399,6 +400,7 @@ void TimeZoneWidget::setupUI(){
         hourLabel->setStyleSheet(
             "QLabel {"
             "    color: #616161;"
+            "    text-align: right;"
             "}"
         );
         hourLabels.append(hourLabel);
