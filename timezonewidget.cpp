@@ -391,6 +391,7 @@ void TimeZoneWidget::setupUI(){
     for (int i = 0; i <= 24; i++){
         QLabel *hourLabel = new QLabel();
         hourLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        hourLabel->setFixedWidth(32);
         hourLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
         QFont labelFont = hourLabel->font();
         labelFont.setPointSize(9);
@@ -399,6 +400,7 @@ void TimeZoneWidget::setupUI(){
         hourLabel->setStyleSheet(
             "QLabel {"
             "    color: #616161;"
+            "    text-align: right;"
             "}"
         );
         hourLabels.append(hourLabel);
@@ -905,7 +907,12 @@ QColor TimeZoneWidget::calculateSkyColor(const QDateTime &localTime) const{
         color = QColor(255, 255, 255);
     }
     
-    return color;
+    // Blend 20% with white to reduce opacity/intensity
+    int r = color.red() * 0.8 + 255 * 0.2;
+    int g = color.green() * 0.8 + 255 * 0.2;
+    int b = color.blue() * 0.8 + 255 * 0.2;
+    
+    return QColor(r, g, b);
 }
 
 double TimeZoneWidget::calculateSunPosition(const QDateTime &localTime) const{
