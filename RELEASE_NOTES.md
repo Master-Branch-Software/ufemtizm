@@ -1,3 +1,100 @@
+# 🎉 Release 2025.1.0
+
+## 📋 Overview
+This release focuses on **UI/UX polish**, **visual refinements**, and **platform-specific fixes**. Significant improvements include refined sky color transitions, improved code quality with comprehensive style standardization, and better cross-platform system tray behavior.
+
+---
+
+## ✨ What's New
+
+### 🎨 Visual Enhancements
+- **Refined sky color transitions** - Smoother, more natural color progression throughout the day
+  - Extended night mode (red text) from 8 PM to 7 AM for better visibility
+  - Removed warm dawn colors for cleaner transition from night to morning blue
+  - Improved color gradients for noon peak and sunset periods
+  - Button colors now fade more naturally with sky colors (20% darker)
+- **Reduced sky color opacity** - 20% reduction for more subtle, less distracting background colors
+- **Right-aligned slider time labels** - Cleaner, more professional appearance
+- **3D appearance improvements** - Enhanced subtle drop shadows for better depth perception
+
+### 🖌️ UI/UX Improvements
+- **Compact toolbar interface** - Complete redesign with intuitive icon-based controls:
+  - Single toggle button for 12/24-hour format switching
+  - Globe icon (🌍) for quick timezone selection via dropdown
+  - X button integrated into toolbar for cleaner widget removal
+- **Double-click name editing** - Click widget names to edit, click outside to save
+- **Improved interaction feedback** - Better visual cues for interactive elements
+- **Timezone display** - Timezone name now shown below time for better context
+
+### 🐛 Platform-Specific Fixes
+- **Windows**: Fixed systray double-click not responding
+  - Changed to DoubleClick events only (previously used Trigger)
+- **Linux**: Fixed window not appearing in Alt+Tab task switcher
+  - Removed Qt::Tool flag on Linux (kept on Windows for proper behavior)
+- **Linux/KDE**: Fixed black window rendering on startup
+  - Added proper widget attributes for background rendering
+  - Added processEvents() calls after show operations
+  - Known issue: First systray double-click may still flash black (workaround: use right-click menu)
+- **Cross-platform**: Improved tray icon activation handling for platform-specific behavior
+
+### 🛠️ Code Quality
+- **Complete C++ code reformatting** to match project style guidelines:
+  - Renamed all `.h` files to `.hpp` extensions
+  - Updated include guards to `FILENAME_HPP` format
+  - Standardized brace placement (same line for functions, classes, control structures)
+  - Fixed constructor initializer list formatting
+  - Updated all includes and build files across all platforms
+
+---
+
+## 📚 Documentation
+- 📝 Added comprehensive `PLATFORM_FIXES.md` documenting all platform-specific issues and solutions
+- 📝 Updated `README.md` with latest UI features and troubleshooting
+- 📝 Enhanced sky color theme documentation
+
+---
+
+## 🔧 Technical Changes
+- Standardized all C++ code to project conventions
+- Improved platform detection and conditional compilation
+- Enhanced CMakeLists.txt for better cross-platform support
+- Better separation of platform-specific UI behaviors
+
+---
+
+## ⚠️ Known Issues
+- **Linux/KDE**: First double-click from systray may show black window briefly
+  - **Workaround**: Use right-click menu "Show Window" on first show
+  - Subsequent shows work correctly
+
+---
+
+## 📦 Installation
+
+### Linux (Debian/Ubuntu)
+```bash
+sudo dpkg -i UnfuckMyTimeZoneMath-2025.1.0-Linux.deb
+```
+
+### Windows
+Run the installer executable
+
+### macOS
+Mount the DMG and drag to Applications
+
+---
+
+## 🔄 Upgrade Notes
+- ✨ All changes are backward compatible
+- ✨ Existing settings preserved
+- ✨ Sky color preferences automatically saved
+
+---
+
+**Full Changelog**: [2025.0.0...2025.1.0](../../compare/2025.0.0...2025.1.0)
+
+---
+
 # 🎉 Release 2025.0.0
 
 ## 📋 Overview

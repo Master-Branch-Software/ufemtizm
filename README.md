@@ -9,8 +9,7 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
 ### Visual Design
 - **3D appearance** - Subtle drop shadows on widgets for depth and polish
 - **Dynamic sky color theme** - Widget backgrounds change color based on time of day:
-  - **Night (8 PM - 5 AM)**: Deep blue background with red text for visibility
-  - **Dawn (5 AM - 7 AM)**: Gradual lightening from dark to morning blue
+  - **Night (8 PM - 7 AM)**: Deep blue background with red text for visibility
   - **Morning (7 AM - 10 AM)**: Soft morning blue
   - **Late Morning (10 AM - 12 PM)**: Blue fading to warm yellow
   - **Noon (12 PM - 2 PM)**: Bright yellow representing peak sun
@@ -28,6 +27,7 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
   - X button to remove widgets
 - **Vertical time sliders** representing 24 hours with 15-minute intervals for intuitive time selection
   - Sliders fill from the bottom to visually indicate time progression
+  - Right-aligned time labels for cleaner appearance
 - **Double-click to edit names** - Widget names display as labels and become editable on double-click
   - Click anywhere outside the field to save and exit edit mode
 - **Clear time and timezone display**:
@@ -135,7 +135,7 @@ cmake --build . --config Release
 
 **Qt paths by platform:**
 - **macOS**: `~/Qt/6.x.x/macos` or `/opt/homebrew/opt/qt`
-- **Linux**: `~/Qt/6.x.x/gcc_64`
+- **Linux**: `~/Qt/6.x.x/gcc_64` or system Qt6
 - **Windows**: `C:/Qt/6.x.x/msvc2019_64` or `C:/Qt/6.x.x/mingw_xx`
 
 ## Usage
@@ -196,8 +196,9 @@ UnfuckMyTimeZoneMath/
 ├── build_and_deploy.ps1              # Automated build script (Windows)
 ├── mingw-toolchain.cmake             # MinGW cross-compilation toolchain
 ├── main.cpp                          # Application entry point
-├── mainwindow.h/cpp                  # Main window implementation
-├── timezonewidget.h/cpp              # Time zone widget implementation
+├── mainwindow.hpp/cpp                # Main window implementation
+├── timezonewidget.hpp/cpp            # Time zone widget implementation
+├── settingsdialog.hpp/cpp            # Settings dialog implementation
 ├── unfuck-my-timezone-math.desktop   # Desktop entry file (Linux)
 ├── installers/                       # Pre-built installers (DMG, DEB, EXE)
 └── build/                            # Build directory (created during build)
@@ -226,6 +227,12 @@ For comprehensive troubleshooting guides, see **[BUILD.md](BUILD.md#troubleshoot
 ```bash
 sudo apt-get install -f
 ```
+
+**System tray issues:**
+- See [PLATFORM_FIXES.md](PLATFORM_FIXES.md) for detailed platform-specific troubleshooting
+- Linux: On first show from tray, window may flash black (use right-click menu 'Show Window')
+- Windows: Use double-click on tray icon to show/hide window
+- Linux/macOS: Single click on tray icon to show/hide window
 
 **Time zones not displaying correctly:**
 - Ensure your system time zone database is up to date
