@@ -12,6 +12,7 @@ class QMenu;
 class QToolBar;
 class QSystemTrayIcon;
 class SettingsDialog;
+class CopyDialog;
 class QLocalServer;
 class QTimer;
 
@@ -52,6 +53,7 @@ private slots:
     void updateTrayMenu();
     void handleNewConnection();
     void copyToClipboard();
+    void copyToClipboardDirect();
     void initializeSystemTray();
     void toggleSkyColor();
 
@@ -70,6 +72,7 @@ private:
     void setCurrentFile(const QString &filename);
     void addRecentFile(const QString &filename);
     QStringList getRecentFiles() const;
+    void performCopy(const QVector<int> &indices);
 
     QWidget *centralWidget;
     QVector<TimeZoneWidget*> timeZoneWidgets;

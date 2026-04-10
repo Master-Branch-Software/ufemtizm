@@ -7,9 +7,11 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
 ## Features
 
 ### Visual Design
-- **3D appearance** - Subtle drop shadows on widgets for depth and polish
+- **Chronos Atelier design system** - Light, airy palette with tonal elevation and indigo accents
+- **Borderless cards** - Timezone tiles use 24px rounded corners with soft ambient shadows instead of borders
+- **Custom thin-line SVG icons** - Monochrome toolbar, menu, and tray icons for a clean editorial look
 - **Dynamic sky color theme** - Widget backgrounds change color based on time of day:
-  - **Night (8 PM - 7 AM)**: Deep blue background with red text for visibility
+  - **Night (8 PM - 7 AM)**: Deep blue background with light text
   - **Morning (7 AM - 10 AM)**: Soft morning blue
   - **Late Morning (10 AM - 12 PM)**: Blue fading to warm yellow
   - **Noon (12 PM - 2 PM)**: Bright yellow representing peak sun
@@ -17,13 +19,13 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
   - **Evening/Sunset (5 PM - 7 PM)**: Blue transitioning to reddish sunset
   - **Dusk (7 PM - 8 PM)**: Sunset colors fading to night
 - **Adaptive toolbar buttons** - Button backgrounds and text colors fade along with the sky color throughout the day
-- **Quick toggle** - Color palette button (🎨) on main toolbar for instant theme on/off
+- **Quick toggle** - Colors button on main toolbar for instant theme on/off
 - **Preference control** - Enable/disable sky colors in Settings → Appearance
 
 ### User Interface
-- **Compact toolbar interface** with intuitive icon buttons:
+- **Compact toolbar interface** with custom SVG icon buttons:
   - Single toggle button to switch between 12/24-hour format
-  - Globe icon (🌍) for quick timezone selection via dropdown menu
+  - Globe icon for quick timezone selection via dropdown menu
   - X button to remove widgets
 - **Vertical time sliders** representing 24 hours with 15-minute intervals for intuitive time selection
   - Sliders fill from the bottom to visually indicate time progression
@@ -53,7 +55,7 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
 ## Requirements
 
 - CMake 3.16 or later
-- Qt6 (Core and Widgets modules)
+- Qt6 (Core, Widgets, Network, and Svg modules)
 - C++17 compatible compiler
 - Platform-specific tools:
   - **macOS**: Xcode Command Line Tools
@@ -66,7 +68,7 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
 
 ### Pre-built Installers
 
-Download the installer for your platform from the [releases page](https://github.com/RayParkerBassPlayer/UnfuckMyTimeZoneMath/releases) or check the `installers/` directory:
+Download the installer for your platform from the [releases page](https://github.com/Master-Branch-Software/UnfuckMyTimeZoneMath/releases)
 
 - **macOS**: `unfuck-my-timezone-math-1.0.0-Darwin.dmg`
 - **Linux**: `unfuck-my-timezone-math-1.0.0-Linux.deb`
@@ -159,9 +161,10 @@ cmake --build . --config Release
 - **Adjust time**: Drag any slider up or down - all widgets update automatically to show the corresponding time
 - **Remove widget**: Click the X button in the widget toolbar (minimum one widget must remain)
 - **Toggle format**: Click the format button (shows "12" or "24") in the widget toolbar to toggle between 12 and 24-hour time display
-- **Toggle sky colors**: Click the color palette button (🎨) on the main toolbar to instantly enable/disable the sky color theme
+- **Toggle sky colors**: Click the Colors button on the main toolbar to instantly enable/disable the sky color theme
 - **Reorder widgets**: Click and drag any widget to reorder them horizontally
-- **Copy to clipboard**: Use Edit → Copy (Ctrl+C) to copy all timezone information. Each widget's time is copied in its configured format (24-hour or 12-hour)
+- **Copy to clipboard**: Use Edit → Copy (Ctrl+C) to copy timezone information. A dialog lets you select which timezones to include, with an option to skip the dialog in the future
+- **Copy selected**: Use Edit → Copy Selected (Ctrl+Shift+C) to always show the selection dialog, regardless of the "Don't show again" preference
 
 ### Sky Color Theme
 
@@ -170,7 +173,7 @@ The optional sky color theme provides visual context for time of day:
 - **Smooth color transitions** - Background colors gradually fade as you move the time slider, creating a natural progression through the day
 - **Adaptive text colors** - Text automatically switches between black and red for optimal readability against changing backgrounds
 - **Coordinated button colors** - Widget toolbar buttons dynamically adjust their background and text colors to match the sky theme
-- **Quick toggle** - Use the 🎨 button on the main toolbar or visit Settings → Appearance to enable/disable the feature
+- **Quick toggle** - Use the Colors button on the main toolbar or visit Settings → Appearance to enable/disable the feature
 - **Saves your preference** - Your color theme choice persists across application restarts
 
 ### Understanding Day Offsets
@@ -199,6 +202,8 @@ UnfuckMyTimeZoneMath/
 ├── mainwindow.hpp/cpp                # Main window implementation
 ├── timezonewidget.hpp/cpp            # Time zone widget implementation
 ├── settingsdialog.hpp/cpp            # Settings dialog implementation
+├── copydialog.hpp/cpp                # Copy selection dialog
+├── toolbar-icons/                    # Custom thin-line SVG toolbar icons
 ├── unfuck-my-timezone-math.desktop   # Desktop entry file (Linux)
 ├── installers/                       # Pre-built installers (DMG, DEB, EXE)
 └── build/                            # Build directory (created during build)

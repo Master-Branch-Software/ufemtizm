@@ -143,10 +143,38 @@
 #### Test Case R3: Toolbar copy button works
 **Steps:**
 1. Add widgets with various format settings
-2. Click toolbar "📋 Copy" button
+2. Click toolbar Copy button
 3. Paste clipboard contents
 
 **Expected Result:** Copy respects format settings (same as menu)
+
+**Status:** ✓ Pass / ✗ Fail
+
+---
+
+#### Test Case R4: Copy dialog selection
+**Steps:**
+1. Add 3+ timezone widgets with distinct names
+2. Press Ctrl+C
+3. Verify dialog appears with all tiles checked
+4. Uncheck one tile, click Copy
+5. Paste and verify only checked tiles were copied
+
+**Expected Result:** Only selected timezones appear in clipboard
+
+**Status:** ✓ Pass / ✗ Fail
+
+---
+
+#### Test Case R5: Copy dialog "Don't show again"
+**Steps:**
+1. Press Ctrl+C, check "Don't show this again", click Copy
+2. Press Ctrl+C again
+3. Verify clipboard is updated without dialog appearing
+4. Press Ctrl+Shift+C
+5. Verify selection dialog always appears (without "Don't show" option)
+
+**Expected Result:** Ctrl+C skips dialog after opt-out; Ctrl+Shift+C always shows dialog
 
 **Status:** ✓ Pass / ✗ Fail
 
@@ -176,5 +204,6 @@
 
 - Date format: All tests assume current date - no specific date testing required
 - The copy functionality includes: friendly name, time, and timezone ID
-- Status bar should confirm copy operation with message like "Copied 2 timezones to clipboard"
 - Time format respects each individual widget's setting independently
+- The "Don't show again" preference is stored in settings under `copy/skipDialog`
+- Ctrl+Shift+C (Copy Selected) always shows the dialog without the "Don't show" option

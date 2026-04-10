@@ -28,6 +28,7 @@
 #include <QClipboard>
 #include <QCursor>
 #include <QPalette>
+#include "copydialog.hpp"
 
 MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
     isDirty(false),
@@ -241,6 +242,12 @@ void MainWindow::setupMenuBar(){
     copyAction->setToolTip("Copy timezone information to clipboard (Ctrl+C)");
     copyAction->setStatusTip("Copy timezone information to clipboard");
     connect(copyAction, &QAction::triggered, this, &MainWindow::copyToClipboard);
+    
+    QAction *copySelectAction = editMenu->addAction(QIcon(":/toolbar/toolbar-icons/edit-copy.svg"), "Copy &Selected...");
+    copySelectAction->setShortcut(QKeySequence("Ctrl+Shift+C"));
+    copySelectAction->setToolTip("Choose which timezones to copy (Ctrl+Shift+C)");
+    copySelectAction->setStatusTip("Choose which timezones to copy");
+    connect(copySelectAction, &QAction::triggered, this, &MainWindow::copyToClipboardDirect);
     
     QMenu *viewMenu = menuBar()->addMenu("&View");
     
@@ -1272,9 +1279,65 @@ void MainWindow::copyToClipboard(){
         return;
     }
     
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    bool skipDialog = settings.value("copy/skipDialog", false).toBool();
+    
+    if (skipDialog){
+        QVector<int> allIndices;
+
+        for (int i = 0; i < timeZoneWidgets.size(); i++){
+            allIndices.append(i);
+        }
+
+        performCopy(allIndices);
+
+        return;
+    }
+    
+    QStringList tileNames;
+
+    for (TimeZoneWidget *widget : timeZoneWidgets){
+        tileNames.append(widget->getFriendlyName());
+    }
+    
+    CopyDialog dialog(tileNames, true, this);
+
+    if (dialog.exec() == QDialog::Accepted){
+        if (dialog.dontShowAgain()){
+            settings.setValue("copy/skipDialog", true);
+        }
+
+        performCopy(dialog.selectedIndices());
+    }
+}
+
+void MainWindow::copyToClipboardDirect(){
+    if (timeZoneWidgets.isEmpty()){
+        return;
+    }
+    
+    QStringList tileNames;
+
+    for (TimeZoneWidget *widget : timeZoneWidgets){
+        tileNames.append(widget->getFriendlyName());
+    }
+    
+    CopyDialog dialog(tileNames, false, this);
+
+    if (dialog.exec() == QDialog::Accepted){
+        performCopy(dialog.selectedIndices());
+    }
+}
+
+void MainWindow::performCopy(const QVector<int> &indices){
     QStringList clipboardLines;
     
-    for (TimeZoneWidget *widget : timeZoneWidgets){
+    for (int index : indices){
+        if (index < 0 || index >= timeZoneWidgets.size()){
+            continue;
+        }
+
+        TimeZoneWidget *widget = timeZoneWidgets[index];
         QString name = widget->getFriendlyName();
         qint64 timestamp = widget->getBaseTimestamp();
         QString timezoneId = widget->getTimeZoneId();
@@ -1288,6 +1351,10 @@ void MainWindow::copyToClipboard(){
         clipboardLines.append(line);
     }
     
+    if (clipboardLines.isEmpty()){
+        return;
+    }
+
     QString clipboardText = clipboardLines.join("\n");
     
     QClipboard *clipboard = QApplication::clipboard();

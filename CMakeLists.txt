@@ -33,6 +33,8 @@ if(WIN32)
     timezonewidget.cpp
     settingsdialog.hpp
     settingsdialog.cpp
+    copydialog.hpp
+    copydialog.cpp
     resources.qrc)
 elseif(APPLE)
   add_executable(
@@ -44,6 +46,8 @@ elseif(APPLE)
     timezonewidget.cpp
     settingsdialog.hpp
     settingsdialog.cpp
+    copydialog.hpp
+    copydialog.cpp
     resources.qrc)
   set_target_properties(
     UnfuckMyTimeZoneMath
@@ -65,6 +69,8 @@ else()
     timezonewidget.cpp
     settingsdialog.hpp
     settingsdialog.cpp
+    copydialog.hpp
+    copydialog.cpp
     resources.qrc)
 endif()
 
