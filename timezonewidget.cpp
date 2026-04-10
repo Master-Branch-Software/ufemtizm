@@ -24,15 +24,15 @@ EditableLabel::EditableLabel(const QString &text, QWidget *parent)
     mLabel->setStyleSheet(
         "QLabel {"
         "    background-color: transparent;"
-        "    border: 1px solid transparent;"
-        "    border-radius: 6px;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    padding: 8px 12px;"
         "    font-size: 13px;"
         "    font-weight: 500;"
+        "    color: #2a343a;"
         "}"
         "QLabel:hover {"
-        "    background-color: #f5f5f5;"
-        "    border: 1px solid #e0e0e0;"
+        "    background-color: #eef4fa;"
         "}"
     );
     mLabel->setCursor(Qt::IBeamCursor);
@@ -41,15 +41,16 @@ EditableLabel::EditableLabel(const QString &text, QWidget *parent)
     mLineEdit->setFocusPolicy(Qt::StrongFocus);
     mLineEdit->setStyleSheet(
         "QLineEdit {"
-        "    background-color: #f5f5f5;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 6px;"
+        "    background-color: #eef4fa;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    padding: 8px 12px;"
         "    font-size: 13px;"
         "    font-weight: 500;"
+        "    color: #2a343a;"
         "}"
         "QLineEdit:focus {"
-        "    border: 1px solid #2196f3;"
+        "    border: 2px solid #4e45e4;"
         "    background-color: #ffffff;"
         "}"
     );
@@ -76,16 +77,15 @@ void EditableLabel::setTextColor(const QColor &color){
     QString styleSheet = QString(
         "QLabel {"
         "    background-color: transparent;"
-        "    border: 1px solid transparent;"
-        "    border-radius: 6px;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    padding: 8px 12px;"
         "    font-size: 13px;"
         "    font-weight: 500;"
         "    color: %1;"
         "}"
         "QLabel:hover {"
-        "    background-color: #f5f5f5;"
-        "    border: 1px solid #e0e0e0;"
+        "    background-color: rgba(238, 244, 250, 0.5);"
         "}"
     ).arg(color.name());
     mLabel->setStyleSheet(styleSheet);
@@ -150,7 +150,7 @@ void TimeZoneWidget::setupUI(){
     dropIndicator->setFixedWidth(4);
     dropIndicator->setStyleSheet(
         "QFrame {"
-        "    background-color: #2196f3;"
+        "    background-color: #4e45e4;"
         "    border-radius: 2px;"
         "}"
     );
@@ -161,17 +161,17 @@ void TimeZoneWidget::setupUI(){
     frame->setStyleSheet(
         "QFrame#timeZoneCard {"
         "    background-color: #ffffff;"
-        "    border: 1px solid #d0d0d0;"
-        "    border-radius: 12px;"
+        "    border: none;"
+        "    border-radius: 24px;"
         "    padding: 0px;"
         "}"
     );
     frame->setGraphicsEffect(nullptr);
     frameShadow = new QGraphicsDropShadowEffect();
-    frameShadow->setBlurRadius(12);
+    frameShadow->setBlurRadius(32);
     frameShadow->setXOffset(0);
-    frameShadow->setYOffset(2);
-    frameShadow->setColor(QColor(0, 0, 0, 30));
+    frameShadow->setYOffset(4);
+    frameShadow->setColor(QColor(42, 52, 58, 20));
     frame->setGraphicsEffect(frameShadow);
     
     QVBoxLayout *frameLayout = new QVBoxLayout(frame);
@@ -187,19 +187,18 @@ void TimeZoneWidget::setupUI(){
     format24Button->setFixedSize(28, 28);
     format24Button->setStyleSheet(
         "QToolButton {"
-        "    background-color: #f5f5f5;"
-        "    color: #616161;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 6px;"
+        "    background-color: #eef4fa;"
+        "    color: #566167;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    font-size: 11px;"
         "    font-weight: 500;"
         "}"
         "QToolButton:hover {"
-        "    background-color: #eeeeee;"
-        "    border: 1px solid #bdbdbd;"
+        "    background-color: #e7eff5;"
         "}"
         "QToolButton:pressed {"
-        "    background-color: #e0e0e0;"
+        "    background-color: #d9e4ec;"
         "}"
     );
     format24Button->setToolTip("Toggle time format");
@@ -222,18 +221,17 @@ void TimeZoneWidget::setupUI(){
     globeButton->setFixedSize(28, 28);
     globeButton->setStyleSheet(
         "QToolButton {"
-        "    background-color: #f5f5f5;"
-        "    color: #616161;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 6px;"
+        "    background-color: #eef4fa;"
+        "    color: #566167;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    font-size: 14px;"
         "}"
         "QToolButton:hover {"
-        "    background-color: #eeeeee;"
-        "    border: 1px solid #bdbdbd;"
+        "    background-color: #e7eff5;"
         "}"
         "QToolButton:pressed {"
-        "    background-color: #e0e0e0;"
+        "    background-color: #d9e4ec;"
         "}"
     );
     globeButton->setToolTip("Select timezone");
@@ -265,7 +263,7 @@ void TimeZoneWidget::setupUI(){
     removeButton->setStyleSheet(
         "QPushButton {"
         "    background-color: transparent;"
-        "    color: #9e9e9e;"
+        "    color: #a9b3bb;"
         "    border: none;"
         "    border-radius: 12px;"
         "    font-size: 20px;"
@@ -273,11 +271,11 @@ void TimeZoneWidget::setupUI(){
         "    padding: 0px;"
         "}"
         "QPushButton:hover {"
-        "    background-color: #f5f5f5;"
-        "    color: #424242;"
+        "    background-color: #eef4fa;"
+        "    color: #566167;"
         "}"
         "QPushButton:pressed {"
-        "    background-color: #eeeeee;"
+        "    background-color: #e7eff5;"
         "}"
     );
     removeButton->setToolTip("Remove this timezone widget");
@@ -302,7 +300,7 @@ void TimeZoneWidget::setupUI(){
     dateTimeLabel->setFont(dtFont);
     dateTimeLabel->setStyleSheet(
         "QLabel {"
-        "    color: #212121;"
+        "    color: #2a343a;"
         "    padding: 2px 4px 0px 4px;"
         "    margin-bottom: 0px;"
         "}"
@@ -316,7 +314,7 @@ void TimeZoneWidget::setupUI(){
     timeZoneLabel->setFont(tzFont);
     timeZoneLabel->setStyleSheet(
         "QLabel {"
-        "    color: #9e9e9e;"
+        "    color: #727c83;"
         "    padding: 0px 2px 0px 2px;"
         "    margin-top: 0px;"
         "    margin-bottom: 8px;"
@@ -332,7 +330,7 @@ void TimeZoneWidget::setupUI(){
     dayOffsetLabel->setFont(offsetFont);
     dayOffsetLabel->setStyleSheet(
         "QLabel {"
-        "    color: #757575;"
+        "    color: #566167;"
         "    padding: 4px;"
         "    margin-top: 4px;"
         "}"
@@ -350,21 +348,21 @@ void TimeZoneWidget::setupUI(){
     timeSlider->setInvertedControls(true);
     timeSlider->setStyleSheet(
         "QSlider::groove:vertical {"
-        "    background: #e0e0e0;"
+        "    background: #d9e4ec;"
         "    width: 4px;"
         "    border-radius: 2px;"
         "}"
         "QSlider::handle:vertical {"
-        "    background: #9e9e9e;"
-        "    border: 2px solid #757575;"
+        "    background: #4e45e4;"
+        "    border: 2px solid #4135d8;"
         "    width: 16px;"
         "    height: 16px;"
         "    margin: -8px -6px;"
         "    border-radius: 8px;"
         "}"
         "QSlider::handle:vertical:hover {"
-        "    background: #757575;"
-        "    border: 2px solid #616161;"
+        "    background: #6760fd;"
+        "    border: 2px solid #4e45e4;"
         "}"
         "QSlider::add-page:vertical {"
         "    background: transparent;"
@@ -399,7 +397,7 @@ void TimeZoneWidget::setupUI(){
         hourLabel->setFont(labelFont);
         hourLabel->setStyleSheet(
             "QLabel {"
-            "    color: #616161;"
+            "    color: #566167;"
             "    text-align: right;"
             "}"
         );
@@ -622,21 +620,21 @@ void TimeZoneWidget::updateSkyColor(){
         frame->setStyleSheet(
             "QFrame#timeZoneCard {"
             "    background-color: #ffffff;"
-            "    border: 1px solid #d0d0d0;"
-            "    border-radius: 12px;"
+            "    border: none;"
+            "    border-radius: 24px;"
             "    padding: 0px;"
             "}"
         );
         dateTimeLabel->setStyleSheet(
             "QLabel {"
-            "    color: #212121;"
+            "    color: #2a343a;"
             "    padding: 2px 4px 0px 4px;"
             "    margin-bottom: 0px;"
             "}"
         );
         timeZoneLabel->setStyleSheet(
             "QLabel {"
-            "    color: #9e9e9e;"
+            "    color: #727c83;"
             "    padding: 0px 2px 0px 2px;"
             "    margin-top: 0px;"
             "    margin-bottom: 8px;"
@@ -644,52 +642,50 @@ void TimeZoneWidget::updateSkyColor(){
         );
         dayOffsetLabel->setStyleSheet(
             "QLabel {"
-            "    color: #757575;"
+            "    color: #566167;"
             "    padding: 4px;"
             "    margin-top: 4px;"
             "}"
         );
-        nameEdit->setTextColor(QColor(33, 33, 33));
+        nameEdit->setTextColor(QColor(0x2a, 0x34, 0x3a));
         
         format24Button->setStyleSheet(
             "QToolButton {"
-            "    background-color: #f5f5f5;"
-            "    color: #616161;"
-            "    border: 1px solid #e0e0e0;"
-            "    border-radius: 6px;"
+            "    background-color: #eef4fa;"
+            "    color: #566167;"
+            "    border: none;"
+            "    border-radius: 8px;"
             "    font-size: 11px;"
             "    font-weight: 500;"
             "}"
             "QToolButton:hover {"
-            "    background-color: #eeeeee;"
-            "    border: 1px solid #bdbdbd;"
+            "    background-color: #e7eff5;"
             "}"
             "QToolButton:pressed {"
-            "    background-color: #e0e0e0;"
+            "    background-color: #d9e4ec;"
             "}"
         );
         
         globeButton->setStyleSheet(
             "QToolButton {"
-            "    background-color: #f5f5f5;"
-            "    color: #616161;"
-            "    border: 1px solid #e0e0e0;"
-            "    border-radius: 6px;"
+            "    background-color: #eef4fa;"
+            "    color: #566167;"
+            "    border: none;"
+            "    border-radius: 8px;"
             "    font-size: 14px;"
             "}"
             "QToolButton:hover {"
-            "    background-color: #eeeeee;"
-            "    border: 1px solid #bdbdbd;"
+            "    background-color: #e7eff5;"
             "}"
             "QToolButton:pressed {"
-            "    background-color: #e0e0e0;"
+            "    background-color: #d9e4ec;"
             "}"
         );
         
         removeButton->setStyleSheet(
             "QPushButton {"
             "    background-color: transparent;"
-            "    color: #9e9e9e;"
+            "    color: #a9b3bb;"
             "    border: none;"
             "    border-radius: 12px;"
             "    font-size: 20px;"
@@ -697,11 +693,11 @@ void TimeZoneWidget::updateSkyColor(){
             "    padding: 0px;"
             "}"
             "QPushButton:hover {"
-            "    background-color: #f5f5f5;"
-            "    color: #424242;"
+            "    background-color: #eef4fa;"
+            "    color: #566167;"
             "}"
             "QPushButton:pressed {"
-            "    background-color: #eeeeee;"
+            "    background-color: #e7eff5;"
             "}"
         );
         
@@ -716,28 +712,25 @@ void TimeZoneWidget::updateSkyColor(){
     frame->setStyleSheet(
         QString("QFrame#timeZoneCard {"
         "    background-color: %1;"
-        "    border: 1px solid #d0d0d0;"
-        "    border-radius: 12px;"
+        "    border: none;"
+        "    border-radius: 24px;"
         "    padding: 0px;"
         "}").arg(skyColor.name())
     );
     
     // Determine text color based on sky color brightness
     int brightness = (skyColor.red() * 299 + skyColor.green() * 587 + skyColor.blue() * 114) / 1000;
-    QColor textColor = (isNightTime) ? QColor(255, 107, 107) : QColor(33, 33, 33);
-    QColor secondaryTextColor = (isNightTime) ? QColor(255, 170, 170) : QColor(158, 158, 158);
-    QColor tertiaryTextColor = (isNightTime) ? QColor(255, 153, 153) : QColor(117, 117, 117);
+    QColor textColor = (isNightTime) ? QColor(0xfb, 0xf7, 0xff) : QColor(0x2a, 0x34, 0x3a);
+    QColor secondaryTextColor = (isNightTime) ? QColor(0xa9, 0xb3, 0xbb) : QColor(0x72, 0x7c, 0x83);
+    QColor tertiaryTextColor = (isNightTime) ? QColor(0xa9, 0xb3, 0xbb) : QColor(0x56, 0x61, 0x67);
     
-    // Button text should be red in night mode, white during day
-    QColor buttonTextColor = (isNightTime) ? QColor(255, 107, 107) : QColor(255, 255, 255);
-    QColor removeButtonTextColor = (isNightTime) ? QColor(255, 107, 107) : QColor(255, 255, 255);
+    // Button text adapts to sky brightness
+    QColor buttonTextColor = (isNightTime) ? QColor(0xfb, 0xf7, 0xff) : QColor(0x56, 0x61, 0x67);
+    QColor removeButtonTextColor = (isNightTime) ? QColor(0xa9, 0xb3, 0xbb) : QColor(0xa9, 0xb3, 0xbb);
     
     // Calculate hover color (slightly lighter)
     QColor hoverColor = buttonColor.lighter(110);
     QColor pressedColor = buttonColor.darker(110);
-    
-    // Calculate border color
-    QColor borderColor = buttonColor.darker(120);
     
     dateTimeLabel->setStyleSheet(
         QString("QLabel {"
@@ -767,21 +760,19 @@ void TimeZoneWidget::updateSkyColor(){
         QString("QToolButton {"
         "    background-color: %1;"
         "    color: %2;"
-        "    border: 1px solid %3;"
-        "    border-radius: 6px;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    font-size: 11px;"
         "    font-weight: 500;"
         "}"
         "QToolButton:hover {"
-        "    background-color: %4;"
-        "    border: 1px solid %3;"
+        "    background-color: %3;"
         "}"
         "QToolButton:pressed {"
-        "    background-color: %5;"
+        "    background-color: %4;"
         "}")
         .arg(buttonColor.name())
         .arg(buttonTextColor.name())
-        .arg(borderColor.name())
         .arg(hoverColor.name())
         .arg(pressedColor.name())
     );
@@ -790,44 +781,40 @@ void TimeZoneWidget::updateSkyColor(){
         QString("QToolButton {"
         "    background-color: %1;"
         "    color: %2;"
-        "    border: 1px solid %3;"
-        "    border-radius: 6px;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    font-size: 14px;"
         "}"
         "QToolButton:hover {"
-        "    background-color: %4;"
-        "    border: 1px solid %3;"
+        "    background-color: %3;"
         "}"
         "QToolButton:pressed {"
-        "    background-color: %5;"
+        "    background-color: %4;"
         "}")
         .arg(buttonColor.name())
         .arg(buttonTextColor.name())
-        .arg(borderColor.name())
         .arg(hoverColor.name())
         .arg(pressedColor.name())
     );
     
     removeButton->setStyleSheet(
         QString("QPushButton {"
-        "    background-color: %1;"
-        "    color: %2;"
-        "    border: 1px solid %3;"
+        "    background-color: transparent;"
+        "    color: %1;"
+        "    border: none;"
         "    border-radius: 12px;"
         "    font-size: 20px;"
         "    font-weight: bold;"
         "    padding: 0px;"
         "}"
         "QPushButton:hover {"
-        "    background-color: %4;"
-        "    color: %2;"
+        "    background-color: %2;"
+        "    color: %1;"
         "}"
         "QPushButton:pressed {"
-        "    background-color: %5;"
+        "    background-color: %3;"
         "}")
-        .arg(buttonColor.name())
         .arg(removeButtonTextColor.name())
-        .arg(borderColor.name())
         .arg(hoverColor.name())
         .arg(pressedColor.name())
     );
@@ -1073,9 +1060,9 @@ void TimeZoneWidget::mouseMoveEvent(QMouseEvent *event)
     
     frame->setStyleSheet(
         "QFrame#timeZoneCard {"
-        "    background-color: #ffffff;"
-        "    border: 2px dashed #2196f3;"
-        "    border-radius: 12px;"
+        "    background-color: #eef4fa;"
+        "    border: 2px dashed #4e45e4;"
+        "    border-radius: 24px;"
         "    padding: 0px;"
         "    opacity: 0.5;"
         "}"
@@ -1088,8 +1075,8 @@ void TimeZoneWidget::mouseMoveEvent(QMouseEvent *event)
     frame->setStyleSheet(
         "QFrame#timeZoneCard {"
         "    background-color: #ffffff;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 12px;"
+        "    border: none;"
+        "    border-radius: 24px;"
         "    padding: 0px;"
         "}"
     );
@@ -1141,8 +1128,8 @@ void TimeZoneWidget::dropEvent(QDropEvent *event)
     frame->setStyleSheet(
         "QFrame#timeZoneCard {"
         "    background-color: #ffffff;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 12px;"
+        "    border: none;"
+        "    border-radius: 24px;"
         "    padding: 0px;"
         "}"
     );

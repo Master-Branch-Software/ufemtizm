@@ -6,4 +6,20 @@
         <file>icon.png</file>
         <file>icon.svg</file>
     </qresource>
+    <qresource prefix="/toolbar">
+        <file>toolbar-icons/document-new.svg</file>
+        <file>toolbar-icons/document-open.svg</file>
+        <file>toolbar-icons/document-save.svg</file>
+        <file>toolbar-icons/edit-copy.svg</file>
+        <file>toolbar-icons/list-add.svg</file>
+        <file>toolbar-icons/clock.svg</file>
+        <file>toolbar-icons/colors.svg</file>
+        <file>toolbar-icons/configure.svg</file>
+        <file>toolbar-icons/draw-text.svg</file>
+        <file>toolbar-icons/window-close.svg</file>
+        <file>toolbar-icons/view-visible.svg</file>
+        <file>toolbar-icons/view-hidden.svg</file>
+        <file>toolbar-icons/application-exit.svg</file>
+        <file>toolbar-icons/document-save-as.svg</file>
+    </qresource>
 </RCC>

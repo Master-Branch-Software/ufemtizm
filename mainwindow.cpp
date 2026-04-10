@@ -27,6 +27,7 @@
 #include <QWindow>
 #include <QClipboard>
 #include <QCursor>
+#include <QPalette>
 
 MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
     isDirty(false),
@@ -41,37 +42,39 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
     trayInitAttempts(0){
     setStyleSheet(
         "QMainWindow {"
-        "    background-color: #1a2332;"
+        "    background-color: #f6fafe;"
         "}"
         "QMenuBar {"
         "    background-color: #ffffff;"
-        "    border-bottom: 1px solid #e0e0e0;"
+        "    border: none;"
         "    padding: 4px;"
         "}"
         "QMenuBar::item {"
         "    background-color: transparent;"
         "    padding: 6px 12px;"
-        "    border-radius: 4px;"
+        "    border-radius: 8px;"
+        "    color: #2a343a;"
         "}"
         "QMenuBar::item:selected {"
-        "    background-color: #e3f2fd;"
+        "    background-color: #eef4fa;"
         "}"
         "QMenu {"
         "    background-color: #ffffff;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 6px;"
-        "    padding: 4px;"
+        "    border: none;"
+        "    border-radius: 12px;"
+        "    padding: 6px;"
         "}"
         "QMenu::item {"
         "    padding: 8px 24px 8px 12px;"
-        "    border-radius: 4px;"
+        "    border-radius: 8px;"
+        "    color: #2a343a;"
         "}"
         "QMenu::item:selected {"
-        "    background-color: #e3f2fd;"
+        "    background-color: #eef4fa;"
         "}"
         "QMenu::separator {"
         "    height: 1px;"
-        "    background-color: #e0e0e0;"
+        "    background-color: #e7eff5;"
         "    margin: 4px 8px;"
         "}"
     );
@@ -102,7 +105,12 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
     
     setAttribute(Qt::WA_QuitOnClose, false);
     
-    // Fix black window on Linux by ensuring proper paint events
+    // Fix black window on Linux by setting palette background before first paint
+    QPalette windowPalette = palette();
+    windowPalette.setColor(QPalette::Window, QColor(0xf6, 0xfa, 0xfe));
+    setPalette(windowPalette);
+    setAutoFillBackground(true);
+
 #ifdef Q_OS_LINUX
     setAttribute(Qt::WA_OpaquePaintEvent, false);
     setAttribute(Qt::WA_NoSystemBackground, false);
@@ -115,6 +123,12 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
 #endif
     
     centralWidget = new QWidget();
+    centralWidget->setAutoFillBackground(true);
+
+    QPalette centralPalette = centralWidget->palette();
+    centralPalette.setColor(QPalette::Window, QColor(0xf6, 0xfa, 0xfe));
+    centralWidget->setPalette(centralPalette);
+
     QHBoxLayout *layout = new QHBoxLayout(centralWidget);
     layout->setAlignment(Qt::AlignLeft);
     layout->setContentsMargins(16, 16, 16, 16);
@@ -160,30 +174,30 @@ void MainWindow::mousePressEvent(QMouseEvent *event){
 void MainWindow::setupMenuBar(){
     QMenu *fileMenu = menuBar()->addMenu("&File");
     
-    QAction *newAction = fileMenu->addAction("&New");
+    QAction *newAction = fileMenu->addAction(QIcon(":/toolbar/toolbar-icons/document-new.svg"), "&New");
     newAction->setShortcut(QKeySequence::New);
     newAction->setToolTip("Create a new timezone configuration");
     newAction->setStatusTip("Create a new timezone configuration");
     connect(newAction, &QAction::triggered, this, &MainWindow::newFile);
     
-    QAction *openAction = fileMenu->addAction("&Open...");
+    QAction *openAction = fileMenu->addAction(QIcon(":/toolbar/toolbar-icons/document-open.svg"), "&Open...");
     openAction->setShortcut(QKeySequence::Open);
     openAction->setToolTip("Open an existing timezone configuration");
     openAction->setStatusTip("Open an existing timezone configuration");
     connect(openAction, &QAction::triggered, this, &MainWindow::openFile);
     
-    recentFilesMenu = fileMenu->addMenu("📂 Recent Files");
+    recentFilesMenu = fileMenu->addMenu(QIcon(":/toolbar/toolbar-icons/document-open.svg"), "Recent Files");
     updateRecentFilesMenu();
     
     fileMenu->addSeparator();
     
-    QAction *saveAction = fileMenu->addAction("&Save");
+    QAction *saveAction = fileMenu->addAction(QIcon(":/toolbar/toolbar-icons/document-save.svg"), "&Save");
     saveAction->setShortcut(QKeySequence::Save);
     saveAction->setToolTip("Save the current configuration");
     saveAction->setStatusTip("Save the current configuration");
     connect(saveAction, &QAction::triggered, this, &MainWindow::saveFile);
     
-    QAction *saveAsAction = fileMenu->addAction("Save &As...");
+    QAction *saveAsAction = fileMenu->addAction(QIcon(":/toolbar/toolbar-icons/document-save-as.svg"), "Save &As...");
     saveAsAction->setShortcut(QKeySequence::SaveAs);
     saveAsAction->setToolTip("Save the configuration with a new name");
     saveAsAction->setStatusTip("Save the configuration with a new name");
@@ -191,7 +205,7 @@ void MainWindow::setupMenuBar(){
     
     fileMenu->addSeparator();
     
-    QAction *addAction = fileMenu->addAction("➕ Add Time &Zone");
+    QAction *addAction = fileMenu->addAction(QIcon(":/toolbar/toolbar-icons/list-add.svg"), "Add Time &Zone");
     addAction->setShortcut(QKeySequence("Ctrl+T"));
     addAction->setToolTip("Add a new timezone widget (Ctrl+T)");
     addAction->setStatusTip("Add a new timezone widget");
@@ -199,7 +213,7 @@ void MainWindow::setupMenuBar(){
     
     fileMenu->addSeparator();
     
-    QAction *currentTimeAction = fileMenu->addAction("🕐 Set to Current Time");
+    QAction *currentTimeAction = fileMenu->addAction(QIcon(":/toolbar/toolbar-icons/clock.svg"), "Set to Current Time");
     currentTimeAction->setShortcut(QKeySequence("Alt+T"));
     currentTimeAction->setToolTip("Set all timezones to current time (Alt+T)");
     currentTimeAction->setStatusTip("Set all timezones to current time");
@@ -207,14 +221,14 @@ void MainWindow::setupMenuBar(){
     
     fileMenu->addSeparator();
     
-    QAction *settingsAction = fileMenu->addAction("⚙️ &Settings...");
+    QAction *settingsAction = fileMenu->addAction(QIcon(":/toolbar/toolbar-icons/configure.svg"), "&Settings...");
     settingsAction->setToolTip("Configure application settings");
     settingsAction->setStatusTip("Configure application settings");
     connect(settingsAction, &QAction::triggered, this, &MainWindow::showSettings);
     
     fileMenu->addSeparator();
     
-    QAction *exitAction = fileMenu->addAction("&Quit");
+    QAction *exitAction = fileMenu->addAction(QIcon(":/toolbar/toolbar-icons/application-exit.svg"), "&Quit");
     exitAction->setShortcut(QKeySequence::Quit);
     exitAction->setToolTip("Exit the application");
     exitAction->setStatusTip("Exit the application");
@@ -222,7 +236,7 @@ void MainWindow::setupMenuBar(){
     
     QMenu *editMenu = menuBar()->addMenu("&Edit");
     
-    QAction *copyAction = editMenu->addAction("📋 &Copy");
+    QAction *copyAction = editMenu->addAction(QIcon(":/toolbar/toolbar-icons/edit-copy.svg"), "&Copy");
     copyAction->setShortcut(QKeySequence::Copy);
     copyAction->setToolTip("Copy timezone information to clipboard (Ctrl+C)");
     copyAction->setStatusTip("Copy timezone information to clipboard");
@@ -261,39 +275,39 @@ void MainWindow::setupToolBar(){
     toolBar->setStyleSheet(
         "QToolBar {"
         "    background-color: #ffffff;"
-        "    border-bottom: 1px solid #e0e0e0;"
+        "    border: none;"
         "    spacing: 4px;"
         "    padding: 4px;"
         "}"
         "QToolButton {"
         "    background-color: transparent;"
-        "    border: 1px solid transparent;"
-        "    border-radius: 4px;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    padding: 6px;"
         "    margin: 2px;"
+        "    color: #2a343a;"
         "}"
         "QToolButton:hover {"
-        "    background-color: #e3f2fd;"
-        "    border: 1px solid #2196f3;"
+        "    background-color: #eef4fa;"
         "}"
         "QToolButton:pressed {"
-        "    background-color: #bbdefb;"
+        "    background-color: #e7eff5;"
         "}"
     );
     
-    QAction *newAction = toolBar->addAction("📄 New");
+    QAction *newAction = toolBar->addAction(QIcon(":/toolbar/toolbar-icons/document-new.svg"), "New");
     newAction->setToolTip("Create a new timezone configuration (Ctrl+N)");
     newAction->setStatusTip("Create a new timezone configuration");
     connect(newAction, &QAction::triggered, this, &MainWindow::newFile);
     mainToolBarActions.append(newAction);
     
-    QAction *openAction = toolBar->addAction("📂 Open");
+    QAction *openAction = toolBar->addAction(QIcon(":/toolbar/toolbar-icons/document-open.svg"), "Open");
     openAction->setToolTip("Open an existing timezone configuration (Ctrl+O)");
     openAction->setStatusTip("Open an existing timezone configuration");
     connect(openAction, &QAction::triggered, this, &MainWindow::openFile);
     mainToolBarActions.append(openAction);
     
-    QAction *saveAction = toolBar->addAction("💾 Save");
+    QAction *saveAction = toolBar->addAction(QIcon(":/toolbar/toolbar-icons/document-save.svg"), "Save");
     saveAction->setToolTip("Save the current configuration (Ctrl+S)");
     saveAction->setStatusTip("Save the current configuration");
     connect(saveAction, &QAction::triggered, this, &MainWindow::saveFile);
@@ -301,19 +315,19 @@ void MainWindow::setupToolBar(){
     
     toolBar->addSeparator();
     
-    QAction *copyAction = toolBar->addAction("📋 Copy");
+    QAction *copyAction = toolBar->addAction(QIcon(":/toolbar/toolbar-icons/edit-copy.svg"), "Copy");
     copyAction->setToolTip("Copy timezone information to clipboard (Ctrl+C)");
     copyAction->setStatusTip("Copy timezone information to clipboard");
     connect(copyAction, &QAction::triggered, this, &MainWindow::copyToClipboard);
     mainToolBarActions.append(copyAction);
     
-    QAction *addAction = toolBar->addAction("➕ Add Zone");
+    QAction *addAction = toolBar->addAction(QIcon(":/toolbar/toolbar-icons/list-add.svg"), "Add Zone");
     addAction->setToolTip("Add a new timezone widget (Ctrl+T)");
     addAction->setStatusTip("Add a new timezone widget");
     connect(addAction, &QAction::triggered, this, &MainWindow::addTimeZoneWidget);
     mainToolBarActions.append(addAction);
     
-    QAction *currentTimeAction = toolBar->addAction("🕐 Current Time");
+    QAction *currentTimeAction = toolBar->addAction(QIcon(":/toolbar/toolbar-icons/clock.svg"), "Current Time");
     currentTimeAction->setToolTip("Set all timezones to current time (Alt+T)");
     currentTimeAction->setStatusTip("Set all timezones to current time");
     connect(currentTimeAction, &QAction::triggered, this, &MainWindow::setToCurrentTime);
@@ -321,7 +335,7 @@ void MainWindow::setupToolBar(){
     
     toolBar->addSeparator();
     
-    QAction *skyColorAction = toolBar->addAction("🎨 Colors");
+    QAction *skyColorAction = toolBar->addAction(QIcon(":/toolbar/toolbar-icons/colors.svg"), "Colors");
     skyColorAction->setCheckable(true);
     QSettings skySettings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
     skyColorAction->setChecked(skySettings.value("appearance/skyColor", true).toBool());
@@ -330,7 +344,7 @@ void MainWindow::setupToolBar(){
     connect(skyColorAction, &QAction::triggered, this, &MainWindow::toggleSkyColor);
     mainToolBarActions.append(skyColorAction);
     
-    QAction *settingsToolBarAction = toolBar->addAction("⚙️ Settings");
+    QAction *settingsToolBarAction = toolBar->addAction(QIcon(":/toolbar/toolbar-icons/configure.svg"), "Settings");
     settingsToolBarAction->setToolTip("Configure application settings");
     settingsToolBarAction->setStatusTip("Configure application settings");
     connect(settingsToolBarAction, &QAction::triggered, this, &MainWindow::showSettings);
@@ -338,14 +352,14 @@ void MainWindow::setupToolBar(){
     
     toolBar->addSeparator();
     
-    toolBarTextToggleAction = toolBar->addAction("🔤");
+    toolBarTextToggleAction = toolBar->addAction(QIcon(":/toolbar/toolbar-icons/draw-text.svg"), "");
     toolBarTextToggleAction->setCheckable(true);
     toolBarTextToggleAction->setChecked(true);
     toolBarTextToggleAction->setToolTip("Toggle toolbar text labels");
     toolBarTextToggleAction->setStatusTip("Toggle toolbar text labels");
     connect(toolBarTextToggleAction, &QAction::triggered, this, &MainWindow::toggleToolBarTextVisibility);
     
-    toolBarHideAction = toolBar->addAction("✖️");
+    toolBarHideAction = toolBar->addAction(QIcon(":/toolbar/toolbar-icons/window-close.svg"), "");
     toolBarHideAction->setToolTip("Hide toolbar");
     toolBarHideAction->setStatusTip("Hide toolbar");
     connect(toolBarHideAction, &QAction::triggered, this, &MainWindow::toggleToolBarVisibility);
@@ -357,14 +371,6 @@ void MainWindow::setupToolBar(){
     bool toolBarTextVisible = settings.value("toolBarTextVisible", true).toBool();
 
     if (!toolBarTextVisible){
-        mainToolBarActions[0]->setText("📄");
-        mainToolBarActions[1]->setText("📂");
-        mainToolBarActions[2]->setText("💾");
-        mainToolBarActions[3]->setText("📋");
-        mainToolBarActions[4]->setText("➕");
-        mainToolBarActions[5]->setText("🕐");
-        mainToolBarActions[6]->setText("🎨");
-        mainToolBarActions[7]->setText("⚙️");
         toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
     else{
@@ -485,6 +491,15 @@ void MainWindow::showEvent(QShowEvent *event)
         adjustWindowSize();
         restoreWindowGeometry();
     }
+
+#ifdef Q_OS_LINUX
+    QTimer::singleShot(0, this, [this](){
+        update();
+        if (centralWidget){
+            centralWidget->update();
+        }
+    });
+#endif
 }
 
 void MainWindow::newFile(){
@@ -521,56 +536,56 @@ void MainWindow::openFile(){
     dialog.setFileMode(QFileDialog::ExistingFile);
     dialog.setStyleSheet(
         "QFileDialog {"
-        "    background-color: #ffffff;"
+        "    background-color: #f6fafe;"
         "}"
         "QDialog {"
-        "    background-color: #ffffff;"
+        "    background-color: #f6fafe;"
         "}"
         "QPushButton {"
-        "    background-color: #f5f5f5;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 4px;"
+        "    background-color: #eef4fa;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    padding: 8px 16px;"
         "    min-width: 80px;"
+        "    color: #2a343a;"
         "}"
         "QPushButton:hover {"
-        "    background-color: #e3f2fd;"
-        "    border: 1px solid #2196f3;"
+        "    background-color: #e7eff5;"
         "}"
         "QPushButton:default {"
-        "    background-color: #2196f3;"
-        "    color: #ffffff;"
-        "    border: 1px solid #1976d2;"
+        "    background-color: #4e45e4;"
+        "    color: #fbf7ff;"
+        "    border: none;"
         "}"
         "QPushButton:default:hover {"
-        "    background-color: #1976d2;"
+        "    background-color: #4135d8;"
         "}"
         "QListView, QTreeView {"
         "    background-color: #ffffff;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 4px;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    padding: 4px;"
         "}"
         "QListView::item:hover, QTreeView::item:hover {"
-        "    background-color: #f5f5f5;"
+        "    background-color: #eef4fa;"
         "}"
         "QListView::item:selected, QTreeView::item:selected {"
-        "    background-color: #e3f2fd;"
-        "    color: #000000;"
+        "    background-color: #e7eff5;"
+        "    color: #2a343a;"
         "}"
         "QLineEdit {"
         "    background-color: #ffffff;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 4px;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    padding: 6px;"
         "}"
         "QLineEdit:focus {"
-        "    border: 2px solid #2196f3;"
+        "    border: 2px solid #4e45e4;"
         "}"
         "QComboBox {"
         "    background-color: #ffffff;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 4px;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    padding: 6px;"
         "}"
     );
@@ -601,56 +616,56 @@ void MainWindow::saveFileAs(){
     dialog.setDefaultSuffix("yaml");
     dialog.setStyleSheet(
         "QFileDialog {"
-        "    background-color: #ffffff;"
+        "    background-color: #f6fafe;"
         "}"
         "QDialog {"
-        "    background-color: #ffffff;"
+        "    background-color: #f6fafe;"
         "}"
         "QPushButton {"
-        "    background-color: #f5f5f5;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 4px;"
+        "    background-color: #eef4fa;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    padding: 8px 16px;"
         "    min-width: 80px;"
+        "    color: #2a343a;"
         "}"
         "QPushButton:hover {"
-        "    background-color: #e3f2fd;"
-        "    border: 1px solid #2196f3;"
+        "    background-color: #e7eff5;"
         "}"
         "QPushButton:default {"
-        "    background-color: #2196f3;"
-        "    color: #ffffff;"
-        "    border: 1px solid #1976d2;"
+        "    background-color: #4e45e4;"
+        "    color: #fbf7ff;"
+        "    border: none;"
         "}"
         "QPushButton:default:hover {"
-        "    background-color: #1976d2;"
+        "    background-color: #4135d8;"
         "}"
         "QListView, QTreeView {"
         "    background-color: #ffffff;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 4px;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    padding: 4px;"
         "}"
         "QListView::item:hover, QTreeView::item:hover {"
-        "    background-color: #f5f5f5;"
+        "    background-color: #eef4fa;"
         "}"
         "QListView::item:selected, QTreeView::item:selected {"
-        "    background-color: #e3f2fd;"
-        "    color: #000000;"
+        "    background-color: #e7eff5;"
+        "    color: #2a343a;"
         "}"
         "QLineEdit {"
         "    background-color: #ffffff;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 4px;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    padding: 6px;"
         "}"
         "QLineEdit:focus {"
-        "    border: 2px solid #2196f3;"
+        "    border: 2px solid #4e45e4;"
         "}"
         "QComboBox {"
         "    background-color: #ffffff;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 4px;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    padding: 6px;"
         "}"
     );
@@ -735,26 +750,26 @@ bool MainWindow::maybeSave(){
     msgBox.setIcon(QMessageBox::Question);
     msgBox.setStyleSheet(
         "QMessageBox {"
-        "    background-color: #ffffff;"
+        "    background-color: #f6fafe;"
         "}"
         "QPushButton {"
-        "    background-color: #f5f5f5;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 4px;"
+        "    background-color: #eef4fa;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    padding: 6px 16px;"
         "    min-width: 70px;"
+        "    color: #2a343a;"
         "}"
         "QPushButton:hover {"
-        "    background-color: #e3f2fd;"
-        "    border: 1px solid #2196f3;"
+        "    background-color: #e7eff5;"
         "}"
         "QPushButton:default {"
-        "    background-color: #2196f3;"
-        "    color: #ffffff;"
-        "    border: 1px solid #1976d2;"
+        "    background-color: #4e45e4;"
+        "    color: #fbf7ff;"
+        "    border: none;"
         "}"
         "QPushButton:default:hover {"
-        "    background-color: #1976d2;"
+        "    background-color: #4135d8;"
         "}"
     );
     
@@ -978,24 +993,24 @@ void MainWindow::showAboutDialog(){
         "<h2>UnfuckMyTimeZoneMath " APP_VERSION "</h2>"
         "<p>A handy utility to help teams figure out time zone math when trying to schedule meetings and stuff.</p>"
         "<p>Visualize and synchronize times across multiple time zones with ease.</p>"
-        "<p><a href='https://github.com/RayParkerBassPlayer/UnfuckMyTimeZoneMath'>github.com/RayParkerBassPlayer/UnfuckMyTimeZoneMath</a></p>"
+        "<p><a href='https://github.com/Master-Branch-Software/UnfuckMyTimeZoneMath'>github.com/Master-Branch-Software/UnfuckMyTimeZoneMath</a></p>"
     );
     aboutBox.setIcon(QMessageBox::Information);
     aboutBox.setStandardButtons(QMessageBox::Ok);
     aboutBox.setStyleSheet(
         "QMessageBox {"
-        "    background-color: #ffffff;"
+        "    background-color: #f6fafe;"
         "}"
         "QPushButton {"
-        "    background-color: #f5f5f5;"
-        "    border: 1px solid #e0e0e0;"
-        "    border-radius: 4px;"
+        "    background-color: #eef4fa;"
+        "    border: none;"
+        "    border-radius: 8px;"
         "    padding: 6px 16px;"
         "    min-width: 70px;"
+        "    color: #2a343a;"
         "}"
         "QPushButton:hover {"
-        "    background-color: #e3f2fd;"
-        "    border: 1px solid #2196f3;"
+        "    background-color: #e7eff5;"
         "}"
     );
     aboutBox.exec();
@@ -1047,28 +1062,22 @@ void MainWindow::toggleToolBarVisibility(){
 }
 
 void MainWindow::toggleToolBarTextVisibility(){
-    bool showText = toolBarTextToggleAction->isChecked();
+    bool showText = true;
+
+    // Determine source of the toggle (toolbar button vs View menu item)
+    QAction *senderAction = qobject_cast<QAction*>(sender());
+
+    if (senderAction){
+        showText = senderAction->isChecked();
+    }
+    else if (toolBarTextToggleAction){
+        showText = toolBarTextToggleAction->isChecked();
+    }
     
     if (showText){
-        mainToolBarActions[0]->setText("📄 New");
-        mainToolBarActions[1]->setText("📂 Open");
-        mainToolBarActions[2]->setText("💾 Save");
-        mainToolBarActions[3]->setText("📋 Copy");
-        mainToolBarActions[4]->setText("➕ Add Zone");
-        mainToolBarActions[5]->setText("🕐 Current Time");
-        mainToolBarActions[6]->setText("🎨 Colors");
-        mainToolBarActions[7]->setText("⚙️ Settings");
         toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     }
     else{
-        mainToolBarActions[0]->setText("📄");
-        mainToolBarActions[1]->setText("📂");
-        mainToolBarActions[2]->setText("💾");
-        mainToolBarActions[3]->setText("📋");
-        mainToolBarActions[4]->setText("➕");
-        mainToolBarActions[5]->setText("🕐");
-        mainToolBarActions[6]->setText("🎨");
-        mainToolBarActions[7]->setText("⚙️");
         toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
     
@@ -1195,12 +1204,16 @@ void MainWindow::updateTrayMenu(){
     
     trayMenu->clear();
     
-    QAction *showAction = trayMenu->addAction(isVisible() ? "🙈 Hide Window" : "👁️ Show Window");
+    QIcon showHideIcon = isVisible()
+        ? QIcon(":/toolbar/toolbar-icons/view-hidden.svg")
+        : QIcon(":/toolbar/toolbar-icons/view-visible.svg");
+
+    QAction *showAction = trayMenu->addAction(showHideIcon, isVisible() ? "Hide Window" : "Show Window");
     connect(showAction, &QAction::triggered, this, &MainWindow::toggleWindowVisibility);
     
     trayMenu->addSeparator();
     
-    trayRecentFilesMenu = trayMenu->addMenu("📂 Recent Files");
+    trayRecentFilesMenu = trayMenu->addMenu(QIcon(":/toolbar/toolbar-icons/document-open.svg"), "Recent Files");
     
     QStringList recentFiles = getRecentFiles();
     
@@ -1220,18 +1233,18 @@ void MainWindow::updateTrayMenu(){
     
     trayMenu->addSeparator();
     
-    QAction *newAction = trayMenu->addAction("📄 New");
+    QAction *newAction = trayMenu->addAction(QIcon(":/toolbar/toolbar-icons/document-new.svg"), "New");
     connect(newAction, &QAction::triggered, this, &MainWindow::newFile);
     
-    QAction *openAction = trayMenu->addAction("📂 Open...");
+    QAction *openAction = trayMenu->addAction(QIcon(":/toolbar/toolbar-icons/document-open.svg"), "Open...");
     connect(openAction, &QAction::triggered, this, &MainWindow::openFile);
     
-    QAction *settingsAction = trayMenu->addAction("⚙️ Settings...");
+    QAction *settingsAction = trayMenu->addAction(QIcon(":/toolbar/toolbar-icons/configure.svg"), "Settings...");
     connect(settingsAction, &QAction::triggered, this, &MainWindow::showSettings);
     
     trayMenu->addSeparator();
     
-    QAction *quitAction = trayMenu->addAction("❌ Quit");
+    QAction *quitAction = trayMenu->addAction(QIcon(":/toolbar/toolbar-icons/application-exit.svg"), "Quit");
     connect(quitAction, &QAction::triggered, this, &MainWindow::quitApplication);
     
     trayIcon->setContextMenu(trayMenu);
