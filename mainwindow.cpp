@@ -1002,7 +1002,8 @@ void MainWindow::showAboutDialog(){
         "<h2>" + appName + " " APP_VERSION "</h2>"
         "<p>A handy utility to help teams figure out time zone math when trying to schedule meetings and stuff.</p>"
         "<p>Visualize and synchronize times across multiple time zones with ease.</p>"
-        "<p><a href='https://github.com/Master-Branch-Software/UnfuckMyTimeZoneMath'>github.com/Master-Branch-Software/UnfuckMyTimeZoneMath</a></p>"
+        "<p><a href='https://masterbranchsoftware.com'>masterbranchsoftware.com</a></p>"
+        "<p style='color:#6b7a85;font-size:small;'>&copy; 2025 Master Branch Software, LLC</p>"
     );
     aboutBox.setIcon(QMessageBox::Information);
     aboutBox.setStandardButtons(QMessageBox::Ok);
@@ -1257,7 +1258,10 @@ void MainWindow::updateTrayMenu(){
     
     QAction *settingsAction = trayMenu->addAction(QIcon(":/toolbar/toolbar-icons/configure.svg"), "Settings...");
     connect(settingsAction, &QAction::triggered, this, &MainWindow::showSettings);
-    
+
+    QAction *aboutTrayAction = trayMenu->addAction("About " + SettingsDialog::effectiveDisplayName() + "...");
+    connect(aboutTrayAction, &QAction::triggered, this, &MainWindow::showAboutDialog);
+
     trayMenu->addSeparator();
     
     QAction *quitAction = trayMenu->addAction(QIcon(":/toolbar/toolbar-icons/application-exit.svg"), "Quit");
