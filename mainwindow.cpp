@@ -1259,7 +1259,7 @@ void MainWindow::updateTrayMenu(){
     QAction *settingsAction = trayMenu->addAction(QIcon(":/toolbar/toolbar-icons/configure.svg"), "Settings...");
     connect(settingsAction, &QAction::triggered, this, &MainWindow::showSettings);
 
-    QAction *aboutTrayAction = trayMenu->addAction("About " + SettingsDialog::effectiveDisplayName() + "...");
+    QAction *aboutTrayAction = trayMenu->addAction("About...");
     connect(aboutTrayAction, &QAction::triggered, this, &MainWindow::showAboutDialog);
 
     trayMenu->addSeparator();
