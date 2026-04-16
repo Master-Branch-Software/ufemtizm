@@ -5,6 +5,8 @@
 
 class QCheckBox;
 class QDialogButtonBox;
+class QLabel;
+class QLineEdit;
 
 class SettingsDialog : public QDialog
 {
@@ -13,6 +15,9 @@ class SettingsDialog : public QDialog
 public:
     explicit SettingsDialog(QWidget *parent = nullptr);
     ~SettingsDialog();
+
+    // Returns the custom display name, or the real app name if blank.
+    static QString effectiveDisplayName();
 
     bool showInTaskBar() const;
     bool minimizeToTray() const;
@@ -35,6 +40,7 @@ private:
     void loadSettings();
     void saveSettings();
 
+    QLineEdit *displayNameLineEdit;
     QCheckBox *showInTaskBarCheckBox;
     QCheckBox *minimizeToTrayCheckBox;
     QCheckBox *closeToTrayCheckBox;

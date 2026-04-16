@@ -1,13 +1,16 @@
 #include "settingsdialog.hpp"
 #include <QCheckBox>
 #include <QDialogButtonBox>
-#include <QVBoxLayout>
+#include <QFormLayout>
 #include <QGroupBox>
+#include <QLabel>
+#include <QLineEdit>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QDir>
 #include <QFile>
 #include <QTextStream>
+#include <QVBoxLayout>
 #include <QCoreApplication>
 
 SettingsDialog::SettingsDialog(QWidget *parent)
@@ -17,7 +20,19 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     setModal(true);
     
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    
+
+    QGroupBox *generalGroup = new QGroupBox("General");
+    QFormLayout *generalLayout = new QFormLayout();
+
+    displayNameLineEdit = new QLineEdit();
+    displayNameLineEdit->setPlaceholderText("UnfuckMyTimeZoneMath");
+    displayNameLineEdit->setToolTip("Custom display name shown in the title bar and About box. Leave blank to use the default.");
+    displayNameLineEdit->setMaxLength(64);
+    generalLayout->addRow("Display Name:", displayNameLineEdit);
+
+    generalGroup->setLayout(generalLayout);
+    mainLayout->addWidget(generalGroup);
+
     QGroupBox *trayGroup = new QGroupBox("System Tray");
     QVBoxLayout *trayLayout = new QVBoxLayout();
     
@@ -64,6 +79,21 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     });
     
     setStyleSheet(
+        "QLineEdit {"
+        "    background-color: #ffffff;"
+        "    border: 1px solid #d9e4ec;"
+        "    border-radius: 6px;"
+        "    padding: 5px 8px;"
+        "    color: #2a343a;"
+        "    font-weight: normal;"
+        "}"
+        "QLineEdit:focus {"
+        "    border: 2px solid #4e45e4;"
+        "}"
+        "QLabel {"
+        "    color: #2a343a;"
+        "    font-weight: normal;"
+        "}"
         "QDialog {"
         "    background-color: #f6fafe;"
         "}"
@@ -203,13 +233,15 @@ void SettingsDialog::onAccepted(){
 
 void SettingsDialog::loadSettings(){
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
-    
+
+    displayNameLineEdit->setText(settings.value("app/displayName", "").toString());
+
     bool minimizeTray = settings.value("systemTray/minimizeToTray", true).toBool();
     bool closeTray = settings.value("systemTray/closeToTray", true).toBool();
     bool startMin = settings.value("systemTray/startMinimized", false).toBool();
     bool runLogin = settings.value("systemTray/runAtLogin", false).toBool();
     bool skyColor = settings.value("appearance/skyColor", true).toBool();
-    
+
     minimizeToTrayCheckBox->setChecked(minimizeTray);
     closeToTrayCheckBox->setChecked(closeTray);
     startMinimizedCheckBox->setChecked(startMin);
@@ -219,7 +251,9 @@ void SettingsDialog::loadSettings(){
 
 void SettingsDialog::saveSettings(){
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
-    
+
+    settings.setValue("app/displayName", displayNameLineEdit->text().trimmed());
+
     settings.setValue("systemTray/minimizeToTray", minimizeToTrayCheckBox->isChecked());
     settings.setValue("systemTray/closeToTray", closeToTrayCheckBox->isChecked());
     settings.setValue("systemTray/startMinimized", startMinimizedCheckBox->isChecked());
@@ -227,6 +261,14 @@ void SettingsDialog::saveSettings(){
     settings.setValue("appearance/skyColor", skyColorCheckBox->isChecked());
     
     setupAutostart(runAtLoginCheckBox->isChecked());
+}
+
+// static
+QString SettingsDialog::effectiveDisplayName(){
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QString name = settings.value("app/displayName", "").toString().trimmed();
+
+    return name.isEmpty() ? QStringLiteral("UnfuckMyTimeZoneMath") : name;
 }
 
 void SettingsDialog::setupAutostart(bool enable)

@@ -716,7 +716,7 @@ void MainWindow::updateWindowTitle(){
         title += " *";
     }
     
-    title += " - UnfuckMyTimeZoneMath";
+    title += " - " + SettingsDialog::effectiveDisplayName();
     setWindowTitle(title);
 }
 
@@ -993,11 +993,13 @@ void MainWindow::restoreWindowGeometry(){
 }
 
 void MainWindow::showAboutDialog(){
+    QString appName = SettingsDialog::effectiveDisplayName();
+
     QMessageBox aboutBox(this);
-    aboutBox.setWindowTitle("About UnfuckMyTimeZoneMath");
+    aboutBox.setWindowTitle("About " + appName);
     aboutBox.setTextFormat(Qt::RichText);
     aboutBox.setText(
-        "<h2>UnfuckMyTimeZoneMath " APP_VERSION "</h2>"
+        "<h2>" + appName + " " APP_VERSION "</h2>"
         "<p>A handy utility to help teams figure out time zone math when trying to schedule meetings and stuff.</p>"
         "<p>Visualize and synchronize times across multiple time zones with ease.</p>"
         "<p><a href='https://github.com/Master-Branch-Software/UnfuckMyTimeZoneMath'>github.com/Master-Branch-Software/UnfuckMyTimeZoneMath</a></p>"
@@ -1111,9 +1113,16 @@ void MainWindow::showSettings(){
         for (TimeZoneWidget *widget : timeZoneWidgets){
             widget->reloadSettings();
         }
-        
+
+        updateWindowTitle();
+
+        if (trayIcon){
+            trayIcon->setToolTip(SettingsDialog::effectiveDisplayName());
+        }
+
         QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
         bool skyColorEnabled = settings.value("appearance/skyColor", true).toBool();
+
         if (mainToolBarActions.size() > 6){
             mainToolBarActions[6]->setChecked(skyColorEnabled);
         }
@@ -1395,7 +1404,7 @@ void MainWindow::initializeSystemTray(){
         }
 
         trayIcon->setIcon(trayIconImage);
-        trayIcon->setToolTip("UnfuckMyTimeZoneMath");
+        trayIcon->setToolTip(SettingsDialog::effectiveDisplayName());
 
         connect(trayIcon, &QSystemTrayIcon::activated, this, &MainWindow::onTrayIconActivated);
 
