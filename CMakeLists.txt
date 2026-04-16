@@ -217,20 +217,49 @@ elseif(WIN32)
     DEFAULT TRUE)
 
 else()
-  # Linux: DEB package with bundled Qt libraries
-  install(
-    DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qt_deploy/lib/"
-    DESTINATION "lib/UnfuckMyTimeZoneMath"
-    COMPONENT ${COMPONENT_NAME_MAIN}
-    OPTIONAL FILES_MATCHING
-    PATTERN "*.so*")
+  # Linux: bundle Qt libraries by deriving paths from linked Qt targets.
+  # Any Qt module added to target_link_libraries is picked up automatically.
+  get_target_property(_qt_core_loc Qt6::Core LOCATION)
+  get_filename_component(_qt_lib_dir "${_qt_core_loc}" DIRECTORY)
+  get_filename_component(_qt_root "${_qt_lib_dir}" DIRECTORY)
+  set(_qt_plugins_dir "${_qt_root}/plugins")
 
-  install(
-    DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qt_deploy/plugins/"
-    DESTINATION "lib/UnfuckMyTimeZoneMath/plugins"
-    COMPONENT ${COMPONENT_NAME_MAIN}
-    OPTIONAL FILES_MATCHING
-    PATTERN "*.so")
+  foreach(_qt_target Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::DBus
+                     Qt6::Svg Qt6::XcbQpa Qt6::OpenGL)
+    if(TARGET ${_qt_target})
+      get_target_property(_lib_loc ${_qt_target} LOCATION)
+      get_filename_component(_lib_dir "${_lib_loc}" DIRECTORY)
+      get_filename_component(_lib_name "${_lib_loc}" NAME_WE)
+      file(GLOB _lib_files "${_lib_dir}/${_lib_name}.so*")
+      install(FILES ${_lib_files}
+              DESTINATION "lib/UnfuckMyTimeZoneMath"
+              COMPONENT ${COMPONENT_NAME_MAIN})
+    endif()
+  endforeach()
+
+  # ICU is a hard dependency of Qt Core
+  file(GLOB _icu_files "${_qt_lib_dir}/libicu*.so*")
+  install(FILES ${_icu_files}
+          DESTINATION "lib/UnfuckMyTimeZoneMath"
+          COMPONENT ${COMPONENT_NAME_MAIN}
+          OPTIONAL)
+
+  # Essential Qt plugins
+  install(FILES "${_qt_plugins_dir}/platforms/libqxcb.so"
+          DESTINATION "lib/UnfuckMyTimeZoneMath/plugins/platforms"
+          COMPONENT ${COMPONENT_NAME_MAIN} OPTIONAL)
+
+  install(FILES "${_qt_plugins_dir}/imageformats/libqsvg.so"
+          DESTINATION "lib/UnfuckMyTimeZoneMath/plugins/imageformats"
+          COMPONENT ${COMPONENT_NAME_MAIN} OPTIONAL)
+
+  install(FILES "${_qt_plugins_dir}/iconengines/libqsvgicon.so"
+          DESTINATION "lib/UnfuckMyTimeZoneMath/plugins/iconengines"
+          COMPONENT ${COMPONENT_NAME_MAIN} OPTIONAL)
+
+  install(FILES "${_qt_plugins_dir}/platformthemes/libqxdgdesktopportal.so"
+          DESTINATION "lib/UnfuckMyTimeZoneMath/plugins/platformthemes"
+          COMPONENT ${COMPONENT_NAME_MAIN} OPTIONAL)
 
   set(CPACK_GENERATOR "DEB")
   set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Ray")
