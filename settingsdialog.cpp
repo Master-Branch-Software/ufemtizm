@@ -234,7 +234,7 @@ void SettingsDialog::onAccepted(){
 void SettingsDialog::loadSettings(){
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
 
-    displayNameLineEdit->setText(settings.value("app/displayName", "").toString());
+    displayNameLineEdit->setText(settings.value("app/displayName", "Master Branch").toString());
 
     bool minimizeTray = settings.value("systemTray/minimizeToTray", true).toBool();
     bool closeTray = settings.value("systemTray/closeToTray", true).toBool();
@@ -266,7 +266,7 @@ void SettingsDialog::saveSettings(){
 // static
 QString SettingsDialog::effectiveDisplayName(){
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
-    QString name = settings.value("app/displayName", "").toString().trimmed();
+    QString name = settings.value("app/displayName", "Master Branch").toString().trimmed();
 
     return name.isEmpty() ? QStringLiteral("UnfuckMyTimeZoneMath") : name;
 }
