@@ -17,7 +17,7 @@ int main(int argc, char *argv[]){
     // Identify the application to the desktop environment so the dock/taskbar
     // associates running windows with the installed .desktop file and icon.
     app.setApplicationName("UnfuckMyTimeZoneMath");
-    app.setApplicationDisplayName("Unfuck My TimeZone Math");
+    app.setApplicationDisplayName("UnfuckMyTimeZoneMath");
     app.setOrganizationName("UnfuckMyTimeZoneMath");
 #ifdef Q_OS_LINUX
     app.setDesktopFileName("unfuck-my-timezone-math");

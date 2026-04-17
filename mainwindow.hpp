@@ -15,6 +15,7 @@ class SettingsDialog;
 class CopyDialog;
 class QLocalServer;
 class QTimer;
+class QComboBox;
 
 class MainWindow : public QMainWindow
 {
@@ -50,6 +51,7 @@ private slots:
     void toggleWindowVisibility();
     void quitApplication();
     void openRecentFileFromTray();
+    void onRecentFilesComboActivated(int index);
     void updateTrayMenu();
     void handleNewConnection();
     void copyToClipboard();
@@ -71,7 +73,10 @@ private:
     bool loadFromFile(const QString &filename);
     void setCurrentFile(const QString &filename);
     void addRecentFile(const QString &filename);
+    void removeRecentFile(const QString &filename);
     QStringList getRecentFiles() const;
+    QStringList getStoredRecentFiles() const;
+    void warnFileNotFoundAndForget(const QString &filename);
     void performCopy(const QVector<int> &indices);
 
     QWidget *centralWidget;
@@ -82,6 +87,7 @@ private:
     QAction *toggleToolBarTextAction;
     QAction *toolBarTextToggleAction;
     QAction *toolBarHideAction;
+    QComboBox *recentFilesCombo;
     QList<QAction*> mainToolBarActions;
     QString currentFilename;
     bool isDirty;

@@ -28,9 +28,16 @@
 #include <QClipboard>
 #include <QCursor>
 #include <QPalette>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QLabel>
+#include <QFrame>
+#include <QPixmap>
+#include <QComboBox>
 #include "copydialog.hpp"
 
 MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
+    recentFilesCombo(nullptr),
     isDirty(false),
     trayIcon(nullptr),
     trayMenu(nullptr),
@@ -140,11 +147,14 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
     addTimeZoneWidget();
     updateWindowTitle();
     isDirty = false;
-    
-    QStringList recentFiles = getRecentFiles();
 
-    if (!recentFiles.isEmpty()){
-        QString lastFile = recentFiles.first();
+    // Use the stored list (not the filtered one) so that if the most
+    // recently opened file has been deleted we can detect it and warn the
+    // user instead of silently loading the next existing entry.
+    QStringList storedRecentFiles = getStoredRecentFiles();
+
+    if (!storedRecentFiles.isEmpty()){
+        QString lastFile = storedRecentFiles.first();
 
         if (QFile::exists(lastFile)){
             loadFromFile(lastFile);
@@ -152,9 +162,11 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
         else{
             QMessageBox::warning(this, "File Not Found",
                                 QString("The last opened file was not found:\n%1\n\nStarting with a new file.").arg(lastFile));
+            removeRecentFile(lastFile);
+            updateRecentFilesMenu();
         }
     }
-    
+
 }
 
 MainWindow::~MainWindow()
@@ -187,7 +199,7 @@ void MainWindow::setupMenuBar(){
     openAction->setStatusTip("Open an existing timezone configuration");
     connect(openAction, &QAction::triggered, this, &MainWindow::openFile);
     
-    recentFilesMenu = fileMenu->addMenu(QIcon(":/toolbar/toolbar-icons/document-open.svg"), "Recent Files");
+    recentFilesMenu = fileMenu->addMenu(QIcon(":/toolbar/toolbar-icons/document-open.svg"), "&Recent Files");
     updateRecentFilesMenu();
     
     fileMenu->addSeparator();
@@ -222,7 +234,7 @@ void MainWindow::setupMenuBar(){
     
     fileMenu->addSeparator();
     
-    QAction *settingsAction = fileMenu->addAction(QIcon(":/toolbar/toolbar-icons/configure.svg"), "&Settings...");
+    QAction *settingsAction = fileMenu->addAction(QIcon(":/toolbar/toolbar-icons/configure.svg"), "Settin&gs...");
     settingsAction->setToolTip("Configure application settings");
     settingsAction->setStatusTip("Configure application settings");
     connect(settingsAction, &QAction::triggered, this, &MainWindow::showSettings);
@@ -258,7 +270,7 @@ void MainWindow::setupMenuBar(){
     toggleToolBarAction->setStatusTip("Toggle toolbar visibility");
     connect(toggleToolBarAction, &QAction::triggered, this, &MainWindow::toggleToolBarVisibility);
     
-    toggleToolBarTextAction = viewMenu->addAction("Show Toolbar &Text");
+    toggleToolBarTextAction = viewMenu->addAction("Show Toolbar T&ext");
     toggleToolBarTextAction->setCheckable(true);
     toggleToolBarTextAction->setChecked(true);
     toggleToolBarTextAction->setToolTip("Toggle toolbar text labels");
@@ -271,6 +283,56 @@ void MainWindow::setupMenuBar(){
     aboutAction->setToolTip("About this application");
     aboutAction->setStatusTip("About this application");
     connect(aboutAction, &QAction::triggered, this, &MainWindow::showAboutDialog);
+
+    // Recent files drop-down lives in the menu bar's right corner so it
+    // stays visible regardless of toolbar width, and so QToolBar's built-in
+    // extension chevron can handle toolbar overflow on narrow windows
+    // without a custom widget-action getting in its way.
+    recentFilesCombo = new QComboBox();
+    recentFilesCombo->setToolTip("Current file. Select a recent file to open it.");
+    recentFilesCombo->setStatusTip("Current file. Select a recent file to open it.");
+    recentFilesCombo->setMinimumWidth(140);
+    recentFilesCombo->setMaximumWidth(260);
+    recentFilesCombo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    recentFilesCombo->setPlaceholderText("Untitled");
+    recentFilesCombo->setStyleSheet(
+        "QComboBox {"
+        "    background-color: #eef4fa;"
+        "    border: none;"
+        "    border-radius: 8px;"
+        "    padding: 3px 10px;"
+        "    color: #2a343a;"
+        "}"
+        "QComboBox:hover {"
+        "    background-color: #e7eff5;"
+        "}"
+        "QComboBox::drop-down {"
+        "    border: none;"
+        "    width: 20px;"
+        "}"
+        "QComboBox QAbstractItemView {"
+        "    background-color: #ffffff;"
+        "    border: none;"
+        "    border-radius: 8px;"
+        "    padding: 4px;"
+        "    selection-background-color: #eef4fa;"
+        "    selection-color: #2a343a;"
+        "    color: #2a343a;"
+        "}"
+    );
+    connect(recentFilesCombo, QOverload<int>::of(&QComboBox::activated),
+            this, &MainWindow::onRecentFilesComboActivated);
+
+    // QMenuBar's corner widget is placed flush against the window edge, so
+    // wrap the combo in a container with a right margin to give it some
+    // breathing room. Stylesheet margin-right on the combo itself is
+    // unreliable inside the menu bar corner.
+    QWidget *cornerContainer = new QWidget(menuBar());
+    QHBoxLayout *cornerLayout = new QHBoxLayout(cornerContainer);
+    cornerLayout->setContentsMargins(0, 0, 10, 0);
+    cornerLayout->setSpacing(0);
+    cornerLayout->addWidget(recentFilesCombo);
+    menuBar()->setCornerWidget(cornerContainer, Qt::TopRightCorner);
 }
 
 void MainWindow::setupToolBar(){
@@ -301,7 +363,7 @@ void MainWindow::setupToolBar(){
         "    background-color: #e7eff5;"
         "}"
     );
-    
+
     QAction *newAction = toolBar->addAction(QIcon(":/toolbar/toolbar-icons/document-new.svg"), "New");
     newAction->setToolTip("Create a new timezone configuration (Ctrl+N)");
     newAction->setStatusTip("Create a new timezone configuration");
@@ -370,7 +432,7 @@ void MainWindow::setupToolBar(){
     toolBarHideAction->setToolTip("Hide toolbar");
     toolBarHideAction->setStatusTip("Hide toolbar");
     connect(toolBarHideAction, &QAction::triggered, this, &MainWindow::toggleToolBarVisibility);
-    
+
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
     bool toolBarVisible = settings.value("toolBarVisible", true).toBool();
     toolBar->setVisible(toolBarVisible);
@@ -492,7 +554,7 @@ void MainWindow::changeEvent(QEvent *event)
 void MainWindow::showEvent(QShowEvent *event)
 {
     QMainWindow::showEvent(event);
-    
+
     if (!initialSizeSet){
         initialSizeSet = true;
         adjustWindowSize();
@@ -691,40 +753,85 @@ void MainWindow::saveFileAs(){
 
 void MainWindow::openRecentFile(){
     QAction *action = qobject_cast<QAction*>(sender());
-    
-    if (action){
-        if (!maybeSave()){
-            return;
-        }
-        
-        loadFromFile(action->data().toString());
+
+    if (!action){
+        return;
     }
+
+    QString filename = action->data().toString();
+
+    if (filename.isEmpty()){
+        return;
+    }
+
+    if (!QFile::exists(filename)){
+        warnFileNotFoundAndForget(filename);
+        return;
+    }
+
+    if (!maybeSave()){
+        return;
+    }
+
+    loadFromFile(filename);
 }
 
 void MainWindow::updateWindowTitle(){
-    QString title;
-    
+    // Keep the application display name (what Qt appends after the em-dash)
+    // in sync with the user-configurable display title from settings. Qt
+    // automatically joins windowTitle() and applicationDisplayName() with
+    // " \u2014 ", so never include the display name in the window title
+    // itself.
+    qApp->setApplicationDisplayName(SettingsDialog::effectiveDisplayName());
+
+    QString fileLabel;
+
     if (currentFilename.isEmpty()){
-        title = "Untitled";
+        // Only show a label for an unsaved document when it is dirty;
+        // otherwise fall back to showing just the display name alone.
+        if (isDirty){
+            fileLabel = QStringLiteral("Untitled");
+        }
     }
     else{
         QFileInfo fileInfo(currentFilename);
-        title = fileInfo.completeBaseName();
+        fileLabel = fileInfo.completeBaseName();
     }
-    
-    if (isDirty){
-        title += " *";
+
+    // [*] is Qt's placeholder for the modified marker, controlled by
+    // setWindowModified(). It expands to "*" when modified, empty otherwise.
+    if (!fileLabel.isEmpty()){
+        fileLabel += QStringLiteral("[*]");
     }
-    
-    title += " - " + SettingsDialog::effectiveDisplayName();
-    setWindowTitle(title);
+
+    setWindowTitle(fileLabel);
+    setWindowModified(isDirty);
+
+    // Reflect the currently open file in the toolbar's recent files combo.
+    if (recentFilesCombo){
+        QSignalBlocker blocker(recentFilesCombo);
+
+        if (currentFilename.isEmpty()){
+            recentFilesCombo->setCurrentIndex(-1);
+        }
+        else{
+            int index = recentFilesCombo->findData(currentFilename);
+
+            if (index >= 0){
+                recentFilesCombo->setCurrentIndex(index);
+            }
+            else{
+                recentFilesCombo->setCurrentIndex(-1);
+            }
+        }
+    }
 }
 
 void MainWindow::updateRecentFilesMenu(){
     recentFilesMenu->clear();
-    
+
     QStringList recentFiles = getRecentFiles();
-    
+
     if (recentFiles.isEmpty()){
         QAction *noFilesAction = recentFilesMenu->addAction("No Recent Files");
         noFilesAction->setEnabled(false);
@@ -733,13 +840,77 @@ void MainWindow::updateRecentFilesMenu(){
         for (const QString &filename : recentFiles){
             QFileInfo fileInfo(filename);
             QString displayName = fileInfo.completeBaseName();
+
             QAction *action = recentFilesMenu->addAction(displayName);
             action->setData(filename);
             connect(action, &QAction::triggered, this, &MainWindow::openRecentFile);
         }
     }
-    
+
+    // Mirror the recent files list in the menu-bar corner combo. Each item
+    // stores the full path in its user data so we can open it when
+    // activated.
+    if (recentFilesCombo){
+        QSignalBlocker blocker(recentFilesCombo);
+
+        recentFilesCombo->clear();
+
+        for (const QString &filename : recentFiles){
+            QFileInfo fileInfo(filename);
+            recentFilesCombo->addItem(fileInfo.completeBaseName(), filename);
+        }
+
+        if (currentFilename.isEmpty()){
+            recentFilesCombo->setCurrentIndex(-1);
+        }
+        else{
+            int index = recentFilesCombo->findData(currentFilename);
+
+            if (index >= 0){
+                recentFilesCombo->setCurrentIndex(index);
+            }
+            else{
+                recentFilesCombo->setCurrentIndex(-1);
+            }
+        }
+    }
+
     updateTrayMenu();
+}
+
+void MainWindow::onRecentFilesComboActivated(int index){
+    if (!recentFilesCombo || index < 0){
+        return;
+    }
+
+    QString filename = recentFilesCombo->itemData(index).toString();
+
+    if (filename.isEmpty() || filename == currentFilename){
+        return;
+    }
+
+    if (!QFile::exists(filename)){
+        // Snap the combo back to whatever is currently loaded before the
+        // warning appears so the UI does not show the missing file as
+        // the active selection.
+        {
+            QSignalBlocker blocker(recentFilesCombo);
+            recentFilesCombo->setCurrentIndex(recentFilesCombo->findData(currentFilename));
+        }
+
+        warnFileNotFoundAndForget(filename);
+        return;
+    }
+
+    if (!maybeSave()){
+        // User cancelled; restore the combo to reflect the still-current file.
+        QSignalBlocker blocker(recentFilesCombo);
+        int currentIndex = recentFilesCombo->findData(currentFilename);
+        recentFilesCombo->setCurrentIndex(currentIndex);
+        return;
+    }
+
+    loadFromFile(filename);
 }
 
 bool MainWindow::maybeSave(){
@@ -945,6 +1116,32 @@ void MainWindow::addRecentFile(const QString &filename)
     settings.setValue("recentFiles", recentFiles);
 }
 
+void MainWindow::removeRecentFile(const QString &filename)
+{
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QStringList recentFiles = settings.value("recentFiles").toStringList();
+
+    if (recentFiles.removeAll(filename) > 0){
+        settings.setValue("recentFiles", recentFiles);
+    }
+}
+
+QStringList MainWindow::getStoredRecentFiles() const
+{
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+
+    return settings.value("recentFiles").toStringList();
+}
+
+void MainWindow::warnFileNotFoundAndForget(const QString &filename)
+{
+    QMessageBox::warning(this, "File Not Found",
+                        QString("The file was not found:\n%1\n\nIt has been removed from the recent files list.").arg(filename));
+
+    removeRecentFile(filename);
+    updateRecentFilesMenu();
+}
+
 QStringList MainWindow::getRecentFiles() const
 {
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
@@ -966,15 +1163,21 @@ void MainWindow::adjustWindowSize(){
     int widgetCount = timeZoneWidgets.size();
     int spacing = 12;
     int margins = 32;
-    
-    int totalWidth = (widgetWidth * widgetCount) + (spacing * (widgetCount - 1)) + margins;
+
+    int contentWidth = (widgetWidth * widgetCount) + (spacing * (widgetCount - 1)) + margins;
     int contentHeight = 700;
-    
+
     int menuBarHeight = menuBar()->height();
     int toolBarHeight = toolBar->isVisible() ? toolBar->height() : 0;
-    
+
     int totalHeight = contentHeight + menuBarHeight + toolBarHeight;
-    
+
+    // Make sure the menu bar (which now hosts the recent-files combo in
+    // its right corner) has room for itself. The toolbar will handle any
+    // further overflow with its built-in extension chevron.
+    int menuBarMinWidth = menuBar()->sizeHint().width();
+    int totalWidth = std::max(contentWidth, menuBarMinWidth);
+
     setFixedSize(totalWidth, totalHeight);
 }
 
@@ -995,21 +1198,86 @@ void MainWindow::restoreWindowGeometry(){
 void MainWindow::showAboutDialog(){
     QString appName = SettingsDialog::effectiveDisplayName();
 
-    QMessageBox aboutBox(this);
+    QDialog aboutBox(this);
     aboutBox.setWindowTitle("About " + appName);
-    aboutBox.setTextFormat(Qt::RichText);
-    aboutBox.setText(
-        "<h2>" + appName + " " APP_VERSION "</h2>"
+    aboutBox.setModal(true);
+
+    // Prefer the bundled resource icon for crispness at 48px. Fall back to
+    // the installed theme icon, then the system-installed PNG.
+    QPixmap iconPixmap(":/icons/icon.png");
+    if (iconPixmap.isNull()){
+        iconPixmap = QIcon::fromTheme("unfuck-my-timezone-math").pixmap(48, 48);
+    }
+    if (iconPixmap.isNull()){
+        iconPixmap = QIcon("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png").pixmap(48, 48);
+    }
+    if (!iconPixmap.isNull()){
+        iconPixmap = iconPixmap.scaled(48, 48, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    }
+
+    QLabel *iconLabel = new QLabel(&aboutBox);
+    iconLabel->setPixmap(iconPixmap);
+    iconLabel->setFixedSize(48, 48);
+    iconLabel->setAlignment(Qt::AlignCenter);
+
+    QLabel *titleLabel = new QLabel(&aboutBox);
+    titleLabel->setTextFormat(Qt::RichText);
+    titleLabel->setText("<h2 style='margin:0;'>" + appName + " " APP_VERSION "</h2>");
+    titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+
+    QHBoxLayout *headerLayout = new QHBoxLayout();
+    headerLayout->setContentsMargins(0, 0, 0, 0);
+    headerLayout->setSpacing(12);
+    headerLayout->addWidget(iconLabel, 0, Qt::AlignTop);
+    headerLayout->addWidget(titleLabel, 1);
+
+    QLabel *descriptionLabel = new QLabel(&aboutBox);
+    descriptionLabel->setTextFormat(Qt::RichText);
+    descriptionLabel->setWordWrap(true);
+    descriptionLabel->setText(
         "<p>A handy utility to help teams figure out time zone math when trying to schedule meetings and stuff.</p>"
         "<p>Visualize and synchronize times across multiple time zones with ease.</p>"
-        "<p><a href='https://masterbranchsoftware.com'>masterbranchsoftware.com</a></p>"
-        "<p style='color:#6b7a85;font-size:small;'>&copy; 2025 Master Branch Software, LLC</p>"
     );
-    aboutBox.setIcon(QMessageBox::Information);
-    aboutBox.setStandardButtons(QMessageBox::Ok);
+
+    QFrame *separator = new QFrame(&aboutBox);
+    separator->setFrameShape(QFrame::HLine);
+    separator->setFrameShadow(QFrame::Plain);
+    separator->setFixedHeight(1);
+    separator->setStyleSheet("background-color: #e7eff5; border: none;");
+
+    QLabel *urlLabel = new QLabel(&aboutBox);
+    urlLabel->setTextFormat(Qt::RichText);
+    urlLabel->setAlignment(Qt::AlignCenter);
+    urlLabel->setOpenExternalLinks(true);
+    urlLabel->setText("<a href='https://masterbranchsoftware.com'>masterbranchsoftware.com</a>");
+
+    QLabel *copyrightLabel = new QLabel(&aboutBox);
+    copyrightLabel->setTextFormat(Qt::RichText);
+    copyrightLabel->setAlignment(Qt::AlignCenter);
+    copyrightLabel->setText(
+        "<span style='color:#6b7a85;font-size:small;'>&copy; 2025 Master Branch Software, LLC</span>"
+    );
+
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok, &aboutBox);
+    connect(buttonBox, &QDialogButtonBox::accepted, &aboutBox, &QDialog::accept);
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(&aboutBox);
+    mainLayout->setContentsMargins(20, 20, 20, 16);
+    mainLayout->setSpacing(12);
+    mainLayout->addLayout(headerLayout);
+    mainLayout->addWidget(descriptionLabel);
+    mainLayout->addWidget(separator);
+    mainLayout->addWidget(urlLabel);
+    mainLayout->addWidget(copyrightLabel);
+    mainLayout->addSpacing(4);
+    mainLayout->addWidget(buttonBox);
+
     aboutBox.setStyleSheet(
-        "QMessageBox {"
+        "QDialog {"
         "    background-color: #f6fafe;"
+        "}"
+        "QLabel {"
+        "    color: #2a343a;"
         "}"
         "QPushButton {"
         "    background-color: #eef4fa;"
@@ -1022,7 +1290,16 @@ void MainWindow::showAboutDialog(){
         "QPushButton:hover {"
         "    background-color: #e7eff5;"
         "}"
+        "QPushButton:default {"
+        "    background-color: #4e45e4;"
+        "    color: #fbf7ff;"
+        "}"
+        "QPushButton:default:hover {"
+        "    background-color: #4135d8;"
+        "}"
     );
+
+    aboutBox.setMinimumWidth(440);
     aboutBox.exec();
 }
 
