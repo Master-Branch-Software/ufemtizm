@@ -1,5 +1,6 @@
 #include "mainwindow.hpp"
 #include <QApplication>
+#include <QIcon>
 #include <QStyleFactory>
 #include <QLocalSocket>
 #include <QMessageBox>
@@ -12,6 +13,16 @@ int main(int argc, char *argv[]){
     }
 
     QApplication app(argc, argv);
+
+    // Identify the application to the desktop environment so the dock/taskbar
+    // associates running windows with the installed .desktop file and icon.
+    app.setApplicationName("UnfuckMyTimeZoneMath");
+    app.setApplicationDisplayName("Unfuck My TimeZone Math");
+    app.setOrganizationName("UnfuckMyTimeZoneMath");
+#ifdef Q_OS_LINUX
+    app.setDesktopFileName("unfuck-my-timezone-math");
+#endif
+    app.setWindowIcon(QIcon(":/icons/icon.png"));
 
     // Hide from dock/taskbar on all platforms - app is only accessible via system tray
     app.setQuitOnLastWindowClosed(false);
@@ -76,7 +87,6 @@ int main(int argc, char *argv[]){
     app.setStyleSheet(appStyleSheet);
     
     MainWindow window;
-    window.setWindowIcon(QIcon(":/icons/icon.png"));
     
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
     bool startMinimized = settings.value("systemTray/startMinimized", false).toBool();
