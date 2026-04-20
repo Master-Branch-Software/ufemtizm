@@ -34,7 +34,12 @@
 #include <QFrame>
 #include <QPixmap>
 #include <QComboBox>
+#include <QHideEvent>
 #include "copydialog.hpp"
+
+#ifdef Q_OS_MACOS
+#include "macos_helper.hpp"
+#endif
 
 MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
     recentFilesCombo(nullptr),
@@ -561,6 +566,14 @@ void MainWindow::showEvent(QShowEvent *event)
         restoreWindowGeometry();
     }
 
+#ifdef Q_OS_MACOS
+    // Promote to a regular foreground app so the global menu bar appears
+    // while the main window is visible. The app starts as an accessory
+    // (LSUIElement) so the dock icon and menu stay hidden while the window
+    // is tucked away in the tray.
+    setMacosActivationPolicyRegular();
+#endif
+
 #ifdef Q_OS_LINUX
     QTimer::singleShot(0, this, [this](){
         update();
@@ -568,6 +581,16 @@ void MainWindow::showEvent(QShowEvent *event)
             centralWidget->update();
         }
     });
+#endif
+}
+
+void MainWindow::hideEvent(QHideEvent *event){
+    QMainWindow::hideEvent(event);
+
+#ifdef Q_OS_MACOS
+    // Drop back to accessory policy so the Dock icon and global menu bar
+    // disappear while the window is hidden to the system tray.
+    setMacosActivationPolicyAccessory();
 #endif
 }
 

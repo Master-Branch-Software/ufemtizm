@@ -48,6 +48,8 @@ elseif(APPLE)
     settingsdialog.cpp
     copydialog.hpp
     copydialog.cpp
+    macos_helper.hpp
+    macos_helper.mm
     resources.qrc)
   set_target_properties(
     UnfuckMyTimeZoneMath
@@ -77,6 +79,10 @@ endif()
 target_include_directories(UnfuckMyTimeZoneMath PRIVATE ${CMAKE_BINARY_DIR})
 target_link_libraries(UnfuckMyTimeZoneMath PRIVATE Qt6::Core Qt6::Widgets
                                                    Qt6::Network Qt6::Svg)
+
+if(APPLE)
+  target_link_libraries(UnfuckMyTimeZoneMath PRIVATE "-framework AppKit")
+endif()
 
 if(UNIX AND NOT APPLE)
   set_target_properties(
