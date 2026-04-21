@@ -128,6 +128,12 @@ for arg in "$@"; do
 
         echo "==> Building snap package..."
 
+        # Destructive mode reuses parts/stage/prime between runs, which can leave
+        # stale files (e.g. old meta/gui/*.desktop entries) in the resulting snap.
+        # Wipe them so each build starts from a clean slate.
+        echo "    Cleaning stale snapcraft artifacts..."
+        rm -rf parts stage prime .craft
+
         # KDE neon sets ID=neon in /etc/os-release; snapcraft requires ID=ubuntu.
         # Temporarily patch it for the duration of the build.
         OS_RELEASE="/etc/os-release"
@@ -151,18 +157,25 @@ for arg in "$@"; do
         trap - EXIT INT TERM
 
         mkdir -p "$INSTALLER_DIR"
-        SNAP_FILE=$(ls *.snap 2>/dev/null | head -1)
+        if [[ -n "$PROJECT_VERSION" ]]; then
+            SNAP_FILE=$(ls *_${PROJECT_VERSION}_*.snap 2>/dev/null | head -1)
+        fi
+        if [[ -z "$SNAP_FILE" ]]; then
+            SNAP_FILE=$(ls -t *.snap 2>/dev/null | head -1)
+        fi
 
         if [[ -n "$SNAP_FILE" ]]; then
             cp "$SNAP_FILE" "$INSTALLER_DIR/"
             echo ""
             echo "==> Snap build complete!"
             echo "Snap package: $INSTALLER_DIR/$SNAP_FILE"
+
             echo ""
-            echo "To install (local testing only):"
-            echo "  sudo snap install $INSTALLER_DIR/$SNAP_FILE --dangerous"
+            echo "==> Installing snap (replaces existing revision if installed)..."
+            sudo snap install "$INSTALLER_DIR/$SNAP_FILE" --dangerous
         else
             echo "Warning: No .snap file found after build"
+            exit 1
         fi
         exit 0
     fi

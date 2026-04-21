@@ -13,6 +13,8 @@
 #include <QFile>
 #include <QTextStream>
 #include <QFileInfo>
+#include <QStandardPaths>
+#include <QDir>
 #include <QCloseEvent>
 #include <QShowEvent>
 #include <QMouseEvent>
@@ -620,10 +622,18 @@ void MainWindow::openFile(){
     if (!maybeSave()){
         return;
     }
-    
+
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QString defaultDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    QString lastDir = settings.value("fileDialog/lastDirectory", defaultDir).toString();
+
+    if (lastDir.isEmpty() || !QDir(lastDir).exists()){
+        lastDir = defaultDir;
+    }
+
     QFileDialog dialog(this);
     dialog.setWindowTitle("Open Configuration");
-    dialog.setDirectory(QDir::homePath());
+    dialog.setDirectory(lastDir);
     dialog.setNameFilter("YAML Files (*.yaml *.yml)");
     dialog.setFileMode(QFileDialog::ExistingFile);
     dialog.setStyleSheet(
@@ -685,7 +695,9 @@ void MainWindow::openFile(){
     if (dialog.exec() == QDialog::Accepted){
         QStringList files = dialog.selectedFiles();
         if (!files.isEmpty()){
-            loadFromFile(files.first());
+            QString selectedFile = files.first();
+            settings.setValue("fileDialog/lastDirectory", QFileInfo(selectedFile).absolutePath());
+            loadFromFile(selectedFile);
         }
     }
 }
@@ -700,9 +712,17 @@ void MainWindow::saveFile(){
 }
 
 void MainWindow::saveFileAs(){
+    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QString defaultDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    QString lastDir = settings.value("fileDialog/lastDirectory", defaultDir).toString();
+
+    if (lastDir.isEmpty() || !QDir(lastDir).exists()){
+        lastDir = defaultDir;
+    }
+
     QFileDialog dialog(this);
     dialog.setWindowTitle("Save Configuration");
-    dialog.setDirectory(QDir::homePath());
+    dialog.setDirectory(lastDir);
     dialog.setNameFilter("YAML Files (*.yaml *.yml)");
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     dialog.setDefaultSuffix("yaml");
@@ -769,6 +789,8 @@ void MainWindow::saveFileAs(){
             if (!filename.endsWith(".yaml", Qt::CaseInsensitive) && !filename.endsWith(".yml", Qt::CaseInsensitive)){
                 filename += ".yaml";
             }
+
+            settings.setValue("fileDialog/lastDirectory", QFileInfo(filename).absolutePath());
             saveToFile(filename);
         }
     }

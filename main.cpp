@@ -5,12 +5,53 @@
 #include <QLocalSocket>
 #include <QMessageBox>
 #include <QSettings>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+
+static void configureSnapPersistentSettings(){
+    // When running as a snap, $SNAP_USER_DATA (mapped to $HOME at runtime) is
+    // revision-scoped and not reliably copied forward on sideloaded installs.
+    // Redirect QSettings to $SNAP_USER_COMMON so settings persist across every
+    // revision of the snap.
+    QByteArray snapUserCommon = qgetenv("SNAP_USER_COMMON");
+
+    if (snapUserCommon.isEmpty()){
+        return;
+    }
+
+    QString commonDir = QString::fromLocal8Bit(snapUserCommon);
+    QDir().mkpath(commonDir);
+
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, commonDir);
+
+    // Migrate a previous revision's config file if the new location is empty.
+    QString newConfigPath = commonDir + "/UnfuckMyTimeZoneMath/UnfuckMyTimeZoneMath.ini";
+
+    if (QFile::exists(newConfigPath)){
+        return;
+    }
+
+    QByteArray snapUserData = qgetenv("SNAP_USER_DATA");
+    QString oldConfigPath = QString::fromLocal8Bit(snapUserData) +
+                            "/.config/UnfuckMyTimeZoneMath/UnfuckMyTimeZoneMath.conf";
+
+    if (snapUserData.isEmpty() || !QFile::exists(oldConfigPath)){
+        return;
+    }
+
+    QDir().mkpath(QFileInfo(newConfigPath).absolutePath());
+    QFile::copy(oldConfigPath, newConfigPath);
+}
 
 int main(int argc, char *argv[]){
     // Fix cursor size scaling issue on Linux - only set if not already defined
     if (qEnvironmentVariableIsEmpty("XCURSOR_SIZE")){
         qputenv("XCURSOR_SIZE", "24");
     }
+
+    configureSnapPersistentSettings();
 
     QApplication app(argc, argv);
 
