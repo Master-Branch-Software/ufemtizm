@@ -37,6 +37,7 @@
 #include <QPixmap>
 #include <QComboBox>
 #include <QHideEvent>
+#include <QToolButton>
 #include "copydialog.hpp"
 
 #ifdef Q_OS_MACOS
@@ -348,6 +349,16 @@ void MainWindow::setupToolBar(){
     toolBar->setMovable(false);
     toolBar->setIconSize(QSize(22, 22));
     toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+
+    // The toolbar's extension chevron (shown when items overflow) is drawn
+    // by QStyle using the palette's ButtonText color, not the QSS `color`
+    // property. Force a dark ButtonText so the arrow is visible against
+    // the white toolbar background.
+    QPalette toolBarPalette = toolBar->palette();
+    toolBarPalette.setColor(QPalette::ButtonText, QColor(0x2a, 0x34, 0x3a));
+    toolBarPalette.setColor(QPalette::WindowText, QColor(0x2a, 0x34, 0x3a));
+    toolBar->setPalette(toolBarPalette);
+
     toolBar->setStyleSheet(
         "QToolBar {"
         "    background-color: #ffffff;"
@@ -369,7 +380,34 @@ void MainWindow::setupToolBar(){
         "QToolButton:pressed {"
         "    background-color: #e7eff5;"
         "}"
+        "QToolButton#qt_toolbar_ext_button {"
+        "    background-color: transparent;"
+        "    border: none;"
+        "    border-radius: 8px;"
+        "    padding: 2px;"
+        "    margin: 0px;"
+        "    color: #2a343a;"
+        "    qproperty-icon: url(:/toolbar/toolbar-icons/overflow-menu.svg);"
+        "}"
+        "QToolButton#qt_toolbar_ext_button:hover {"
+        "    background-color: #eef4fa;"
+        "}"
     );
+
+    // The toolbar's overflow chevron (QToolBarExtension, objectName
+    // qt_toolbar_ext_button) is constructed inside the QToolBar
+    // constructor, so it already exists here. On some Linux styles its
+    // built-in arrow primitive renders nearly invisible, so force an
+    // explicit SVG icon and icon-only layout on it now.
+    QToolButton *extensionButton = toolBar->findChild<QToolButton*>("qt_toolbar_ext_button");
+
+    if (extensionButton){
+        extensionButton->setArrowType(Qt::NoArrow);
+        extensionButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        extensionButton->setIcon(QIcon(":/toolbar/toolbar-icons/overflow-menu.svg"));
+        extensionButton->setIconSize(QSize(18, 18));
+        extensionButton->setAutoRaise(false);
+    }
 
     QAction *newAction = toolBar->addAction(QIcon(":/toolbar/toolbar-icons/document-new.svg"), "New");
     newAction->setToolTip("Create a new timezone configuration (Ctrl+N)");
@@ -1223,10 +1261,12 @@ void MainWindow::adjustWindowSize(){
     int totalHeight = contentHeight + menuBarHeight + toolBarHeight;
 
     // Make sure the menu bar (which now hosts the recent-files combo in
-    // its right corner) has room for itself. The toolbar will handle any
-    // further overflow with its built-in extension chevron.
+    // its right corner) has room for itself, and that the toolbar has room
+    // for all its buttons plus its overflow chevron so the chevron isn't
+    // clipped by the window edge.
     int menuBarMinWidth = menuBar()->sizeHint().width();
-    int totalWidth = std::max(contentWidth, menuBarMinWidth);
+    int toolBarMinWidth = toolBar->isVisible() ? toolBar->sizeHint().width() : 0;
+    int totalWidth = std::max({contentWidth, menuBarMinWidth, toolBarMinWidth});
 
     setFixedSize(totalWidth, totalHeight);
 }

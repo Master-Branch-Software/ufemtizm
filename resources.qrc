@@ -21,5 +21,6 @@
         <file>toolbar-icons/view-hidden.svg</file>
         <file>toolbar-icons/application-exit.svg</file>
         <file>toolbar-icons/document-save-as.svg</file>
+        <file>toolbar-icons/overflow-menu.svg</file>
     </qresource>
 </RCC>
