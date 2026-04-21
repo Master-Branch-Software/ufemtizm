@@ -112,7 +112,63 @@ if [[ "$OS" == "unknown" ]]; then
     exit 1
 fi
 
-# If QT_PATH is already defined in the environment and points to a valid directory,
+# Handle --snap flag: build a snap package via snapcraft, bypassing the cmake flow
+for arg in "$@"; do
+    if [[ "$arg" == "--snap" ]]; then
+        if [[ "$OS" != "linux" ]]; then
+            echo "Error: Snap builds are only supported on Linux"
+            exit 1
+        fi
+
+        if ! command -v snapcraft &> /dev/null; then
+            echo "Error: snapcraft not found."
+            echo "Install with: sudo snap install snapcraft --classic"
+            exit 1
+        fi
+
+        echo "==> Building snap package..."
+
+        # KDE neon sets ID=neon in /etc/os-release; snapcraft requires ID=ubuntu.
+        # Temporarily patch it for the duration of the build.
+        OS_RELEASE="/etc/os-release"
+        OS_PATCHED=false
+        if grep -q '^ID=neon' "$OS_RELEASE" 2>/dev/null; then
+            echo "    Patching /etc/os-release for snapcraft compatibility..."
+            sudo cp "$OS_RELEASE" "${OS_RELEASE}.snap_bak"
+            sudo sed -i 's/^ID=neon/ID=ubuntu/' "$OS_RELEASE"
+            OS_PATCHED=true
+        fi
+
+        restore_os_release() {
+            if [[ "$OS_PATCHED" == "true" ]]; then
+                sudo mv "${OS_RELEASE}.snap_bak" "$OS_RELEASE" 2>/dev/null || true
+            fi
+        }
+        trap restore_os_release EXIT INT TERM
+
+        snapcraft --destructive-mode
+        restore_os_release
+        trap - EXIT INT TERM
+
+        mkdir -p "$INSTALLER_DIR"
+        SNAP_FILE=$(ls *.snap 2>/dev/null | head -1)
+
+        if [[ -n "$SNAP_FILE" ]]; then
+            cp "$SNAP_FILE" "$INSTALLER_DIR/"
+            echo ""
+            echo "==> Snap build complete!"
+            echo "Snap package: $INSTALLER_DIR/$SNAP_FILE"
+            echo ""
+            echo "To install (local testing only):"
+            echo "  sudo snap install $INSTALLER_DIR/$SNAP_FILE --dangerous"
+        else
+            echo "Warning: No .snap file found after build"
+        fi
+        exit 0
+    fi
+done
+
+# If QT_PATH is already defined
 # respect it and do not override it with auto-detection.
 if [[ -n "$QT_PATH" && -d "$QT_PATH" ]]; then
     echo "==> Using Qt from QT_PATH environment variable: $QT_PATH"

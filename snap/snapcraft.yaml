@@ -1,0 +1,119 @@
+name: ufmtzm
+base: core24
+version: '2025.1.0'
+summary: A timezone conversion utility
+description: |
+  Unfuck My TimeZone Math helps you convert times between different timezones
+  without losing your mind.
+
+grade: stable
+confinement: strict
+title: Unfuck My TimeZone Math
+license: MIT
+contact: rayparkerbassplayer@gmail.com
+
+apps:
+  ufmtzm:
+    command: usr/bin/UnfuckMyTimeZoneMath
+    desktop: usr/share/applications/unfuck-my-timezone-math.desktop
+    plugs:
+      - desktop
+      - desktop-legacy
+      - wayland
+      - x11
+      - opengl
+      - network
+      - home
+      - unity7
+    environment:
+      QT_PLUGIN_PATH: $SNAP/usr/lib/x86_64-linux-gnu/qt6/plugins
+      QT_QPA_PLATFORM_PLUGIN_PATH: $SNAP/usr/lib/x86_64-linux-gnu/qt6/plugins/platforms
+      LD_LIBRARY_PATH: $SNAP/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+      FONTCONFIG_PATH: $SNAP/etc/fonts
+      FONTCONFIG_FILE: $SNAP/etc/fonts/fonts.conf
+
+parts:
+  ufmtzm:
+    plugin: nil
+    source: .
+    build-packages:
+      - cmake
+      - build-essential
+    override-build: |
+      # Locate the latest Qt version from the Qt installer
+      QT_VERSION=$(ls $HOME/Qt 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+      QT_DIR=$HOME/Qt/$QT_VERSION/gcc_64
+      echo "==> Using Qt $QT_VERSION from $QT_DIR"
+
+      # Configure
+      cmake $SNAPCRAFT_PART_SRC \
+        -DCMAKE_PREFIX_PATH="$QT_DIR" \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DSNAP_BUILD=ON
+
+      # Build
+      cmake --build . -j$(nproc)
+
+      # Install app
+      DESTDIR=$SNAPCRAFT_PART_INSTALL cmake --install .
+
+      # Stage Qt runtime libraries
+      QT_LIB_DEST=$SNAPCRAFT_PART_INSTALL/usr/lib/x86_64-linux-gnu
+      mkdir -p $QT_LIB_DEST
+
+      for mod in Core Gui Widgets Network Svg DBus XcbQpa OpenGL; do
+        cp -P $QT_DIR/lib/libQt6${mod}.so* $QT_LIB_DEST/ 2>/dev/null || true
+      done
+      # Only the three ICU libs Qt actually needs (not libicuio/libicutest)
+      for icumod in libicudata libicui18n libicuuc; do
+        cp -P $QT_DIR/lib/${icumod}.so* $QT_LIB_DEST/ 2>/dev/null || true
+      done
+
+      # Stage Qt plugins
+      QT_PLUG_DEST=$SNAPCRAFT_PART_INSTALL/usr/lib/x86_64-linux-gnu/qt6/plugins
+      mkdir -p $QT_PLUG_DEST/platforms $QT_PLUG_DEST/imageformats \
+               $QT_PLUG_DEST/iconengines $QT_PLUG_DEST/platformthemes
+
+      cp $QT_DIR/plugins/platforms/libqxcb.so        $QT_PLUG_DEST/platforms/       2>/dev/null || true
+      cp $QT_DIR/plugins/imageformats/libqsvg.so     $QT_PLUG_DEST/imageformats/    2>/dev/null || true
+      cp $QT_DIR/plugins/iconengines/libqsvgicon.so  $QT_PLUG_DEST/iconengines/     2>/dev/null || true
+      cp $QT_DIR/plugins/platformthemes/libqxdgdesktopportal.so \
+                                                     $QT_PLUG_DEST/platformthemes/  2>/dev/null || true
+    stage-packages:
+      # XCB platform plugin dependencies (from ldd of libqxcb.so)
+      - libxcb1
+      - libxcb-cursor0
+      - libxcb-icccm4
+      - libxcb-image0
+      - libxcb-keysyms1
+      - libxcb-randr0
+      - libxcb-render-util0
+      - libxcb-render0
+      - libxcb-shape0
+      - libxcb-shm0
+      - libxcb-sync1
+      - libxcb-util1
+      - libxcb-xfixes0
+      - libxcb-xkb1
+      - libx11-xcb1
+      - libx11-6
+      - libxau6
+      - libxdmcp6
+      - libxkbcommon0
+      - libxkbcommon-x11-0
+      # OpenGL/EGL dispatch libraries (hardware drivers provided by opengl plug at runtime)
+      - libgl1
+      - libglx0
+      - libglvnd0
+      - libegl1
+      - libopengl0
+      # Fonts and fontconfig
+      - fontconfig
+      - fonts-ubuntu
+      - fonts-dejavu-core
+      # Qt GUI system dependencies
+      - libdbus-1-3
+      - libfontconfig1
+      - libfreetype6
+      - libharfbuzz0b

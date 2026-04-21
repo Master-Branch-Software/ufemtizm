@@ -38,6 +38,13 @@ Debug/
 Release/
 installers/
 
+# Snapcraft build output
+*.snap
+.craft/
+parts/
+prime/
+stage/
+
 # IDEs
 .vscode/
 .idea/

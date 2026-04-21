@@ -6,6 +6,7 @@ project(
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+option(SNAP_BUILD "Build for snap packaging (binary to bin/, no Qt bundling)" OFF)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -85,9 +86,15 @@ if(APPLE)
 endif()
 
 if(UNIX AND NOT APPLE)
-  set_target_properties(
-    UnfuckMyTimeZoneMath PROPERTIES INSTALL_RPATH
-                                    "$ORIGIN/../lib/UnfuckMyTimeZoneMath")
+  if(SNAP_BUILD)
+    set_target_properties(
+      UnfuckMyTimeZoneMath PROPERTIES INSTALL_RPATH
+                                      "$ORIGIN/../lib/x86_64-linux-gnu")
+  else()
+    set_target_properties(
+      UnfuckMyTimeZoneMath PROPERTIES INSTALL_RPATH
+                                      "$ORIGIN/../lib/UnfuckMyTimeZoneMath")
+  endif()
 endif()
 
 include(GNUInstallDirs)
@@ -132,15 +139,21 @@ set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
 # Binary installation
 if(UNIX AND NOT APPLE)
-  install(TARGETS UnfuckMyTimeZoneMath
-          RUNTIME DESTINATION lib/UnfuckMyTimeZoneMath
-                  COMPONENT ${COMPONENT_NAME_MAIN})
+  if(SNAP_BUILD)
+    install(TARGETS UnfuckMyTimeZoneMath
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+                    COMPONENT ${COMPONENT_NAME_MAIN})
+  else()
+    install(TARGETS UnfuckMyTimeZoneMath
+            RUNTIME DESTINATION lib/UnfuckMyTimeZoneMath
+                    COMPONENT ${COMPONENT_NAME_MAIN})
 
-  install(
-    PROGRAMS unfuckmytimezonemath-wrapper.sh
-    DESTINATION ${CMAKE_INSTALL_BINDIR}
-    RENAME UnfuckMyTimeZoneMath
-    COMPONENT ${COMPONENT_NAME_MAIN})
+    install(
+      PROGRAMS unfuckmytimezonemath-wrapper.sh
+      DESTINATION ${CMAKE_INSTALL_BINDIR}
+      RENAME UnfuckMyTimeZoneMath
+      COMPONENT ${COMPONENT_NAME_MAIN})
+  endif()
 else()
   install(
     TARGETS UnfuckMyTimeZoneMath
@@ -223,6 +236,7 @@ elseif(WIN32)
     DEFAULT TRUE)
 
 else()
+  if(NOT SNAP_BUILD)
   # Linux: bundle Qt libraries by deriving paths from linked Qt targets.
   # Any Qt module added to target_link_libraries is picked up automatically.
   get_target_property(_qt_core_loc Qt6::Core LOCATION)
@@ -339,4 +353,5 @@ else()
   endif()
 
   include(CPack)
+  endif() # NOT SNAP_BUILD
 endif()
