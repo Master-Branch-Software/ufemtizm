@@ -589,6 +589,11 @@ void MainWindow::showEvent(QShowEvent *event)
 void MainWindow::hideEvent(QHideEvent *event){
     QMainWindow::hideEvent(event);
 
+    // Close-to-tray and minimize-to-tray both hide the window without firing
+    // the force-quit path in closeEvent. Persist the last visible position
+    // here so the next launch can restore it.
+    saveWindowGeometry();
+
 #ifdef Q_OS_MACOS
     // Drop back to accessory policy so the Dock icon and global menu bar
     // disappear while the window is hidden to the system tray.
@@ -1227,17 +1232,34 @@ void MainWindow::adjustWindowSize(){
 }
 
 void MainWindow::saveWindowGeometry(){
+    // Skip minimized state - pos() can return garbage when the window is
+    // iconified, which would otherwise overwrite a valid saved position.
+    if (isMinimized()){
+        return;
+    }
+
+    QPoint currentPos = pos();
+
+    // A (0,0) position usually means the window has not been placed yet
+    // (e.g. startMinimized without ever showing), so don't overwrite a
+    // previously saved value with it.
+    if (currentPos.isNull()){
+        return;
+    }
+
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
-    settings.setValue("windowPosition", pos());
+    settings.setValue("windowPosition", currentPos);
 }
 
 void MainWindow::restoreWindowGeometry(){
     QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
-    
-    if (settings.contains("windowPosition")){
-        QPoint pos = settings.value("windowPosition").toPoint();
-        move(pos);
+
+    if (!settings.contains("windowPosition")){
+        return;
     }
+
+    QPoint savedPos = settings.value("windowPosition").toPoint();
+    move(savedPos);
 }
 
 void MainWindow::showAboutDialog(){
