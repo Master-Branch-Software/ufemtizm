@@ -8,6 +8,7 @@
 #include <QMenu>
 #include <QFocusEvent>
 #include <QGraphicsDropShadowEffect>
+#include <QGraphicsColorizeEffect>
 #include <QSettings>
 #include <QtMath>
 #include <algorithm>
@@ -1054,32 +1055,21 @@ void TimeZoneWidget::mouseMoveEvent(QMouseEvent *event)
 
     QDrag *drag = new QDrag(this);
     QMimeData *mimeData = new QMimeData();
-    
+
     mimeData->setData("application/x-timezonewidget", QByteArray::number(reinterpret_cast<quintptr>(this)));
     drag->setMimeData(mimeData);
-    
-    frame->setStyleSheet(
-        "QFrame#timeZoneCard {"
-        "    background-color: #eef4fa;"
-        "    border: 2px dashed #4e45e4;"
-        "    border-radius: 24px;"
-        "    padding: 0px;"
-        "    opacity: 0.5;"
-        "}"
-    );
-    
+
+    QGraphicsColorizeEffect *grayscaleEffect = new QGraphicsColorizeEffect();
+    grayscaleEffect->setColor(QColor(128, 128, 128));
+    grayscaleEffect->setStrength(1.0);
+    setGraphicsEffect(grayscaleEffect);
+
     emit dragStarted(this);
-    
+
     drag->exec(Qt::MoveAction);
-    
-    frame->setStyleSheet(
-        "QFrame#timeZoneCard {"
-        "    background-color: #ffffff;"
-        "    border: none;"
-        "    border-radius: 24px;"
-        "    padding: 0px;"
-        "}"
-    );
+
+    setGraphicsEffect(nullptr);
+    updateDisplay();
 }
 
 void TimeZoneWidget::dragEnterEvent(QDragEnterEvent *event)
@@ -1115,24 +1105,15 @@ void TimeZoneWidget::dragLeaveEvent(QDragLeaveEvent *event)
 void TimeZoneWidget::dropEvent(QDropEvent *event)
 {
     hideDropIndicator();
-    
+
     if (event->mimeData()->hasFormat("application/x-timezonewidget")){
         TimeZoneWidget *source = reinterpret_cast<TimeZoneWidget*>(event->mimeData()->data("application/x-timezonewidget").toULongLong());
-        
+
         if (source != this){
             emit dropReceived(this, source);
             event->acceptProposedAction();
         }
     }
-
-    frame->setStyleSheet(
-        "QFrame#timeZoneCard {"
-        "    background-color: #ffffff;"
-        "    border: none;"
-        "    border-radius: 24px;"
-        "    padding: 0px;"
-        "}"
-    );
 }
 
 void TimeZoneWidget::showDropIndicator(const QPoint &pos)
