@@ -606,6 +606,11 @@ void MainWindow::showEvent(QShowEvent *event)
         restoreWindowGeometry();
     }
 
+    // Keep the tray menu's show/hide entry tightly coupled to actual
+    // window visibility so it never drifts out of sync regardless of
+    // which code path triggered the change.
+    updateTrayMenu();
+
 #ifdef Q_OS_MACOS
     // Promote to a regular foreground app so the global menu bar appears
     // while the main window is visible. The app starts as an accessory
@@ -631,6 +636,11 @@ void MainWindow::hideEvent(QHideEvent *event){
     // the force-quit path in closeEvent. Persist the last visible position
     // here so the next launch can restore it.
     saveWindowGeometry();
+
+    // Keep the tray menu's show/hide entry tightly coupled to actual
+    // window visibility so it never drifts out of sync regardless of
+    // which code path triggered the change.
+    updateTrayMenu();
 
 #ifdef Q_OS_MACOS
     // Drop back to accessory policy so the Dock icon and global menu bar
@@ -1561,8 +1571,9 @@ void MainWindow::toggleWindowVisibility(){
             QApplication::processEvents();
 #endif
         }
-        
-        updateTrayMenu();
+
+        // The tray menu is refreshed from showEvent/hideEvent, so no
+        // explicit updateTrayMenu() call is needed here.
     });
 }
 

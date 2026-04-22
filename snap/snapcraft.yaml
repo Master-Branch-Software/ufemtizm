@@ -1,6 +1,6 @@
 name: ufmtzm
 base: core24
-version: '2025.2.0'
+version: '2025.2.2'
 summary: A timezone conversion utility
 description: |
   Unfuck My TimeZone Math helps you convert times between different timezones
