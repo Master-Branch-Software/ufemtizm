@@ -1,0 +1,512 @@
+name: macos-release
+
+on:
+  push:
+    tags:
+      - "v[0-9]*"
+  workflow_dispatch:
+    inputs:
+      distribution_type:
+        description: "Distribution target"
+        required: true
+        type: choice
+        options:
+          - direct
+          - appstore
+        default: direct
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-release-${{ github.ref }}-${{ inputs.distribution_type || 'direct' }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-upload:
+    if: ${{ github.event_name == 'workflow_dispatch' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-rc')) }}
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      RELEASE_BASE_BRANCH: ${{ github.event.repository.default_branch }}
+      DISTRIBUTION_TYPE: ${{ inputs.distribution_type || vars.MACOS_DEFAULT_DISTRIBUTION || 'direct' }}
+      ARTIFACT_PREFIX: ${{ vars.ARTIFACT_PREFIX }}
+      QT_VERSION: "6.11.0"
+      XCODE_VERSION: "26.3"
+      MACOS_SCHEME: ${{ vars.MACOS_SCHEME }}
+      MACOS_ARCHIVE_BASENAME: ${{ vars.MACOS_ARCHIVE_BASENAME }}
+      MACOS_BUILD_DIR: "build/macos-release"
+      AQTINSTALL_SOURCE: "git+https://github.com/miurahr/aqtinstall.git@8c3695d4a4e1ceabf6a74dc6c79681656dc6b74b"
+      MACOS_BUNDLE_IDENTIFIER: ${{ vars.MACOS_BUNDLE_IDENTIFIER }}
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      APPSTORE_ISSUER_ID: ${{ vars.APPSTORE_ISSUER_ID }}
+      APPSTORE_API_KEY_ID: ${{ vars.APPSTORE_API_KEY_ID }}
+      APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+      NOTARY_KEYCHAIN_PROFILE: "notary-profile"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Validate distribution type
+        run: |
+          set -euo pipefail
+          case "$DISTRIBUTION_TYPE" in
+            direct|appstore) ;;
+            *)
+              echo "Invalid distribution_type: $DISTRIBUTION_TYPE (expected direct or appstore)."
+              exit 1
+              ;;
+          esac
+
+      - name: Validate release trigger
+        run: |
+          set -euo pipefail
+
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$GITHUB_REF_NAME" != "$RELEASE_BASE_BRANCH" ]; then
+            echo "Manual release runs must target ${RELEASE_BASE_BRANCH}."
+            exit 1
+          fi
+
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            if [[ "$GITHUB_REF_NAME" == *-rc* ]]; then
+              echo "macOS RC tags are not supported. Use release tags in vYYYY.MM.MINOR format."
+              exit 1
+            fi
+
+            if ! [[ "$GITHUB_REF_NAME" =~ ^v[0-9]{4}\.(0[1-9]|1[0-2])\.[0-9]+$ ]]; then
+              echo "Invalid release tag format: $GITHUB_REF_NAME (expected vYYYY.MM.MINOR)."
+              exit 1
+            fi
+          fi
+
+      - name: Ensure tagged commit is in release branch
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$RELEASE_BASE_BRANCH"
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" "origin/$RELEASE_BASE_BRANCH"; then
+            echo "Tag ${GITHUB_REF_NAME} does not point to a commit in ${RELEASE_BASE_BRANCH}."
+            exit 1
+          fi
+
+      - name: Derive macOS version metadata
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION_STRING="$GITHUB_REF_NAME"
+          else
+            YEAR="$(date -u +%Y)"
+            MONTH="$(date -u +%m)"
+            VERSION_STRING="${YEAR}.${MONTH}.0"
+          fi
+
+          VERSION_CORE="${VERSION_STRING#v}"
+          if ! [[ "$VERSION_CORE" =~ ^([0-9]{4})\.(0[1-9]|1[0-2])\.([0-9]+)$ ]]; then
+            echo "Unable to derive macOS version metadata from version string: $VERSION_STRING"
+            exit 1
+          fi
+
+          VERSION_YEAR="${BASH_REMATCH[1]}"
+          VERSION_MONTH="${BASH_REMATCH[2]}"
+          VERSION_MINOR="${BASH_REMATCH[3]}"
+
+          BUILD_NUMBER="$((10#$VERSION_YEAR * 100000 + 10#$VERSION_MONTH * 1000 + 10#$VERSION_MINOR))"
+          if [ "$BUILD_NUMBER" -gt 2147483647 ]; then
+            echo "Derived macOS build number exceeds supported limit: $BUILD_NUMBER"
+            exit 1
+          fi
+          echo "MACOS_VERSION_STRING=$VERSION_STRING" >> "$GITHUB_ENV"
+          echo "MACOS_BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+
+      - name: Install fastlane
+        run: |
+          set -euo pipefail
+
+          retry() {
+            local attempts="$1"
+            local delay_seconds="$2"
+            shift 2
+            local attempt=1
+            until "$@"; do
+              if [ "$attempt" -ge "$attempts" ]; then
+                echo "Command failed after ${attempts} attempts: $*"
+                return 1
+              fi
+              echo "Attempt ${attempt}/${attempts} failed. Retrying in ${delay_seconds}s..."
+              attempt=$((attempt + 1))
+              sleep "$delay_seconds"
+            done
+          }
+
+          retry 3 15 gem install fastlane --no-document
+
+      - name: Install Qt macOS kit
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: mac
+          target: desktop
+          aqtsource: ${{ env.AQTINSTALL_SOURCE }}
+          cache: true
+
+      - name: Validate workflow configuration
+        run: |
+          set -euo pipefail
+          required_values=(
+            ARTIFACT_PREFIX
+            MACOS_SCHEME
+            MACOS_ARCHIVE_BASENAME
+            MACOS_BUNDLE_IDENTIFIER
+            APPLE_TEAM_ID
+            APPSTORE_ISSUER_ID
+            APPSTORE_API_KEY_ID
+            APPSTORE_API_PRIVATE_KEY
+            MATCH_GIT_URL
+            MATCH_PASSWORD
+          )
+          for variable in "${required_values[@]}"; do
+            if [ -z "${!variable:-}" ]; then
+              echo "Missing required value: ${variable}"
+              exit 1
+            fi
+          done
+
+          if ! [[ "$MACOS_BUNDLE_IDENTIFIER" =~ ^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$ ]]; then
+            echo "Invalid MACOS_BUNDLE_IDENTIFIER. Expected reverse-DNS format."
+            exit 1
+          fi
+
+          if ! [[ "$APPLE_TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]; then
+            echo "Invalid APPLE_TEAM_ID. Expected a 10-character alphanumeric team ID."
+            exit 1
+          fi
+
+          if ! [[ "$APPSTORE_API_KEY_ID" =~ ^[A-Z0-9]{10}$ ]]; then
+            echo "Invalid APPSTORE_API_KEY_ID. Expected a 10-character alphanumeric key ID."
+            exit 1
+          fi
+
+          if ! [[ "$APPSTORE_ISSUER_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            echo "Invalid APPSTORE_ISSUER_ID. Expected UUID format."
+            exit 1
+          fi
+
+          if [[ "$APPSTORE_API_PRIVATE_KEY" != *"BEGIN PRIVATE KEY"* ]]; then
+            echo "Invalid APPSTORE_API_PRIVATE_KEY. Expected .p8 private key content."
+            exit 1
+          fi
+
+          if ! [[ "$MATCH_GIT_URL" =~ ^(https://|http://|git@|ssh://).+ ]]; then
+            echo "Invalid MATCH_GIT_URL. Expected HTTPS, SSH, or git URL."
+            exit 1
+          fi
+
+      - name: Create App Store Connect API key file
+        run: |
+          set -euo pipefail
+          API_KEY_PATH="$RUNNER_TEMP/app_store_connect_api_key.json"
+          API_KEY_PATH="$API_KEY_PATH" python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path(os.environ["API_KEY_PATH"])
+          payload = {
+              "key_id": os.environ["APPSTORE_API_KEY_ID"],
+              "issuer_id": os.environ["APPSTORE_ISSUER_ID"],
+              "key": os.environ["APPSTORE_API_PRIVATE_KEY"],
+              "in_house": False,
+          }
+          path.write_text(json.dumps(payload), encoding="utf-8")
+          PY
+          echo "APP_STORE_CONNECT_API_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Create and unlock CI keychain
+        run: |
+          set -euo pipefail
+          KEYCHAIN_NAME="ci-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_NAME"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+          CURRENT_KEYCHAINS="$(security list-keychains -d user | tr -d '"')"
+          security list-keychains -d user -s "$KEYCHAIN_NAME" $CURRENT_KEYCHAINS
+          security default-keychain -d user -s "$KEYCHAIN_NAME"
+          echo "MATCH_KEYCHAIN_NAME=$KEYCHAIN_NAME" >> "$GITHUB_ENV"
+          echo "MATCH_KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
+
+      - name: Determine Match signing types
+        id: match_types
+        run: |
+          set -euo pipefail
+          if [ "$DISTRIBUTION_TYPE" = "appstore" ]; then
+            echo "match_type=macappstore" >> "$GITHUB_OUTPUT"
+            echo "sign_identity=Apple Distribution" >> "$GITHUB_OUTPUT"
+            echo "installer_identity=3rd Party Mac Developer Installer" >> "$GITHUB_OUTPUT"
+            echo "profile_specifier=match MacAppStore ${MACOS_BUNDLE_IDENTIFIER}" >> "$GITHUB_OUTPUT"
+            echo "export_method=app-store" >> "$GITHUB_OUTPUT"
+          else
+            echo "match_type=developer_id" >> "$GITHUB_OUTPUT"
+            echo "sign_identity=Developer ID Application" >> "$GITHUB_OUTPUT"
+            echo "installer_identity=Developer ID Installer" >> "$GITHUB_OUTPUT"
+            echo "profile_specifier=match DeveloperID ${MACOS_BUNDLE_IDENTIFIER}" >> "$GITHUB_OUTPUT"
+            echo "export_method=developer-id" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sync macOS signing assets with Match (read-only)
+        run: |
+          set -euo pipefail
+
+          retry() {
+            local attempts="$1"
+            local delay_seconds="$2"
+            shift 2
+            local attempt=1
+            until "$@"; do
+              if [ "$attempt" -ge "$attempts" ]; then
+                echo "Command failed after ${attempts} attempts: $*"
+                return 1
+              fi
+              echo "Attempt ${attempt}/${attempts} failed. Retrying in ${delay_seconds}s..."
+              attempt=$((attempt + 1))
+              sleep "$delay_seconds"
+            done
+          }
+          args=(
+            ${{ steps.match_types.outputs.match_type }}
+            --api_key_path "$APP_STORE_CONNECT_API_KEY_PATH"
+            --git_url "$MATCH_GIT_URL"
+            --app_identifier "$MACOS_BUNDLE_IDENTIFIER"
+            --platform macos
+            --additional_cert_types mac_installer_distribution
+            --readonly true
+            --verbose
+          )
+          if [ -n "${MATCH_GIT_BASIC_AUTHORIZATION:-}" ]; then
+            args+=(--git_basic_authorization "$MATCH_GIT_BASIC_AUTHORIZATION")
+          fi
+          retry 3 20 fastlane match "${args[@]}"
+
+      - name: Configure keychain access for codesign
+        run: |
+          set -euo pipefail
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MATCH_KEYCHAIN_PASSWORD" "$MATCH_KEYCHAIN_NAME"
+          security find-identity -v -p codesigning "$MATCH_KEYCHAIN_NAME"
+
+      - name: Configure macOS project
+        run: |
+          set -euo pipefail
+
+          QT_BASE="$HOME/Qt/${QT_VERSION}"
+          QT_HOST_PATH=""
+          for candidate in "$QT_BASE/macos" "$QT_BASE/clang_64"; do
+            if [ -d "$candidate" ]; then
+              QT_HOST_PATH="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "${QT_HOST_PATH:-}" ]; then
+            QT_HOST_CMAKE="$(find "$QT_BASE" -maxdepth 3 -type f -path "*/bin/qt-cmake" | sort | head -n 1)"
+            if [ -n "${QT_HOST_CMAKE:-}" ]; then
+              QT_HOST_PATH="$(dirname "$(dirname "$QT_HOST_CMAKE")")"
+            fi
+          fi
+
+          if [ -z "${QT_HOST_PATH:-}" ]; then
+            echo "Unable to find Qt host path under $QT_BASE."
+            exit 1
+          fi
+
+          QT_CMAKE="$QT_HOST_PATH/bin/qt-cmake"
+          if [ ! -x "$QT_CMAKE" ]; then
+            echo "qt-cmake not found at $QT_CMAKE"
+            exit 1
+          fi
+
+          "$QT_CMAKE" \
+            -S . \
+            -B "${MACOS_BUILD_DIR}" \
+            -GXcode \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_NAME=Darwin \
+            -DMACOSX_BUNDLE_GUI_IDENTIFIER="$MACOS_BUNDLE_IDENTIFIER" \
+            -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            -DAPP_BUILD_NUMBER="${MACOS_BUILD_NUMBER}" \
+            -DAPP_VERSION_STRING="${MACOS_VERSION_STRING#v}"
+
+      - name: Build archive and export
+        id: build_artifact
+        env:
+          SIGN_IDENTITY: ${{ steps.match_types.outputs.sign_identity }}
+          INSTALLER_IDENTITY: ${{ steps.match_types.outputs.installer_identity }}
+          PROFILE_SPECIFIER: ${{ steps.match_types.outputs.profile_specifier }}
+          EXPORT_METHOD: ${{ steps.match_types.outputs.export_method }}
+        run: |
+          set -euo pipefail
+
+          XCODE_PROJECT="$(find "${MACOS_BUILD_DIR}" -maxdepth 1 -type d -name "*.xcodeproj" | head -n 1)"
+          if [ -z "${XCODE_PROJECT:-}" ]; then
+            echo "No generated .xcodeproj found in ${MACOS_BUILD_DIR}."
+            exit 1
+          fi
+
+          ARCHIVE_PATH="$RUNNER_TEMP/${MACOS_ARCHIVE_BASENAME}.xcarchive"
+          EXPORT_PATH="$RUNNER_TEMP/${MACOS_ARCHIVE_BASENAME}-export"
+          EXPORT_OPTIONS_PATH="$RUNNER_TEMP/ExportOptions.plist"
+
+          {
+            printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>'
+            printf '%s\n' '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+            printf '%s\n' '<plist version="1.0">'
+            printf '%s\n' '<dict>'
+            printf '%s\n' '  <key>method</key>'
+            printf '%s\n' "  <string>${EXPORT_METHOD}</string>"
+            printf '%s\n' '  <key>signingStyle</key>'
+            printf '%s\n' '  <string>manual</string>'
+            printf '%s\n' '  <key>teamID</key>'
+            printf '%s\n' "  <string>${APPLE_TEAM_ID}</string>"
+            printf '%s\n' '  <key>provisioningProfiles</key>'
+            printf '%s\n' '  <dict>'
+            printf '%s\n' "    <key>${MACOS_BUNDLE_IDENTIFIER}</key>"
+            printf '%s\n' "    <string>${PROFILE_SPECIFIER}</string>"
+            printf '%s\n' '  </dict>'
+            if [ "$DISTRIBUTION_TYPE" = "appstore" ]; then
+              printf '%s\n' '  <key>installerSigningCertificate</key>'
+              printf '%s\n' "  <string>${INSTALLER_IDENTITY}</string>"
+            fi
+            printf '%s\n' '  <key>stripSwiftSymbols</key>'
+            printf '%s\n' '  <true/>'
+            printf '%s\n' '</dict>'
+            printf '%s\n' '</plist>'
+          } > "$EXPORT_OPTIONS_PATH"
+
+          xcodebuild archive \
+            -project "$XCODE_PROJECT" \
+            -scheme "${MACOS_SCHEME}" \
+            -configuration Release \
+            -destination "generic/platform=macOS" \
+            -archivePath "$ARCHIVE_PATH" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="$SIGN_IDENTITY" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            PRODUCT_BUNDLE_IDENTIFIER="$MACOS_BUNDLE_IDENTIFIER" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_SPECIFIER"
+
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist "$EXPORT_OPTIONS_PATH"
+
+          if [ "$DISTRIBUTION_TYPE" = "appstore" ]; then
+            ARTIFACT_PATH="$(find "$EXPORT_PATH" -maxdepth 1 -type f -name "*.pkg" | head -n 1)"
+            ARTIFACT_KIND="pkg"
+          else
+            ARTIFACT_PATH="$(find "$EXPORT_PATH" -maxdepth 1 -type f -name "*.dmg" | head -n 1)"
+            if [ -z "${ARTIFACT_PATH:-}" ]; then
+              APP_EXPORTED="$(find "$EXPORT_PATH" -maxdepth 2 -type d -name "*.app" | head -n 1)"
+              if [ -z "${APP_EXPORTED:-}" ]; then
+                echo "No exported .app or .dmg found."
+                exit 1
+              fi
+              DMG_BASE="$(basename "$APP_EXPORTED" .app)"
+              DMG_STAGING="$EXPORT_PATH/dmg-staging"
+              mkdir -p "$DMG_STAGING"
+              cp -R "$APP_EXPORTED" "$DMG_STAGING/"
+              ln -s /Applications "$DMG_STAGING/Applications"
+              ARTIFACT_PATH="$EXPORT_PATH/${DMG_BASE}.dmg"
+              hdiutil create -volname "$DMG_BASE" -srcfolder "$DMG_STAGING" -ov -format UDZO "$ARTIFACT_PATH"
+              codesign --force --timestamp --sign "$SIGN_IDENTITY" "$ARTIFACT_PATH"
+            fi
+            ARTIFACT_KIND="dmg"
+          fi
+
+          if [ -z "${ARTIFACT_PATH:-}" ]; then
+            echo "No exported artifact found."
+            exit 1
+          fi
+
+          echo "artifact_path=$ARTIFACT_PATH" >> "$GITHUB_OUTPUT"
+          echo "artifact_kind=$ARTIFACT_KIND" >> "$GITHUB_OUTPUT"
+
+      - name: Notarize artifact
+        if: ${{ env.DISTRIBUTION_TYPE == 'direct' }}
+        run: |
+          set -euo pipefail
+          xcrun notarytool store-credentials "$NOTARY_KEYCHAIN_PROFILE" \
+            --key "$APP_STORE_CONNECT_API_KEY_PATH" \
+            --key-id "$APPSTORE_API_KEY_ID" \
+            --issuer "$APPSTORE_ISSUER_ID" || true
+
+          ARTIFACT_PATH="${{ steps.build_artifact.outputs.artifact_path }}"
+
+          xcrun notarytool submit "$ARTIFACT_PATH" \
+            --key <(printf '%s' "$APPSTORE_API_PRIVATE_KEY") \
+            --key-id "$APPSTORE_API_KEY_ID" \
+            --issuer "$APPSTORE_ISSUER_ID" \
+            --wait
+
+          xcrun stapler staple "$ARTIFACT_PATH"
+
+      - name: Derive artifact suffix
+        id: artifact_suffix
+        run: |
+          set -euo pipefail
+          SUFFIX="${GITHUB_REF_NAME:-manual-${GITHUB_RUN_ID}}"
+          SUFFIX="${SUFFIX//\//-}"
+          SUFFIX="${SUFFIX// /-}"
+          SUFFIX="${SUFFIX//[^A-Za-z0-9._-]/-}"
+          if [ -z "${SUFFIX:-}" ]; then
+            SUFFIX="manual-${GITHUB_RUN_ID}"
+          fi
+          echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_PREFIX }}-macos-${{ env.DISTRIBUTION_TYPE }}-${{ steps.build_artifact.outputs.artifact_kind }}-${{ steps.artifact_suffix.outputs.suffix }}
+          path: ${{ steps.build_artifact.outputs.artifact_path }}
+
+      - name: Upload to App Store Connect
+        if: ${{ env.DISTRIBUTION_TYPE == 'appstore' }}
+        run: |
+          set -euo pipefail
+
+          retry() {
+            local attempts="$1"
+            local delay_seconds="$2"
+            shift 2
+            local attempt=1
+            until "$@"; do
+              if [ "$attempt" -ge "$attempts" ]; then
+                echo "Command failed after ${attempts} attempts: $*"
+                return 1
+              fi
+              echo "Attempt ${attempt}/${attempts} failed. Retrying in ${delay_seconds}s..."
+              attempt=$((attempt + 1))
+              sleep "$delay_seconds"
+            done
+          }
+
+          retry 3 20 fastlane pilot upload \
+            --ipa "${{ steps.build_artifact.outputs.artifact_path }}" \
+            --api_key_path "$APP_STORE_CONNECT_API_KEY_PATH" \
+            --app_identifier "$MACOS_BUNDLE_IDENTIFIER" \
+            --app_platform osx \
+            --skip_waiting_for_build_processing true \
+            --skip_submission true
