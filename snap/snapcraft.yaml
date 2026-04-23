@@ -58,6 +58,15 @@ parts:
       # Install app
       DESTDIR=$SNAPCRAFT_PART_INSTALL cmake --install .
 
+      # Rewrite the desktop file's Icon= line to an absolute path inside the
+      # snap so the KDE/GNOME launcher can find it. snapd does not re-export
+      # icons under usr/share/icons/ as a system icon theme, and snapcraft
+      # does not rewrite Icon=<name> unless it finds a matching PNG in the
+      # prime dir. Pointing at ${SNAP}/meta/gui/ufemtizm.png (staged from
+      # snap/gui/ufemtizm.png) avoids both problems.
+      sed -i 's|^Icon=ufemtizm$|Icon=${SNAP}/meta/gui/ufemtizm.png|' \
+        $SNAPCRAFT_PART_INSTALL/usr/share/applications/ufemtizm.desktop
+
       # Stage Qt runtime libraries
       QT_LIB_DEST=$SNAPCRAFT_PART_INSTALL/usr/lib/x86_64-linux-gnu
       mkdir -p $QT_LIB_DEST
