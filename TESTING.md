@@ -6,7 +6,7 @@
 
 #### Test Case 1: Copy with 24-hour format enabled
 **Setup:**
-1. Launch UnfuckMyTimeZoneMath
+1. Launch Ufemtizm
 2. Add at least 2 timezone widgets
 3. Enable "24-hour format" checkbox on both widgets
 4. Set time to 14:30 (2:30 PM)
@@ -26,7 +26,7 @@
 
 #### Test Case 2: Copy with 12-hour format enabled
 **Setup:**
-1. Launch UnfuckMyTimeZoneMath
+1. Launch Ufemtizm
 2. Add at least 2 timezone widgets
 3. Disable "24-hour format" checkbox on both widgets
 4. Set time to 14:30 (2:30 PM)
@@ -46,7 +46,7 @@
 
 #### Test Case 3: Copy with mixed format settings
 **Setup:**
-1. Launch UnfuckMyTimeZoneMath
+1. Launch Ufemtizm
 2. Add 3 timezone widgets
 3. Widget 1: Enable 24-hour format
 4. Widget 2: Disable 24-hour format
@@ -69,7 +69,7 @@
 
 #### Test Case 4: Copy at midnight
 **Setup:**
-1. Launch UnfuckMyTimeZoneMath
+1. Launch Ufemtizm
 2. Add 2 timezone widgets
 3. Set time to 00:00 (midnight)
 4. Test both 24-hour and 12-hour formats
@@ -90,7 +90,7 @@
 
 #### Test Case 5: Copy at noon
 **Setup:**
-1. Launch UnfuckMyTimeZoneMath
+1. Launch Ufemtizm
 2. Add 2 timezone widgets
 3. Set time to 12:00 (noon)
 4. Test both 24-hour and 12-hour formats

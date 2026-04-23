@@ -1,13 +1,13 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Unfuck My TimeZone Math
+Name=Ufemtizm
 Comment=Convert times between different timezones
-Exec=UnfuckMyTimeZoneMath
-Icon=unfuck-my-timezone-math
+Exec=Ufemtizm
+Icon=ufemtizm
 Terminal=false
 Categories=Utility;Qt;
 StartupNotify=true
-StartupWMClass=UnfuckMyTimeZoneMath
+StartupWMClass=Ufemtizm
 X-GNOME-Autostart-enabled=true
 X-KDE-autostart-after=panel

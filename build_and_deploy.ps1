@@ -8,7 +8,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$AppName = "UnfuckMyTimeZoneMath"
+$AppName = "Ufemtizm"
 $BuildDir = "build"
 $InstallerDir = "installers"
 
@@ -95,7 +95,7 @@ function Get-ProcessorCount {
 }
 
 # Main script
-Write-Host "==> UnfuckMyTimeZoneMath Build Script for Windows" -ForegroundColor Cyan
+Write-Host "==> Ufemtizm Build Script for Windows" -ForegroundColor Cyan
 Write-Host ""
 
 # Find Qt installation

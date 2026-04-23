@@ -37,9 +37,9 @@ Modified both the source desktop file and the runtime-generated autostart file:
 - `X-KDE-autostart-after=panel` - Ensures the app starts after KDE's panel is loaded
 
 **Files modified:**
-- `unfuck-my-timezone-math.desktop` - Source desktop file
+- `ufemtizm.desktop` - Source desktop file
 - `settingsdialog.cpp` - Runtime autostart file generation
-- `~/.config/autostart/unfuck-my-timezone-math.desktop` - User's autostart configuration
+- `~/.config/autostart/ufemtizm.desktop` - User's autostart configuration
 
 ## Testing
 
@@ -54,18 +54,18 @@ The application now successfully:
 To apply these fixes:
 
 ```bash
-cd ~/Documents/UnfuckMyTimeZoneMath
+cd ~/Documents/Ufemtizm
 ./build_and_deploy.sh
-sudo dpkg -i installers/UnfuckMyTimeZoneMath-1.0.3-Linux.deb
+sudo dpkg -i installers/Ufemtizm-1.0.3-Linux.deb
 ```
 
 ## Verification
 
 After installation, check the log output:
 ```bash
-UnfuckMyTimeZoneMath > /tmp/unfuck_debug.log 2>&1 &
+Ufemtizm > /tmp/ufemtizm_debug.log 2>&1 &
 sleep 3
-cat /tmp/unfuck_debug.log
+cat /tmp/ufemtizm_debug.log
 ```
 
 You should see: "System tray icon initialized successfully"

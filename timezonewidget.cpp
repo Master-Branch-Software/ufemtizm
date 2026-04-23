@@ -129,7 +129,7 @@ TimeZoneWidget::TimeZoneWidget(QWidget *parent)
       dropIndicator(nullptr),
       frameShadow(nullptr)
 {
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     skyColorEnabled = settings.value("appearance/skyColor", true).toBool();
     
     setupUI();
@@ -992,7 +992,7 @@ void TimeZoneWidget::selectName(){
 }
 
 void TimeZoneWidget::reloadSettings(){
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     skyColorEnabled = settings.value("appearance/skyColor", true).toBool();
     updateDisplay();
 }

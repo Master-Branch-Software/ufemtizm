@@ -1,6 +1,6 @@
-# UnfuckMyTimeZoneMath
+# Ufemtizm
 
-![UnfuckMyTimeZoneMath in Action](InAction.png)
+![Ufemtizm in Action](InAction.png)
 
 A Qt6 application for visualizing and synchronizing times across multiple time zones. Perfect for coordinating meetings, calls, or events across different geographical locations.
 
@@ -68,11 +68,11 @@ A Qt6 application for visualizing and synchronizing times across multiple time z
 
 ### Pre-built Installers
 
-Download the installer for your platform from the [releases page](https://github.com/Master-Branch-Software/UnfuckMyTimeZoneMath/releases)
+Download the installer for your platform from the [releases page](https://github.com/Master-Branch-Software/Ufemtizm/releases)
 
-- **macOS**: `unfuck-my-timezone-math-1.0.0-Darwin.dmg`
-- **Linux**: `unfuck-my-timezone-math-1.0.0-Linux.deb`
-- **Windows**: `unfuck-my-timezone-math-1.0.0-win64.exe`
+- **macOS**: `ufemtizm-1.0.0-Darwin.dmg`
+- **Linux**: `ufemtizm-1.0.0-Linux.deb`
+- **Windows**: `ufemtizm-1.0.0-win64.exe`
 
 #### macOS Installation
 
@@ -83,7 +83,7 @@ Download the installer for your platform from the [releases page](https://github
 #### Linux Installation (Ubuntu/Debian)
 
 ```bash
-sudo dpkg -i unfuck-my-timezone-math-1.0.0-Linux.deb
+sudo dpkg -i ufemtizm-1.0.0-Linux.deb
 sudo apt-get install -f  # Install any missing dependencies
 ```
 
@@ -92,7 +92,7 @@ sudo apt-get install -f  # Install any missing dependencies
 1. Download and run the `.exe` installer
 2. Follow the installation wizard
 3. The installer will:
-   - Install the application to `C:\Program Files\UnfuckMyTimeZoneMath`
+   - Install the application to `C:\Program Files\Ufemtizm`
    - Create a Start Menu shortcut
    - Bundle all required Qt dependencies
 4. Launch from Start Menu or desktop shortcut
@@ -190,7 +190,7 @@ Each widget shows a day offset indicator (e.g., "+1 day", "same day", "-1 day") 
 ## File Structure
 
 ```
-UnfuckMyTimeZoneMath/
+Ufemtizm/
 ├── CMakeLists.txt                    # Cross-platform build configuration
 ├── README.md                         # This file
 ├── BUILD.md                          # Detailed build instructions
@@ -204,7 +204,7 @@ UnfuckMyTimeZoneMath/
 ├── settingsdialog.hpp/cpp            # Settings dialog implementation
 ├── copydialog.hpp/cpp                # Copy selection dialog
 ├── toolbar-icons/                    # Custom thin-line SVG toolbar icons
-├── unfuck-my-timezone-math.desktop   # Desktop entry file (Linux)
+├── ufemtizm.desktop   # Desktop entry file (Linux)
 ├── installers/                       # Pre-built installers (DMG, DEB, EXE)
 └── build/                            # Build directory (created during build)
 ```

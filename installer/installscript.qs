@@ -19,16 +19,16 @@ Component.prototype.createOperations = function() {
     if (systemInfo.productType === "windows") {
         console.log("=== Windows: Adding shortcuts ===");
         component.addOperation("CreateShortcut",
-                               "@TargetDir@/bin/UnfuckMyTimeZoneMath.exe",
-                               "@StartMenuDir@/Unfuck My TimeZone Math.lnk",
+                               "@TargetDir@/bin/Ufemtizm.exe",
+                               "@StartMenuDir@/Ufemtizm.lnk",
                                "workingDirectory=@TargetDir@/bin",
-                               "iconPath=@TargetDir@/bin/UnfuckMyTimeZoneMath.ico",
+                               "iconPath=@TargetDir@/bin/Ufemtizm.ico",
                                "description=A Qt-based timezone conversion utility");
         console.log("=== StartMenu shortcut added ===");
         component.addOperation("CreateShortcut",
-                               "@TargetDir@/bin/UnfuckMyTimeZoneMath.exe",
-                               "@HomeDir@/Desktop/Unfuck My TimeZone Math.lnk",
-                               "iconPath=@TargetDir@/bin/UnfuckMyTimeZoneMath.ico");
+                               "@TargetDir@/bin/Ufemtizm.exe",
+                               "@HomeDir@/Desktop/Ufemtizm.lnk",
+                               "iconPath=@TargetDir@/bin/Ufemtizm.ico");
         console.log("=== Desktop shortcut added ===");
     }
 }
@@ -37,7 +37,7 @@ Component.prototype.createUndoSet = function() {
     console.log("=== createUndoSet called ===");
     component.createUndoSet();
     if (systemInfo.productType === "windows") {
-        component.addUndoOperation("Delete", "@StartMenuDir@/Unfuck My TimeZone Math.lnk");
-        component.addUndoOperation("Delete", "@HomeDir@/Desktop/Unfuck My TimeZone Math.lnk");
+        component.addUndoOperation("Delete", "@StartMenuDir@/Ufemtizm.lnk");
+        component.addUndoOperation("Delete", "@HomeDir@/Desktop/Ufemtizm.lnk");
     }
 }

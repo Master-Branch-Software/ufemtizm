@@ -95,9 +95,9 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
         "}"
     );
     
-    QIcon icon = QIcon::fromTheme("unfuck-my-timezone-math");
+    QIcon icon = QIcon::fromTheme("ufemtizm");
     if (icon.isNull()){
-        icon = QIcon("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png");
+        icon = QIcon("/usr/share/icons/hicolor/256x256/apps/ufemtizm.png");
     }
 
     if (!icon.isNull()){
@@ -107,10 +107,10 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
     setupMenuBar();
     setupToolBar();
     
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     
     localServer = new QLocalServer(this);
-    QString serverName = "UnfuckMyTimeZoneMath_SingleInstance";
+    QString serverName = "Ufemtizm_SingleInstance";
     QLocalServer::removeServer(serverName);
 
     if (localServer->listen(serverName)){
@@ -451,7 +451,7 @@ void MainWindow::setupToolBar(){
     
     QAction *skyColorAction = toolBar->addAction(QIcon(":/toolbar/toolbar-icons/colors.svg"), "Colors");
     skyColorAction->setCheckable(true);
-    QSettings skySettings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings skySettings("Ufemtizm", "Ufemtizm");
     skyColorAction->setChecked(skySettings.value("appearance/skyColor", true).toBool());
     skyColorAction->setToolTip("Toggle sky color theme");
     skyColorAction->setStatusTip("Toggle sky color theme based on time of day");
@@ -478,7 +478,7 @@ void MainWindow::setupToolBar(){
     toolBarHideAction->setStatusTip("Hide toolbar");
     connect(toolBarHideAction, &QAction::triggered, this, &MainWindow::toggleToolBarVisibility);
 
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     bool toolBarVisible = settings.value("toolBarVisible", true).toBool();
     toolBar->setVisible(toolBarVisible);
     
@@ -562,7 +562,7 @@ void MainWindow::onWidgetModified(){
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     bool closeToTray = settings.value("systemTray/closeToTray", true).toBool();
     
     if (!forceQuit && closeToTray && trayIcon && trayIcon->isVisible()){
@@ -583,7 +583,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 void MainWindow::changeEvent(QEvent *event)
 {
     if (event->type() == QEvent::WindowStateChange){
-        QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+        QSettings settings("Ufemtizm", "Ufemtizm");
         bool minimizeToTray = settings.value("systemTray/minimizeToTray", true).toBool();
         
         if (isMinimized() && minimizeToTray && trayIcon && trayIcon->isVisible()){
@@ -676,7 +676,7 @@ void MainWindow::openFile(){
         return;
     }
 
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     QString defaultDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     QString lastDir = settings.value("fileDialog/lastDirectory", defaultDir).toString();
 
@@ -765,7 +765,7 @@ void MainWindow::saveFile(){
 }
 
 void MainWindow::saveFileAs(){
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     QString defaultDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     QString lastDir = settings.value("fileDialog/lastDirectory", defaultDir).toString();
 
@@ -1201,7 +1201,7 @@ void MainWindow::setCurrentFile(const QString &filename)
 
 void MainWindow::addRecentFile(const QString &filename)
 {
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     QStringList recentFiles = settings.value("recentFiles").toStringList();
     
     recentFiles.removeAll(filename);
@@ -1216,7 +1216,7 @@ void MainWindow::addRecentFile(const QString &filename)
 
 void MainWindow::removeRecentFile(const QString &filename)
 {
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     QStringList recentFiles = settings.value("recentFiles").toStringList();
 
     if (recentFiles.removeAll(filename) > 0){
@@ -1226,7 +1226,7 @@ void MainWindow::removeRecentFile(const QString &filename)
 
 QStringList MainWindow::getStoredRecentFiles() const
 {
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
 
     return settings.value("recentFiles").toStringList();
 }
@@ -1242,7 +1242,7 @@ void MainWindow::warnFileNotFoundAndForget(const QString &filename)
 
 QStringList MainWindow::getRecentFiles() const
 {
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     QStringList recentFiles = settings.value("recentFiles").toStringList();
     
     QStringList existingFiles;
@@ -1297,12 +1297,12 @@ void MainWindow::saveWindowGeometry(){
         return;
     }
 
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     settings.setValue("windowPosition", currentPos);
 }
 
 void MainWindow::restoreWindowGeometry(){
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
 
     if (!settings.contains("windowPosition")){
         return;
@@ -1323,10 +1323,10 @@ void MainWindow::showAboutDialog(){
     // the installed theme icon, then the system-installed PNG.
     QPixmap iconPixmap(":/icons/icon.png");
     if (iconPixmap.isNull()){
-        iconPixmap = QIcon::fromTheme("unfuck-my-timezone-math").pixmap(48, 48);
+        iconPixmap = QIcon::fromTheme("ufemtizm").pixmap(48, 48);
     }
     if (iconPixmap.isNull()){
-        iconPixmap = QIcon("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png").pixmap(48, 48);
+        iconPixmap = QIcon("/usr/share/icons/hicolor/256x256/apps/ufemtizm.png").pixmap(48, 48);
     }
     if (!iconPixmap.isNull()){
         iconPixmap = iconPixmap.scaled(48, 48, Qt::KeepAspectRatio, Qt::SmoothTransformation);
@@ -1455,7 +1455,7 @@ void MainWindow::toggleToolBarVisibility(){
     bool isVisible = toolBar->isVisible();
     toolBar->setVisible(!isVisible);
     
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     settings.setValue("toolBarVisible", !isVisible);
     
     if (toggleToolBarAction){
@@ -1485,7 +1485,7 @@ void MainWindow::toggleToolBarTextVisibility(){
         toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
     }
     
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     settings.setValue("toolBarTextVisible", showText);
     
     if (toggleToolBarTextAction){
@@ -1515,7 +1515,7 @@ void MainWindow::showSettings(){
             trayIcon->setToolTip(SettingsDialog::effectiveDisplayName());
         }
 
-        QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+        QSettings settings("Ufemtizm", "Ufemtizm");
         bool skyColorEnabled = settings.value("appearance/skyColor", true).toBool();
 
         if (mainToolBarActions.size() > 6){
@@ -1525,7 +1525,7 @@ void MainWindow::showSettings(){
 }
 
 void MainWindow::toggleSkyColor(){
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     bool currentState = settings.value("appearance/skyColor", true).toBool();
     bool newState = !currentState;
     
@@ -1687,7 +1687,7 @@ void MainWindow::copyToClipboard(){
         return;
     }
     
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     bool skipDialog = settings.value("copy/skipDialog", false).toBool();
     
     if (skipDialog){
@@ -1786,12 +1786,12 @@ void MainWindow::initializeSystemTray(){
 
         QIcon trayIconImage(":/icons/icon.png");
 
-        if (trayIconImage.isNull() && QFile::exists("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png")){
-            trayIconImage = QIcon("/usr/share/icons/hicolor/256x256/apps/unfuck-my-timezone-math.png");
+        if (trayIconImage.isNull() && QFile::exists("/usr/share/icons/hicolor/256x256/apps/ufemtizm.png")){
+            trayIconImage = QIcon("/usr/share/icons/hicolor/256x256/apps/ufemtizm.png");
         }
 
         if (trayIconImage.isNull()){
-            trayIconImage = QIcon::fromTheme("unfuck-my-timezone-math");
+            trayIconImage = QIcon::fromTheme("ufemtizm");
         }
 
         if (trayIconImage.isNull()){

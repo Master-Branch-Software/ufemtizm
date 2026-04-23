@@ -2,8 +2,8 @@
 
 set -e
 
-APP_NAME="UnfuckMyTimeZoneMath"
-BUNDLE_NAME="Unfuck My Time Zone Math"
+APP_NAME="Ufemtizm"
+BUNDLE_NAME="Ufemtizm"
 BUILD_DIR="build"
 INSTALLER_DIR="installers"
 
@@ -236,7 +236,7 @@ if [[ "$OS" == "macos" ]]; then
     ln -s /Applications "$DMG_ROOT_DIR/Applications" 2>/dev/null || true
 
     # Create the compressed DMG (contents: app bundle + Applications link)
-    hdiutil create -volname "Unfuck My TimeZone Math" -srcfolder "$DMG_ROOT_DIR" -ov -format UDZO "$DMG_FILENAME"
+    hdiutil create -volname "Ufemtizm" -srcfolder "$DMG_ROOT_DIR" -ov -format UDZO "$DMG_FILENAME"
     
     echo "==> Copying installer to $INSTALLER_DIR directory..."
     cd ..
@@ -296,8 +296,8 @@ elif [[ "$OS" == "linux" ]]; then
     mkdir -p "$QT_LIBS_DIR/wrapper"
     cat > "$QT_LIBS_DIR/wrapper/$APP_NAME" << 'WRAPPER_EOF'
 #!/bin/bash
-export QT_PLUGIN_PATH="/usr/lib/UnfuckMyTimeZoneMath/plugins"
-exec "/usr/lib/UnfuckMyTimeZoneMath/UnfuckMyTimeZoneMath.bin" "$@"
+export QT_PLUGIN_PATH="/usr/lib/Ufemtizm/plugins"
+exec "/usr/lib/Ufemtizm/Ufemtizm.bin" "$@"
 WRAPPER_EOF
     chmod +x "$QT_LIBS_DIR/wrapper/$APP_NAME"
     

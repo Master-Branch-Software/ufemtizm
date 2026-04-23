@@ -161,7 +161,7 @@ However, these solutions add complexity and potential side effects, so the curre
 4. Verify the window does not appear in the taskbar
 
 ### Linux Testing
-1. Build and install: `sudo dpkg -i installers/UnfuckMyTimeZoneMath-2025.0.0-Linux.deb`
+1. Build and install: `sudo dpkg -i installers/Ufemtizm-2025.0.0-Linux.deb`
 2. Launch the application
 3. Click the system tray icon to show the window
 4. Press Alt+Tab and verify the application appears in the task switcher
@@ -175,9 +175,9 @@ However, these solutions add complexity and potential side effects, so the curre
 To apply these fixes:
 
 ```bash
-cd ~/Documents/UnfuckMyTimeZoneMath
+cd ~/Documents/Ufemtizm
 ./build_and_deploy.sh
-sudo dpkg -i installers/UnfuckMyTimeZoneMath-2025.0.0-Linux.deb
+sudo dpkg -i installers/Ufemtizm-2025.0.0-Linux.deb
 ```
 
 For Windows, build the Windows installer and deploy accordingly.

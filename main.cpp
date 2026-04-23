@@ -27,7 +27,7 @@ static void configureSnapPersistentSettings(){
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, commonDir);
 
     // Migrate a previous revision's config file if the new location is empty.
-    QString newConfigPath = commonDir + "/UnfuckMyTimeZoneMath/UnfuckMyTimeZoneMath.ini";
+    QString newConfigPath = commonDir + "/Ufemtizm/Ufemtizm.ini";
 
     if (QFile::exists(newConfigPath)){
         return;
@@ -35,7 +35,7 @@ static void configureSnapPersistentSettings(){
 
     QByteArray snapUserData = qgetenv("SNAP_USER_DATA");
     QString oldConfigPath = QString::fromLocal8Bit(snapUserData) +
-                            "/.config/UnfuckMyTimeZoneMath/UnfuckMyTimeZoneMath.conf";
+                            "/.config/Ufemtizm/Ufemtizm.conf";
 
     if (snapUserData.isEmpty() || !QFile::exists(oldConfigPath)){
         return;
@@ -57,18 +57,18 @@ int main(int argc, char *argv[]){
 
     // Identify the application to the desktop environment so the dock/taskbar
     // associates running windows with the installed .desktop file and icon.
-    app.setApplicationName("UnfuckMyTimeZoneMath");
-    app.setApplicationDisplayName("UnfuckMyTimeZoneMath");
-    app.setOrganizationName("UnfuckMyTimeZoneMath");
+    app.setApplicationName("Ufemtizm");
+    app.setApplicationDisplayName("Ufemtizm");
+    app.setOrganizationName("Ufemtizm");
 #ifdef Q_OS_LINUX
-    app.setDesktopFileName("unfuck-my-timezone-math");
+    app.setDesktopFileName("ufemtizm");
 #endif
     app.setWindowIcon(QIcon(":/icons/icon.png"));
 
     // Hide from dock/taskbar on all platforms - app is only accessible via system tray
     app.setQuitOnLastWindowClosed(false);
 
-    QString serverName = "UnfuckMyTimeZoneMath_SingleInstance";
+    QString serverName = "Ufemtizm_SingleInstance";
     QLocalSocket socket;
     socket.connectToServer(serverName);
 
@@ -129,7 +129,7 @@ int main(int argc, char *argv[]){
     
     MainWindow window;
     
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
     bool startMinimized = settings.value("systemTray/startMinimized", false).toBool();
     
     // Show window unless user has explicitly configured to start minimized

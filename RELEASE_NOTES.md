@@ -73,7 +73,7 @@ This release focuses on **UI/UX polish**, **visual refinements**, and **platform
 
 ### Linux (Debian/Ubuntu)
 ```bash
-sudo dpkg -i UnfuckMyTimeZoneMath-2025.1.0-Linux.deb
+sudo dpkg -i Ufemtizm-2025.1.0-Linux.deb
 ```
 
 ### Windows
@@ -185,7 +185,7 @@ Full-featured system tray support is here!
 
 ### Linux (Debian/Ubuntu)
 ```bash
-sudo dpkg -i UnfuckMyTimeZoneMath-2025.0.0-Linux.deb
+sudo dpkg -i Ufemtizm-2025.0.0-Linux.deb
 ```
 
 ### Windows

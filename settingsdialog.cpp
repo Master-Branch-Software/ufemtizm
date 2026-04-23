@@ -25,7 +25,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     QFormLayout *generalLayout = new QFormLayout();
 
     displayNameLineEdit = new QLineEdit();
-    displayNameLineEdit->setPlaceholderText("UnfuckMyTimeZoneMath");
+    displayNameLineEdit->setPlaceholderText("Ufemtizm");
     displayNameLineEdit->setToolTip("Custom display name shown in the title bar and About box. Leave blank to use the default.");
     displayNameLineEdit->setMaxLength(64);
     generalLayout->addRow("Display Name:", displayNameLineEdit);
@@ -232,9 +232,9 @@ void SettingsDialog::onAccepted(){
 }
 
 void SettingsDialog::loadSettings(){
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
 
-    displayNameLineEdit->setText(settings.value("app/displayName", "Master Branch").toString());
+    displayNameLineEdit->setText(settings.value("app/displayName", "Ufemtizm").toString());
 
     bool minimizeTray = settings.value("systemTray/minimizeToTray", true).toBool();
     bool closeTray = settings.value("systemTray/closeToTray", true).toBool();
@@ -250,7 +250,7 @@ void SettingsDialog::loadSettings(){
 }
 
 void SettingsDialog::saveSettings(){
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
+    QSettings settings("Ufemtizm", "Ufemtizm");
 
     settings.setValue("app/displayName", displayNameLineEdit->text().trimmed());
 
@@ -265,10 +265,10 @@ void SettingsDialog::saveSettings(){
 
 // static
 QString SettingsDialog::effectiveDisplayName(){
-    QSettings settings("UnfuckMyTimeZoneMath", "UnfuckMyTimeZoneMath");
-    QString name = settings.value("app/displayName", "Master Branch").toString().trimmed();
+    QSettings settings("Ufemtizm", "Ufemtizm");
+    QString name = settings.value("app/displayName", "Ufemtizm").toString().trimmed();
 
-    return name.isEmpty() ? QStringLiteral("UnfuckMyTimeZoneMath") : name;
+    return name.isEmpty() ? QStringLiteral("Ufemtizm") : name;
 }
 
 void SettingsDialog::setupAutostart(bool enable)
@@ -281,7 +281,7 @@ void SettingsDialog::setupAutostart(bool enable)
         autostartDir.mkpath(".");
     }
     
-    QString desktopFilePath = autostartPath + "/unfuck-my-timezone-math.desktop";
+    QString desktopFilePath = autostartPath + "/ufemtizm.desktop";
     
     if (enable){
         QFile desktopFile(desktopFilePath);
@@ -289,10 +289,10 @@ void SettingsDialog::setupAutostart(bool enable)
             QTextStream out(&desktopFile);
             out << "[Desktop Entry]\n";
             out << "Type=Application\n";
-            out << "Name=Unfuck My TimeZone Math\n";
+            out << "Name=Ufemtizm\n";
             out << "Comment=A timezone conversion utility\n";
-            out << "Exec=UnfuckMyTimeZoneMath\n";
-            out << "Icon=unfuck-my-timezone-math\n";
+            out << "Exec=Ufemtizm\n";
+            out << "Icon=ufemtizm\n";
             out << "Terminal=false\n";
             out << "Categories=Utility;\n";
             out << "StartupNotify=false\n";
@@ -308,10 +308,10 @@ void SettingsDialog::setupAutostart(bool enable)
     QSettings autostartSettings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", QSettings::NativeFormat);
     
     if (enable){
-        autostartSettings.setValue("UnfuckMyTimeZoneMath", QCoreApplication::applicationFilePath().replace('/', '\\'));
+        autostartSettings.setValue("Ufemtizm", QCoreApplication::applicationFilePath().replace('/', '\\'));
     }
     else{
-        autostartSettings.remove("UnfuckMyTimeZoneMath");
+        autostartSettings.remove("Ufemtizm");
     }
 #elif defined(Q_OS_MACOS)
     QString launchAgentsPath = QDir::homePath() + "/Library/LaunchAgents";
@@ -321,7 +321,7 @@ void SettingsDialog::setupAutostart(bool enable)
         launchAgentsDir.mkpath(".");
     }
     
-    QString plistPath = launchAgentsPath + "/com.ows.unfuckmytimezonemath.plist";
+    QString plistPath = launchAgentsPath + "/com.ows.ufemtizm.plist";
     
     if (enable){
         QFile plistFile(plistPath);
@@ -332,7 +332,7 @@ void SettingsDialog::setupAutostart(bool enable)
             out << "<plist version=\"1.0\">\n";
             out << "<dict>\n";
             out << "    <key>Label</key>\n";
-            out << "    <string>com.ows.unfuckmytimezonemath</string>\n";
+            out << "    <string>com.ows.ufemtizm</string>\n";
             out << "    <key>ProgramArguments</key>\n";
             out << "    <array>\n";
             out << "        <string>" << QCoreApplication::applicationFilePath() << "</string>\n";

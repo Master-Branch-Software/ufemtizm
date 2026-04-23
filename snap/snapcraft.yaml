@@ -1,21 +1,21 @@
-name: ufmtzm
+name: ufemtizm
 base: core24
 version: '2025.2.2'
 summary: A timezone conversion utility
 description: |
-  Unfuck My TimeZone Math helps you convert times between different timezones
+  Ufemtizm helps you convert times between different timezones
   without losing your mind.
 
 grade: stable
 confinement: strict
-title: Unfuck My TimeZone Math
+title: Ufemtizm
 license: MIT
 contact: rayparkerbassplayer@gmail.com
 
 apps:
-  ufmtzm:
-    command: usr/bin/UnfuckMyTimeZoneMath
-    desktop: usr/share/applications/unfuck-my-timezone-math.desktop
+  ufemtizm:
+    command: usr/bin/Ufemtizm
+    desktop: usr/share/applications/ufemtizm.desktop
     plugs:
       - desktop
       - desktop-legacy
@@ -33,7 +33,7 @@ apps:
       FONTCONFIG_FILE: $SNAP/etc/fonts/fonts.conf
 
 parts:
-  ufmtzm:
+  ufemtizm:
     plugin: nil
     source: .
     build-packages:

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(
-  UnfuckMyTimeZoneMath
+  Ufemtizm
   VERSION 2025.2.2
   LANGUAGES CXX)
 
@@ -18,15 +18,15 @@ configure_file(${CMAKE_SOURCE_DIR}/version.h.in ${CMAKE_BINARY_DIR}/version.h
                @ONLY)
 
 # Package metadata
-set(COMPONENT_NAME_MAIN "unfuckmytimezonemath")
-set(CONF_DISPLAY_NAME "Unfuck My TimeZone Math")
+set(COMPONENT_NAME_MAIN "ufemtizm")
+set(CONF_DISPLAY_NAME "Ufemtizm")
 set(CONF_PUBLISHER "Ray Parker & Vojtěch Gistr")
 set(CONF_DESCRIPTION "A Qt-based timezone conversion utility")
 
 # Create executable with platform-specific flags
 if(WIN32)
   add_executable(
-    UnfuckMyTimeZoneMath WIN32
+    Ufemtizm WIN32
     main.cpp
     mainwindow.hpp
     mainwindow.cpp
@@ -39,7 +39,7 @@ if(WIN32)
     resources.qrc)
 elseif(APPLE)
   add_executable(
-    UnfuckMyTimeZoneMath MACOSX_BUNDLE
+    Ufemtizm MACOSX_BUNDLE
     main.cpp
     mainwindow.hpp
     mainwindow.cpp
@@ -53,10 +53,10 @@ elseif(APPLE)
     macos_helper.mm
     resources.qrc)
   set_target_properties(
-    UnfuckMyTimeZoneMath
-    PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Unfuck My Time Zone Math"
-               OUTPUT_NAME "Unfuck My Time Zone Math"
-               MACOSX_BUNDLE_GUI_IDENTIFIER "com.ows.unfuckmytimezonemath"
+    Ufemtizm
+    PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Ufemtizm"
+               OUTPUT_NAME "Ufemtizm"
+               MACOSX_BUNDLE_GUI_IDENTIFIER "com.ows.ufemtizm"
                MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
                MACOSX_BUNDLE_SHORT_VERSION_STRING
                "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
@@ -64,7 +64,7 @@ elseif(APPLE)
                MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/Info.plist.in")
 else()
   add_executable(
-    UnfuckMyTimeZoneMath
+    Ufemtizm
     main.cpp
     mainwindow.hpp
     mainwindow.cpp
@@ -77,23 +77,23 @@ else()
     resources.qrc)
 endif()
 
-target_include_directories(UnfuckMyTimeZoneMath PRIVATE ${CMAKE_BINARY_DIR})
-target_link_libraries(UnfuckMyTimeZoneMath PRIVATE Qt6::Core Qt6::Widgets
+target_include_directories(Ufemtizm PRIVATE ${CMAKE_BINARY_DIR})
+target_link_libraries(Ufemtizm PRIVATE Qt6::Core Qt6::Widgets
                                                    Qt6::Network Qt6::Svg)
 
 if(APPLE)
-  target_link_libraries(UnfuckMyTimeZoneMath PRIVATE "-framework AppKit")
+  target_link_libraries(Ufemtizm PRIVATE "-framework AppKit")
 endif()
 
 if(UNIX AND NOT APPLE)
   if(SNAP_BUILD)
     set_target_properties(
-      UnfuckMyTimeZoneMath PROPERTIES INSTALL_RPATH
+      Ufemtizm PROPERTIES INSTALL_RPATH
                                       "$ORIGIN/../lib/x86_64-linux-gnu")
   else()
     set_target_properties(
-      UnfuckMyTimeZoneMath PROPERTIES INSTALL_RPATH
-                                      "$ORIGIN/../lib/UnfuckMyTimeZoneMath")
+      Ufemtizm PROPERTIES INSTALL_RPATH
+                                      "$ORIGIN/../lib/Ufemtizm")
   endif()
 endif()
 
@@ -107,56 +107,56 @@ if(UNIX AND NOT APPLE)
       CACHE PATH "Install path prefix" FORCE)
 
   install(
-    FILES ${CMAKE_SOURCE_DIR}/unfuck-my-timezone-math.desktop
+    FILES ${CMAKE_SOURCE_DIR}/ufemtizm.desktop
     DESTINATION share/applications
     COMPONENT ${COMPONENT_NAME_MAIN})
 
   install(
     FILES ${CMAKE_SOURCE_DIR}/icon.svg
     DESTINATION share/icons/hicolor/scalable/apps
-    RENAME unfuck-my-timezone-math.svg
+    RENAME ufemtizm.svg
     COMPONENT ${COMPONENT_NAME_MAIN})
 elseif(APPLE)
   if(EXISTS "${CMAKE_SOURCE_DIR}/icon.icns")
-    set_target_properties(UnfuckMyTimeZoneMath
+    set_target_properties(Ufemtizm
                           PROPERTIES MACOSX_BUNDLE_ICON_FILE "icon.icns")
 
     install(
       FILES ${CMAKE_SOURCE_DIR}/icon.icns
-      DESTINATION UnfuckMyTimeZoneMath.app/Contents/Resources
-      COMPONENT unfuckmytimezonemath)
+      DESTINATION Ufemtizm.app/Contents/Resources
+      COMPONENT ufemtizm)
   endif()
 endif()
 
 # CPack configuration
-set(CPACK_PACKAGE_NAME "UnfuckMyTimeZoneMath")
+set(CPACK_PACKAGE_NAME "Ufemtizm")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 set(CPACK_PACKAGE_VENDOR "${CONF_PUBLISHER}")
 set(CPACK_PACKAGE_DESCRIPTION "${CONF_DESCRIPTION}")
-set(CPACK_PACKAGE_INSTALL_DIRECTORY "UnfuckMyTimeZoneMath")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "Ufemtizm")
 set(CPACK_COMPONENTS_ALL ${COMPONENT_NAME_MAIN})
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
 # Binary installation
 if(UNIX AND NOT APPLE)
   if(SNAP_BUILD)
-    install(TARGETS UnfuckMyTimeZoneMath
+    install(TARGETS Ufemtizm
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
                     COMPONENT ${COMPONENT_NAME_MAIN})
   else()
-    install(TARGETS UnfuckMyTimeZoneMath
-            RUNTIME DESTINATION lib/UnfuckMyTimeZoneMath
+    install(TARGETS Ufemtizm
+            RUNTIME DESTINATION lib/Ufemtizm
                     COMPONENT ${COMPONENT_NAME_MAIN})
 
     install(
-      PROGRAMS unfuckmytimezonemath-wrapper.sh
+      PROGRAMS ufemtizm-wrapper.sh
       DESTINATION ${CMAKE_INSTALL_BINDIR}
-      RENAME UnfuckMyTimeZoneMath
+      RENAME Ufemtizm
       COMPONENT ${COMPONENT_NAME_MAIN})
   endif()
 else()
   install(
-    TARGETS UnfuckMyTimeZoneMath
+    TARGETS Ufemtizm
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     BUNDLE DESTINATION . COMPONENT ${COMPONENT_NAME_MAIN})
 endif()
@@ -194,7 +194,7 @@ elseif(WIN32)
   install(
     FILES ${CMAKE_SOURCE_DIR}/icon.ico
     DESTINATION ${CMAKE_INSTALL_BINDIR}
-    RENAME UnfuckMyTimeZoneMath.ico
+    RENAME Ufemtizm.ico
     COMPONENT ${COMPONENT_NAME_MAIN})
 
   find_program(
@@ -252,7 +252,7 @@ else()
       get_filename_component(_lib_name "${_lib_loc}" NAME_WE)
       file(GLOB _lib_files "${_lib_dir}/${_lib_name}.so*")
       install(FILES ${_lib_files}
-              DESTINATION "lib/UnfuckMyTimeZoneMath"
+              DESTINATION "lib/Ufemtizm"
               COMPONENT ${COMPONENT_NAME_MAIN})
     endif()
   endforeach()
@@ -260,7 +260,7 @@ else()
   # ICU is a hard dependency of Qt Core
   file(GLOB _icu_files "${_qt_lib_dir}/libicu*.so*")
   install(FILES ${_icu_files}
-          DESTINATION "lib/UnfuckMyTimeZoneMath"
+          DESTINATION "lib/Ufemtizm"
           COMPONENT ${COMPONENT_NAME_MAIN}
           OPTIONAL)
 
@@ -309,7 +309,7 @@ else()
       # Follow symlinks so the real .so file ends up in the package.
       get_filename_component(_real_lib "${_resolved_lib}" REALPATH)
       install(FILES "${_real_lib}"
-              DESTINATION "lib/UnfuckMyTimeZoneMath"
+              DESTINATION "lib/Ufemtizm"
               RENAME "${_lib_name}"
               COMPONENT ${COMPONENT_NAME_MAIN})
     else()
@@ -320,25 +320,25 @@ else()
 
   # Essential Qt plugins
   install(FILES "${_qt_plugins_dir}/platforms/libqxcb.so"
-          DESTINATION "lib/UnfuckMyTimeZoneMath/plugins/platforms"
+          DESTINATION "lib/Ufemtizm/plugins/platforms"
           COMPONENT ${COMPONENT_NAME_MAIN} OPTIONAL)
 
   install(FILES "${_qt_plugins_dir}/imageformats/libqsvg.so"
-          DESTINATION "lib/UnfuckMyTimeZoneMath/plugins/imageformats"
+          DESTINATION "lib/Ufemtizm/plugins/imageformats"
           COMPONENT ${COMPONENT_NAME_MAIN} OPTIONAL)
 
   install(FILES "${_qt_plugins_dir}/iconengines/libqsvgicon.so"
-          DESTINATION "lib/UnfuckMyTimeZoneMath/plugins/iconengines"
+          DESTINATION "lib/Ufemtizm/plugins/iconengines"
           COMPONENT ${COMPONENT_NAME_MAIN} OPTIONAL)
 
   install(FILES "${_qt_plugins_dir}/platformthemes/libqxdgdesktopportal.so"
-          DESTINATION "lib/UnfuckMyTimeZoneMath/plugins/platformthemes"
+          DESTINATION "lib/Ufemtizm/plugins/platformthemes"
           COMPONENT ${COMPONENT_NAME_MAIN} OPTIONAL)
 
   set(CPACK_GENERATOR "DEB")
   set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Ray")
   # Runtime dependencies. Qt and the xcb helper libs the Qt xcb plugin needs
-  # are bundled under /usr/lib/UnfuckMyTimeZoneMath (see above), so only the
+  # are bundled under /usr/lib/Ufemtizm (see above), so only the
   # core system libraries are declared here.
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6, libgcc-s1")
   set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
