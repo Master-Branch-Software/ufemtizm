@@ -42,6 +42,10 @@
 
 #ifdef Q_OS_MACOS
 #include "macos_helper.hpp"
+#include "updater_macos.hpp"
+#endif
+#ifdef Q_OS_WIN
+#include <QProcess>
 #endif
 
 MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
@@ -106,6 +110,10 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
     
     setupMenuBar();
     setupToolBar();
+
+#if defined(Q_OS_MACOS) && defined(WITH_SPARKLE)
+    updater_macos_init();
+#endif
     
     QSettings settings("Ufemtizm", "Ufemtizm");
     
@@ -286,7 +294,13 @@ void MainWindow::setupMenuBar(){
     connect(toggleToolBarTextAction, &QAction::triggered, this, &MainWindow::toggleToolBarTextVisibility);
     
     QMenu *helpMenu = menuBar()->addMenu("&Help");
-    
+
+#if defined(Q_OS_MACOS) || defined(Q_OS_WIN)
+    QAction *checkUpdatesAction = helpMenu->addAction("Check for &Updates...");
+    connect(checkUpdatesAction, &QAction::triggered, this, &MainWindow::checkForUpdates);
+    helpMenu->addSeparator();
+#endif
+
     QAction *aboutAction = helpMenu->addAction("&About");
     aboutAction->setToolTip("About this application");
     aboutAction->setStatusTip("About this application");
@@ -1420,6 +1434,20 @@ void MainWindow::showAboutDialog(){
     aboutBox.exec();
 }
 
+void MainWindow::checkForUpdates() {
+#if defined(Q_OS_MACOS) && defined(WITH_SPARKLE)
+    updater_macos_check();
+#elif defined(Q_OS_WIN)
+    const QString tool = QDir(qApp->applicationDirPath()).filePath("maintenancetool.exe");
+    if (!QFileInfo::exists(tool)) {
+        QMessageBox::information(this, "Check for Updates",
+            "No updater found. Please download the latest version from our website.");
+        return;
+    }
+    QProcess::startDetached(tool, {"--updater"});
+#endif
+}
+
 void MainWindow::onWidgetDropped(TimeZoneWidget *target, TimeZoneWidget *source)
 {
     int sourceIndex = timeZoneWidgets.indexOf(source);
@@ -1653,6 +1681,11 @@ void MainWindow::updateTrayMenu(){
     
     QAction *settingsAction = trayMenu->addAction(QIcon(":/toolbar/toolbar-icons/configure.svg"), "Settings...");
     connect(settingsAction, &QAction::triggered, this, &MainWindow::showSettings);
+
+#if defined(Q_OS_MACOS) || defined(Q_OS_WIN)
+    QAction *checkUpdatesTrayAction = trayMenu->addAction("Check for Updates...");
+    connect(checkUpdatesTrayAction, &QAction::triggered, this, &MainWindow::checkForUpdates);
+#endif
 
     QAction *aboutTrayAction = trayMenu->addAction("About...");
     connect(aboutTrayAction, &QAction::triggered, this, &MainWindow::showAboutDialog);

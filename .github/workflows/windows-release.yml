@@ -1,0 +1,232 @@
+name: windows-release
+
+on:
+  push:
+    tags:
+      - "v[0-9]*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-upload:
+    if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/') }}
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      RELEASE_BASE_BRANCH: ${{ github.event.repository.default_branch }}
+      ARTIFACT_PREFIX: ${{ vars.ARTIFACT_PREFIX }}
+      QT_VERSION: "6.9.0"
+      AQTINSTALL_SOURCE: "git+https://github.com/miurahr/aqtinstall.git@8c3695d4a4e1ceabf6a74dc6c79681656dc6b74b"
+      BUILD_DIR: "build/windows-release"
+      # S3 — set these repo vars/secrets to enable release uploads.
+      # Leave S3_BUCKET unset to skip the upload step.
+      S3_BUCKET: ${{ vars.S3_BUCKET }}
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Validate release trigger
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$GITHUB_REF_NAME" != "$RELEASE_BASE_BRANCH" ]; then
+            echo "Manual release runs must target ${RELEASE_BASE_BRANCH}."
+            exit 1
+          fi
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            if ! [[ "$GITHUB_REF_NAME" =~ ^v[0-9]{4}\.(0[1-9]|1[0-2])\.[0-9]+$ ]]; then
+              echo "Invalid release tag format: $GITHUB_REF_NAME (expected vYYYY.MM.MINOR)."
+              exit 1
+            fi
+          fi
+
+      - name: Ensure tagged commit is in release branch
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$RELEASE_BASE_BRANCH"
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" "origin/$RELEASE_BASE_BRANCH"; then
+            echo "Tag ${GITHUB_REF_NAME} does not point to a commit in ${RELEASE_BASE_BRANCH}."
+            exit 1
+          fi
+
+      - name: Derive version string
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION_STRING="${GITHUB_REF_NAME#v}"
+          else
+            VERSION_STRING="$(date -u +%Y.%m).0"
+          fi
+          echo "VERSION_STRING=$VERSION_STRING" >> "$GITHUB_ENV"
+
+      - name: Validate workflow configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          for var in ARTIFACT_PREFIX; do
+            if [ -z "${!var:-}" ]; then
+              echo "Missing required variable: $var"
+              exit 1
+            fi
+          done
+
+      - name: Install Qt Windows kit
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          aqtsource: ${{ env.AQTINSTALL_SOURCE }}
+          tools: "tools_ifw"
+          cache: true
+
+      - name: Configure CMake
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          QT_CMAKE="$(find "$RUNNER_TOOL_CACHE/Qt/$QT_VERSION/msvc2022_64/bin" \
+            -name "qt-cmake.bat" | head -n1 || true)"
+          if [ -z "$QT_CMAKE" ]; then
+            QT_CMAKE="$(find "$HOME/Qt/$QT_VERSION/msvc2022_64/bin" \
+              -name "qt-cmake.bat" 2>/dev/null | head -n1 || true)"
+          fi
+          if [ -z "$QT_CMAKE" ]; then
+            echo "qt-cmake not found."
+            exit 1
+          fi
+
+          # Locate Qt IFW root (installed by install-qt-action tools)
+          IFW_ROOT="$(find "$RUNNER_TOOL_CACHE/Qt" "$HOME/Qt" \
+            -maxdepth 5 -type f -name "binarycreator.exe" 2>/dev/null \
+            | head -n1 | xargs -I{} dirname {} | xargs -I{} dirname {} || true)"
+
+          cmake_args=(
+            -S .
+            -B "$BUILD_DIR"
+            -G "Visual Studio 17 2022"
+            -A x64
+            -DCMAKE_BUILD_TYPE=Release
+            -DAPP_VERSION_STRING="$VERSION_STRING"
+          )
+          if [ -n "${IFW_ROOT:-}" ]; then
+            cmake_args+=(-DCPACK_IFW_ROOT="$IFW_ROOT")
+          fi
+          if [ -n "${S3_BUCKET:-}" ]; then
+            cmake_args+=(
+              -DCPACK_IFW_UPDATE_REPO_URL="https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/win/qt-ifw-repo/"
+            )
+          fi
+
+          "$QT_CMAKE" "${cmake_args[@]}"
+
+      - name: Build
+        shell: bash
+        run: |
+          cmake --build "$BUILD_DIR" --config Release --parallel
+
+      - name: Package (CPack IFW)
+        shell: bash
+        working-directory: ${{ env.BUILD_DIR }}
+        run: |
+          set -euo pipefail
+          cpack -G IFW -C Release
+          # Confirm at least one installer was produced
+          if ! ls *.exe 1>/dev/null 2>&1; then
+            echo "No .exe installer found after CPack IFW."
+            exit 1
+          fi
+
+      - name: Derive artifact suffix
+        id: artifact_suffix
+        shell: bash
+        run: |
+          SUFFIX="${GITHUB_REF_NAME:-manual-${GITHUB_RUN_ID}}"
+          SUFFIX="${SUFFIX//\//-}"
+          SUFFIX="${SUFFIX//[^A-Za-z0-9._-]/-}"
+          echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
+
+      - name: Locate installer
+        id: installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          INSTALLER="$(find "$BUILD_DIR" -maxdepth 1 -name "*.exe" | head -n1)"
+          if [ -z "$INSTALLER" ]; then
+            echo "Installer not found."
+            exit 1
+          fi
+          echo "path=$INSTALLER" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$INSTALLER")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_PREFIX }}-windows-installer-${{ steps.artifact_suffix.outputs.suffix }}
+          path: ${{ steps.installer.outputs.path }}
+
+      - name: Generate Qt IFW update repository
+        if: ${{ env.S3_BUCKET != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Find repogen shipped alongside binarycreator
+          REPOGEN="$(find "$RUNNER_TOOL_CACHE/Qt" "$HOME/Qt" \
+            -maxdepth 6 -type f -name "repogen.exe" 2>/dev/null | head -n1 || true)"
+          if [ -z "$REPOGEN" ]; then
+            echo "repogen.exe not found — cannot generate update repository."
+            exit 1
+          fi
+
+          # CPack IFW leaves the package tree under _CPack_Packages
+          PACKAGES_DIR="$(find "$BUILD_DIR/_CPack_Packages" \
+            -maxdepth 5 -type d -name "packages" | head -n1 || true)"
+          if [ -z "$PACKAGES_DIR" ]; then
+            echo "IFW packages directory not found under _CPack_Packages."
+            exit 1
+          fi
+
+          REPO_DIR="$RUNNER_TEMP/qt-ifw-repo"
+          "$REPOGEN" -p "$PACKAGES_DIR" "$REPO_DIR"
+          echo "IFW_REPO_DIR=$REPO_DIR" >> "$GITHUB_ENV"
+
+      - name: Upload installer and IFW repository to S3
+        if: ${{ env.S3_BUCKET != '' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          INSTALLER="${{ steps.installer.outputs.path }}"
+          INSTALLER_NAME="${{ steps.installer.outputs.name }}"
+
+          # Upload installer for direct download
+          aws s3 cp "$INSTALLER" \
+            "s3://${S3_BUCKET}/win/releases/${INSTALLER_NAME}"
+          echo "Installer: https://${S3_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/win/releases/${INSTALLER_NAME}"
+
+          # Sync update repository (used by maintenancetool)
+          if [ -n "${IFW_REPO_DIR:-}" ] && [ -d "$IFW_REPO_DIR" ]; then
+            aws s3 sync "$IFW_REPO_DIR" "s3://${S3_BUCKET}/win/qt-ifw-repo/" \
+              --delete \
+              --cache-control "no-cache"
+            echo "IFW repo: https://${S3_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/win/qt-ifw-repo/"
+          fi

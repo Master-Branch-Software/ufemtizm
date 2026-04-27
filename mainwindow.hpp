@@ -43,6 +43,7 @@ private slots:
     void onTimeChanged(qint64 baseTimestamp);
     void onWidgetModified();
     void showAboutDialog();
+    void checkForUpdates();
     void onWidgetDropped(TimeZoneWidget *target, TimeZoneWidget *source);
     void setToCurrentTime();
     void toggleToolBarVisibility();
