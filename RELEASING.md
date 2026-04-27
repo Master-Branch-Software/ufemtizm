@@ -304,12 +304,24 @@ Reads `.env.macos.local` automatically if present — copy from the table above 
 .\build_and_deploy.ps1 -QtPath "C:\Qt\6.9.0\msvc2022_64" -BuildType Release
 ```
 
-### Linux — `build_and_deploy.sh`
+### Linux / macOS (quick) — `build_and_deploy.sh`
+
+`build_and_deploy.sh` detects the OS and runs the appropriate build path. It is not a substitute for `scripts/macos/build.sh` on macOS — it produces an unsigned, un-notarized build for quick local testing only.
+
+| OS | What it produces |
+|---|---|
+| Linux | DEB package (via CMake + CPack) |
+| macOS | Unsigned `.dmg` (via `macdeployqt`, no signing/notarization) |
 
 ```bash
-# DEB package
+# Linux — DEB package
 ./build_and_deploy.sh
 
-# Snap (requires snapcraft)
+# Linux — Snap package (requires snapcraft)
 ./build_and_deploy.sh --snap
+
+# macOS — quick unsigned DMG (testing only, not for distribution)
+./build_and_deploy.sh
 ```
+
+For a signed, notarized macOS build use `scripts/macos/build.sh` instead (see above).
