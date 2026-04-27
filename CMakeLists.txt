@@ -23,23 +23,6 @@ set(CONF_DISPLAY_NAME "Ufemtizm")
 set(CONF_PUBLISHER "Ray Parker & Vojtěch Gistr")
 set(CONF_DESCRIPTION "A Qt-based timezone conversion utility")
 
-# Sparkle auto-updater (macOS only)
-if(APPLE)
-  option(ENABLE_SPARKLE "Enable Sparkle auto-updater" ON)
-  if(ENABLE_SPARKLE)
-    include(FetchContent)
-    set(_sparkle_version "2.6.4")
-    FetchContent_Declare(
-      Sparkle
-      URL "https://github.com/sparkle-project/Sparkle/releases/download/${_sparkle_version}/Sparkle-${_sparkle_version}.tar.xz"
-      DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
-    FetchContent_GetProperties(Sparkle)
-    if(NOT sparkle_POPULATED)
-      FetchContent_Populate(Sparkle)
-    endif()
-  endif()
-endif()
-
 # Create executable with platform-specific flags
 if(WIN32)
   add_executable(
@@ -68,8 +51,6 @@ elseif(APPLE)
     copydialog.cpp
     macos_helper.hpp
     macos_helper.mm
-    updater_macos.hpp
-    updater_macos.mm
     resources.qrc)
   set_target_properties(
     Ufemtizm
@@ -102,32 +83,6 @@ target_link_libraries(Ufemtizm PRIVATE Qt6::Core Qt6::Widgets
 
 if(APPLE)
   target_link_libraries(Ufemtizm PRIVATE "-framework AppKit")
-  # Set these via -DSPARKLE_FEED_URL=... and -DSPARKLE_PUBLIC_ED_KEY=... at configure time.
-  # Run bin/generate_keys from the Sparkle release archive to generate your key pair.
-  set(SPARKLE_FEED_URL "https://PLACEHOLDER.s3.amazonaws.com/mac/appcast.xml"
-      CACHE STRING "Sparkle appcast URL embedded in the app bundle")
-  set(SPARKLE_PUBLIC_ED_KEY "PLACEHOLDER_RUN_generate_keys_FROM_SPARKLE"
-      CACHE STRING "Sparkle EdDSA public key embedded in the app bundle")
-
-  if(ENABLE_SPARKLE AND sparkle_POPULATED)
-    set(_sparkle_fw "${sparkle_SOURCE_DIR}/Sparkle.framework")
-    target_compile_definitions(Ufemtizm PRIVATE WITH_SPARKLE)
-    target_compile_options(Ufemtizm PRIVATE "-F${sparkle_SOURCE_DIR}")
-    target_link_libraries(Ufemtizm PRIVATE "-F${sparkle_SOURCE_DIR}" "-framework" "Sparkle")
-    target_include_directories(Ufemtizm PRIVATE "${_sparkle_fw}/Headers")
-    set_target_properties(Ufemtizm PROPERTIES
-      BUILD_WITH_INSTALL_RPATH TRUE
-      INSTALL_RPATH "@executable_path/../Frameworks")
-    add_custom_command(TARGET Ufemtizm POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_directory
-          "${_sparkle_fw}"
-          "$<TARGET_BUNDLE_DIR:Ufemtizm>/Contents/Frameworks/Sparkle.framework"
-      VERBATIM)
-    install(DIRECTORY "${_sparkle_fw}"
-      DESTINATION "Ufemtizm.app/Contents/Frameworks"
-      COMPONENT ufemtizm
-      USE_SOURCE_PERMISSIONS)
-  endif()
 endif()
 
 if(UNIX AND NOT APPLE)

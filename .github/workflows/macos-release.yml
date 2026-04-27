@@ -46,13 +46,10 @@ jobs:
       MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
       MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
       NOTARY_KEYCHAIN_PROFILE: "notary-profile"
-      # S3 / Sparkle — set these repo vars/secrets to enable direct-release uploads.
+      # S3 — set these repo vars/secrets to enable direct-release uploads.
       # Leave S3_BUCKET unset to skip the upload step entirely.
       S3_BUCKET: ${{ vars.S3_BUCKET }}
       AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
-      SPARKLE_VERSION: "2.6.4"
-      SPARKLE_FEED_URL: "https://${{ vars.S3_BUCKET }}.s3.${{ vars.AWS_REGION || 'us-east-1' }}.amazonaws.com/mac/appcast.xml"
-      SPARKLE_PUBLIC_ED_KEY: ${{ vars.SPARKLE_PUBLIC_ED_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -346,14 +343,6 @@ jobs:
             exit 1
           fi
 
-          extra_args=()
-          if [ -n "${SPARKLE_FEED_URL:-}" ] && [[ "$SPARKLE_FEED_URL" != *PLACEHOLDER* ]]; then
-            extra_args+=(-DSPARKLE_FEED_URL="$SPARKLE_FEED_URL")
-          fi
-          if [ -n "${SPARKLE_PUBLIC_ED_KEY:-}" ] && [[ "$SPARKLE_PUBLIC_ED_KEY" != *PLACEHOLDER* ]]; then
-            extra_args+=(-DSPARKLE_PUBLIC_ED_KEY="$SPARKLE_PUBLIC_ED_KEY")
-          fi
-
           "$QT_CMAKE" \
             -S . \
             -B "${MACOS_BUILD_DIR}" \
@@ -498,98 +487,18 @@ jobs:
           name: ${{ env.ARTIFACT_PREFIX }}-macos-${{ env.DISTRIBUTION_TYPE }}-${{ steps.build_artifact.outputs.artifact_kind }}-${{ steps.artifact_suffix.outputs.suffix }}
           path: ${{ steps.build_artifact.outputs.artifact_path }}
 
-      - name: Upload release to S3 and update Sparkle appcast
+      - name: Upload DMG to S3
         if: ${{ env.DISTRIBUTION_TYPE == 'direct' && env.S3_BUCKET != '' }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
-          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
           set -euo pipefail
-
-          if [ -z "${SPARKLE_PRIVATE_KEY:-}" ]; then
-            echo "SPARKLE_PRIVATE_KEY secret not set — skipping S3 upload."
-            exit 0
-          fi
-
           ARTIFACT_PATH="${{ steps.build_artifact.outputs.artifact_path }}"
           ARTIFACT_NAME="$(basename "$ARTIFACT_PATH")"
-          VERSION="${MACOS_VERSION_STRING#v}"
-
-          # ── Sparkle tools ────────────────────────────────────────────────
-          SPARKLE_DIR="$RUNNER_TEMP/sparkle-tools"
-          mkdir -p "$SPARKLE_DIR"
-          curl -fsSL \
-            "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz" \
-            | tar -xJ -C "$SPARKLE_DIR"
-          SIGN_UPDATE="$SPARKLE_DIR/bin/sign_update"
-          chmod +x "$SIGN_UPDATE"
-
-          # ── Sign the DMG ─────────────────────────────────────────────────
-          KEY_FILE="$RUNNER_TEMP/sparkle_ed_private.key"
-          printf '%s' "$SPARKLE_PRIVATE_KEY" > "$KEY_FILE"
-          SIGN_OUTPUT=$("$SIGN_UPDATE" "$ARTIFACT_PATH" --ed-key-file "$KEY_FILE")
-          rm -f "$KEY_FILE"
-
-          ED_SIG=$(python3 -c "
-          import re, sys
-          m = re.search(r'edSignature=\"([^\"]+)\"', sys.stdin.read())
-          print(m.group(1) if m else sys.exit(1))
-          " <<< "$SIGN_OUTPUT")
-          ARTIFACT_SIZE=$(stat -f%z "$ARTIFACT_PATH")
-
-          # ── Upload DMG ───────────────────────────────────────────────────
-          S3_ARTIFACT_KEY="mac/releases/${ARTIFACT_NAME}"
-          aws s3 cp "$ARTIFACT_PATH" "s3://${S3_BUCKET}/${S3_ARTIFACT_KEY}"
-          DMG_URL="https://${S3_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_KEY}"
-          echo "DMG uploaded: $DMG_URL"
-
-          # ── Build new appcast <item> ──────────────────────────────────────
-          PUB_DATE="$(date -u '+%a, %d %b %Y %H:%M:%S +0000')"
-          NEW_ITEM="    <item>
-              <title>Version ${VERSION}</title>
-              <pubDate>${PUB_DATE}</pubDate>
-              <sparkle:minimumSystemVersion>10.14</sparkle:minimumSystemVersion>
-              <enclosure
-                url=\"${DMG_URL}\"
-                sparkle:version=\"${VERSION}\"
-                sparkle:shortVersionString=\"${VERSION}\"
-                sparkle:edSignature=\"${ED_SIG}\"
-                length=\"${ARTIFACT_SIZE}\"
-                type=\"application/x-apple-diskimage\"
-              />
-            </item>"
-
-          # ── Fetch existing appcast or create skeleton ────────────────────
-          APPCAST_PATH="$RUNNER_TEMP/appcast.xml"
-          if aws s3 cp "s3://${S3_BUCKET}/mac/appcast.xml" "$APPCAST_PATH" 2>/dev/null; then
-            python3 - <<PY
-          import sys
-          path = "$APPCAST_PATH"
-          item = """$NEW_ITEM"""
-          txt = open(path).read()
-          txt = txt.replace('    </channel>', item + '\n    </channel>', 1)
-          open(path, 'w').write(txt)
-          PY
-          else
-            cat > "$APPCAST_PATH" <<XML
-          <?xml version="1.0" encoding="utf-8"?>
-          <rss version="2.0"
-               xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
-               xmlns:dc="http://purl.org/dc/elements/1.1/">
-            <channel>
-              <title>Ufemtizm Updates</title>
-          ${NEW_ITEM}
-            </channel>
-          </rss>
-          XML
-          fi
-
-          aws s3 cp "$APPCAST_PATH" "s3://${S3_BUCKET}/mac/appcast.xml" \
-            --content-type "application/rss+xml" \
-            --cache-control "no-cache"
-          echo "Appcast: https://${S3_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/mac/appcast.xml"
+          aws s3 cp "$ARTIFACT_PATH" "s3://${S3_BUCKET}/mac/releases/${ARTIFACT_NAME}"
+          echo "DMG: https://${S3_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/mac/releases/${ARTIFACT_NAME}"
 
       - name: Upload to App Store Connect
         if: ${{ env.DISTRIBUTION_TYPE == 'appstore' }}

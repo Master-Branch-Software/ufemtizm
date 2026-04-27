@@ -28,12 +28,5 @@
 	<true/>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
-	<!-- Sparkle: replace both values before shipping.
-	     Generate the key pair with: ./bin/generate_keys (from the Sparkle release archive).
-	     Host the appcast at the SUFeedURL below. -->
-	<key>SUFeedURL</key>
-	<string>${SPARKLE_FEED_URL}</string>
-	<key>SUPublicEDKey</key>
-	<string>${SPARKLE_PUBLIC_ED_KEY}</string>
 </dict>
 </plist>
