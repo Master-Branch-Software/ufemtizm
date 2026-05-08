@@ -1810,7 +1810,11 @@ void MainWindow::initializeSystemTray(){
         trayIcon = new QSystemTrayIcon(this);
         trayMenu = new QMenu(this);
 
-        QIcon trayIconImage(":/icons/icon.png");
+        QIcon trayIconImage(":/icons/icon-tray.svg");
+
+        if (trayIconImage.isNull()){
+            trayIconImage = QIcon(":/icons/icon.png");
+        }
 
         if (trayIconImage.isNull() && QFile::exists("/usr/share/icons/hicolor/256x256/apps/ufemtizm.png")){
             trayIconImage = QIcon("/usr/share/icons/hicolor/256x256/apps/ufemtizm.png");

@@ -1,0 +1,18 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- No background frame -->
+
+  <!-- Three fat bars, almost edge-to-edge -->
+  <rect x="14"  y="14" width="60" height="228" rx="22" fill="#fef3c7"/>
+  <rect x="98"  y="14" width="60" height="228" rx="22" fill="#fecaca"/>
+  <rect x="182" y="14" width="60" height="228" rx="22" fill="#bfdbfe"/>
+
+  <!-- Thicker curve so it survives at 22 px -->
+  <path d="M 44 86 C 72 184, 92 184, 128 162 C 168 138, 180 86, 212 116"
+        stroke="#a78bfa" stroke-width="7" fill="none"
+        stroke-linecap="round" opacity="0.95"/>
+
+  <!-- Larger dots -->
+  <circle cx="44"  cy="86"  r="20" fill="#5b21b6"/>
+  <circle cx="128" cy="162" r="20" fill="#5b21b6"/>
+  <circle cx="212" cy="116" r="20" fill="#5b21b6"/>
+</svg>

@@ -5,6 +5,7 @@
         <file>icon.jpeg</file>
         <file>icon.png</file>
         <file>icon.svg</file>
+        <file>icon-tray.svg</file>
     </qresource>
     <qresource prefix="/toolbar">
         <file>toolbar-icons/document-new.svg</file>
