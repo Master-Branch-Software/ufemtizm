@@ -53,6 +53,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent),
     trayIcon(nullptr),
     trayMenu(nullptr),
     trayRecentFilesMenu(nullptr),
+    trayShowHideAction(nullptr),
     settingsDialog(nullptr),
     localServer(nullptr),
     forceQuit(false),
@@ -616,9 +617,11 @@ void MainWindow::showEvent(QShowEvent *event)
     }
 
     // Keep the tray menu's show/hide entry tightly coupled to actual
-    // window visibility so it never drifts out of sync regardless of
-    // which code path triggered the change.
-    updateTrayMenu();
+    // window visibility. Update the existing action in place instead of
+    // rebuilding the whole tray menu — rebuilding mid-dismissal (this fires
+    // synchronously inside the click handler that opened us) leaves the
+    // platform popup holding a deleted QAction.
+    updateTrayShowHideAction();
 
 #ifdef Q_OS_MACOS
     // Promote to a regular foreground app so the global menu bar appears
@@ -647,9 +650,9 @@ void MainWindow::hideEvent(QHideEvent *event){
     saveWindowGeometry();
 
     // Keep the tray menu's show/hide entry tightly coupled to actual
-    // window visibility so it never drifts out of sync regardless of
-    // which code path triggered the change.
-    updateTrayMenu();
+    // window visibility. See showEvent for why this updates in place
+    // rather than rebuilding the whole menu.
+    updateTrayShowHideAction();
 
 #ifdef Q_OS_MACOS
     // Drop back to accessory policy so the Dock icon and global menu bar
@@ -1634,15 +1637,20 @@ void MainWindow::updateTrayMenu(){
     if (!trayMenu || !trayIcon){
         return;
     }
-    
+
+    // trayMenu->clear() schedules deleteLater on every action it owns,
+    // including the previous trayShowHideAction. Drop the dangling pointer
+    // before clearing so a stray updateTrayShowHideAction() call cannot
+    // touch a half-destroyed QAction.
+    trayShowHideAction = nullptr;
     trayMenu->clear();
-    
+
     QIcon showHideIcon = isVisible()
         ? QIcon(":/toolbar/toolbar-icons/view-hidden.svg")
         : QIcon(":/toolbar/toolbar-icons/view-visible.svg");
 
-    QAction *showAction = trayMenu->addAction(showHideIcon, isVisible() ? "Hide Window" : "Show Window");
-    connect(showAction, &QAction::triggered, this, &MainWindow::toggleWindowVisibility);
+    trayShowHideAction = trayMenu->addAction(showHideIcon, isVisible() ? "Hide Window" : "Show Window");
+    connect(trayShowHideAction, &QAction::triggered, this, &MainWindow::toggleWindowVisibility);
     
     trayMenu->addSeparator();
     
@@ -1689,6 +1697,19 @@ void MainWindow::updateTrayMenu(){
     connect(quitAction, &QAction::triggered, this, &MainWindow::quitApplication);
     
     trayIcon->setContextMenu(trayMenu);
+}
+
+void MainWindow::updateTrayShowHideAction(){
+    if (!trayShowHideAction){
+        return;
+    }
+
+    bool visible = isVisible();
+
+    trayShowHideAction->setIcon(visible
+        ? QIcon(":/toolbar/toolbar-icons/view-hidden.svg")
+        : QIcon(":/toolbar/toolbar-icons/view-visible.svg"));
+    trayShowHideAction->setText(visible ? "Hide Window" : "Show Window");
 }
 
 void MainWindow::handleNewConnection(){

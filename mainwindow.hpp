@@ -51,6 +51,7 @@ private slots:
     void showSettings();
     void onTrayIconActivated(QSystemTrayIcon::ActivationReason reason);
     void toggleWindowVisibility();
+    void updateTrayShowHideAction();
     void quitApplication();
     void openRecentFileFromTray();
     void onRecentFilesComboActivated(int index);
@@ -97,6 +98,7 @@ private:
     QSystemTrayIcon *trayIcon;
     QMenu *trayMenu;
     QMenu *trayRecentFilesMenu;
+    QAction *trayShowHideAction;
     SettingsDialog *settingsDialog;
     QLocalServer *localServer;
     bool forceQuit;

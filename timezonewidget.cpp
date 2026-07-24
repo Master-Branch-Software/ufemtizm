@@ -127,7 +127,8 @@ TimeZoneWidget::TimeZoneWidget(QWidget *parent)
       updatingInternally(false),
       skyColorEnabled(true),
       dropIndicator(nullptr),
-      frameShadow(nullptr)
+      frameShadow(nullptr),
+      lastSliderMode(-1)
 {
     QSettings settings("Ufemtizm", "Ufemtizm");
     skyColorEnabled = settings.value("appearance/skyColor", true).toBool();
@@ -701,7 +702,10 @@ void TimeZoneWidget::updateSkyColor(){
             "    background-color: #e7eff5;"
             "}"
         );
-        
+
+        applyHourLabelColors(QColor(0x56, 0x61, 0x67));
+        applySliderStyle(false);
+
         return;
     }
     
@@ -818,6 +822,89 @@ void TimeZoneWidget::updateSkyColor(){
         .arg(removeButtonTextColor.name())
         .arg(hoverColor.name())
         .arg(pressedColor.name())
+    );
+
+    applyHourLabelColors(tertiaryTextColor);
+    applySliderStyle(isNightTime);
+}
+
+void TimeZoneWidget::applyHourLabelColors(const QColor &color){
+    // The 25 hour labels next to the slider are restyled on every time
+    // change, which includes each tick of a slider drag. Skip the work
+    // when the color has not actually changed (e.g. dragging within the
+    // same part of the day) so a full sweep stays cheap.
+    if (color == lastHourLabelColor){
+        return;
+    }
+
+    QString style = QString(
+        "QLabel {"
+        "    color: %1;"
+        "    text-align: right;"
+        "}"
+    ).arg(color.name());
+
+    for (QLabel *hourLabel : hourLabels){
+        hourLabel->setStyleSheet(style);
+    }
+
+    lastHourLabelColor = color;
+}
+
+void TimeZoneWidget::applySliderStyle(bool nightStyle){
+    int mode = nightStyle ? 1 : 0;
+
+    if (mode == lastSliderMode){
+        return;
+    }
+
+    lastSliderMode = mode;
+
+    QString groove;
+    QString handle;
+    QString handleHover;
+    QString handleBorder;
+
+    if (nightStyle){
+        // Brighter, lighter knob so it stays visible against the dark
+        // night card; the groove becomes a faint translucent track.
+        groove = "rgba(255, 255, 255, 0.3)";
+        handle = "#6760fd";
+        handleHover = "#9b95ff";
+        handleBorder = "#4e45e4";
+    }
+    else{
+        groove = "#d9e4ec";
+        handle = "#4e45e4";
+        handleHover = "#6760fd";
+        handleBorder = "#4135d8";
+    }
+
+    timeSlider->setStyleSheet(
+        QString("QSlider::groove:vertical {"
+        "    background: %1;"
+        "    width: 4px;"
+        "    border-radius: 2px;"
+        "}"
+        "QSlider::handle:vertical {"
+        "    background: %2;"
+        "    border: 2px solid %4;"
+        "    width: 16px;"
+        "    height: 16px;"
+        "    margin: -8px -6px;"
+        "    border-radius: 8px;"
+        "}"
+        "QSlider::handle:vertical:hover {"
+        "    background: %3;"
+        "    border: 2px solid %2;"
+        "}"
+        "QSlider::add-page:vertical {"
+        "    background: transparent;"
+        "}"
+        "QSlider::sub-page:vertical {"
+        "    background: transparent;"
+        "}")
+        .arg(groove, handle, handleHover, handleBorder)
     );
 }
 

@@ -95,6 +95,8 @@ private:
     qint64 sliderValueToTimestamp(int value) const;
     void updateTimeZoneLabel();
     void updateSkyColor();
+    void applyHourLabelColors(const QColor &color);
+    void applySliderStyle(bool nightStyle);
     QColor calculateSkyColor(const QDateTime &localTime) const;
     double calculateSunPosition(const QDateTime &localTime) const;
     
@@ -119,6 +121,9 @@ private:
     QFrame *frame;
     QFrame *dropIndicator;
     QGraphicsDropShadowEffect *frameShadow;
+
+    QColor lastHourLabelColor;
+    int lastSliderMode;
 };
 
 #endif // TIMEZONEWIDGET_HPP
