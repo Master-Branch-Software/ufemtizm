@@ -1,6 +1,6 @@
 name: ufemtizm
 base: core24
-version: '2025.2.2'
+version: '2026.8.0'
 summary: A timezone conversion utility
 description: |
   Ufemtizm helps you convert times between different timezones
