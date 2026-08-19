@@ -457,7 +457,6 @@ jobs:
 
           echo "artifact_path=$ARTIFACT_PATH" >> "$GITHUB_OUTPUT"
           echo "artifact_kind=$ARTIFACT_KIND" >> "$GITHUB_OUTPUT"
-
       - name: Notarize artifact
         if: ${{ env.DISTRIBUTION_TYPE == 'direct' }}
         run: |
@@ -474,12 +473,24 @@ jobs:
           '
 
           ARTIFACT_PATH="${{ steps.build_artifact.outputs.artifact_path }}"
+          SUBMISSION_OUTPUT="$RUNNER_TEMP/notary_submit.log"
 
-          xcrun notarytool submit "$ARTIFACT_PATH" \
+          if ! xcrun notarytool submit "$ARTIFACT_PATH" \
             --key "$P8_KEY_PATH" \
             --key-id "$APPSTORE_API_KEY_ID" \
             --issuer "$APPSTORE_ISSUER_ID" \
-            --wait
+            --wait | tee "$SUBMISSION_OUTPUT"; then
+
+            SUBMISSION_ID=$(grep -E '^\s*id:' "$SUBMISSION_OUTPUT" | head -n 1 | awk '{print $2}')
+            if [ -n "${SUBMISSION_ID:-}" ]; then
+              echo "=== APPLE NOTARIZATION ERROR LOG (${SUBMISSION_ID}) ==="
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --key "$P8_KEY_PATH" \
+                --key-id "$APPSTORE_API_KEY_ID" \
+                --issuer "$APPSTORE_ISSUER_ID" || true
+            fi
+            exit 1
+          fi
 
           xcrun stapler staple "$ARTIFACT_PATH"
 
