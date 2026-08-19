@@ -321,31 +321,34 @@ jobs:
           security find-identity -v -p codesigning "$MATCH_KEYCHAIN_NAME"
 
       - name: Configure macOS project
-        run: |
-          set -euo pipefail
+  run: |
+    set -euo pipefail
 
-          # Use QT_DIR exported directly by jurplel/install-qt-action
-          QT_CMAKE="${QT_DIR}/bin/qt-cmake"
+    # Safely handle potentially unset QT_DIR
+    TARGET_QT_DIR="${QT_DIR:-}"
 
-          if [ ! -x "$QT_CMAKE" ]; then
-            QT_CMAKE="$(find "$QT_DIR" -type f -name "qt-cmake" | head -n 1)"
-          fi
+    if [ -n "$TARGET_QT_DIR" ] && [ -x "${TARGET_QT_DIR}/bin/qt-cmake" ]; then
+      QT_CMAKE="${TARGET_QT_DIR}/bin/qt-cmake"
+    else
+      # Search common installation locations if QT_DIR is unset
+      QT_CMAKE="$(find /Users/runner/Qt $HOME/Qt -type f -name "qt-cmake" 2>/dev/null | head -n 1)"
+    fi
 
-          if [ -z "${QT_CMAKE:-}" ] || [ ! -x "$QT_CMAKE" ]; then
-            echo "qt-cmake not found in QT_DIR (${QT_DIR:-unset})"
-            exit 1
-          fi
+    if [ -z "${QT_CMAKE:-}" ] || [ ! -x "$QT_CMAKE" ]; then
+      echo "Error: qt-cmake executable not found."
+      exit 1
+    fi
 
-          "$QT_CMAKE" \
-            -S . \
-            -B "${MACOS_BUILD_DIR}" \
-            -GXcode \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_SYSTEM_NAME=Darwin \
-            -DMACOSX_BUNDLE_GUI_IDENTIFIER="$MACOS_BUNDLE_IDENTIFIER" \
-            -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            -DAPP_BUILD_NUMBER="${MACOS_BUILD_NUMBER}" \
-            -DAPP_VERSION_STRING="${MACOS_VERSION_STRING#v}"
+    "$QT_CMAKE" \
+      -S . \
+      -B "${MACOS_BUILD_DIR}" \
+      -GXcode \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_SYSTEM_NAME=Darwin \
+      -DMACOSX_BUNDLE_GUI_IDENTIFIER="$MACOS_BUNDLE_IDENTIFIER" \
+      -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+      -DAPP_BUILD_NUMBER="${MACOS_BUILD_NUMBER}" \
+      -DAPP_VERSION_STRING="${MACOS_VERSION_STRING#v}"
 
       - name: Build archive and export
         id: build_artifact
