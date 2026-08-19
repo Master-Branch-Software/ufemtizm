@@ -320,22 +320,31 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MATCH_KEYCHAIN_PASSWORD" "$MATCH_KEYCHAIN_NAME"
           security find-identity -v -p codesigning "$MATCH_KEYCHAIN_NAME"
 
-      - name: Configure macOS project
+        - name: Configure macOS project
         run: |
           set -euo pipefail
 
-          TARGET_QT_DIR="${QT_DIR:-}"
+          QT_CMAKE=""
 
-          if [ -n "$TARGET_QT_DIR" ] && [ -x "$TARGET_QT_DIR/bin/qt-cmake" ]; then
-            QT_CMAKE="$TARGET_QT_DIR/bin/qt-cmake"
+          # 1. Check if qt-cmake is already in PATH
+          if command -v qt-cmake >/dev/null 2>&1; then
+            QT_CMAKE="$(command -v qt-cmake)"
+          # 2. Check QT_DIR or Qt6_DIR environment variables
+          elif [ -n "${QT_DIR:-}" ] && [ -x "${QT_DIR}/bin/qt-cmake" ]; then
+            QT_CMAKE="${QT_DIR}/bin/qt-cmake"
+          elif [ -n "${Qt6_DIR:-}" ] && [ -x "${Qt6_DIR}/bin/qt-cmake" ]; then
+            QT_CMAKE="${Qt6_DIR}/bin/qt-cmake"
+          # 3. Search the GitHub workspace and home directories
           else
-            QT_CMAKE=$(find /Users/runner/Qt "$HOME/Qt" -type f -name 'qt-cmake' 2>/dev/null | head -n 1 || true)
+            QT_CMAKE=$(find "${RUNNER_WORKSPACE:-$HOME}" "$HOME" -type f -name "qt-cmake" 2>/dev/null | head -n 1 || true)
           fi
 
           if [ -z "$QT_CMAKE" ] || [ ! -x "$QT_CMAKE" ]; then
-            echo "Error: qt-cmake executable not found."
+            echo "Error: qt-cmake executable not found in workspace."
             exit 1
           fi
+
+          echo "Using qt-cmake at: $QT_CMAKE"
 
           "$QT_CMAKE" \
             -S . \
