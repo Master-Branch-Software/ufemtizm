@@ -320,34 +320,33 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MATCH_KEYCHAIN_PASSWORD" "$MATCH_KEYCHAIN_NAME"
           security find-identity -v -p codesigning "$MATCH_KEYCHAIN_NAME"
 
-- name: Configure macOS project
-  run: |
-    set -euo pipefail
+      - name: Configure macOS project
+        run: |
+          set -euo pipefail
 
-    TARGET_QT_DIR="${QT_DIR:-}"
+          TARGET_QT_DIR="${QT_DIR:-}"
 
-    if [ -n "$TARGET_QT_DIR" ] && [ -x "$TARGET_QT_DIR/bin/qt-cmake" ]; then
-      QT_CMAKE="$TARGET_QT_DIR/bin/qt-cmake"
-    else
-      # '|| true' prevents set -e/pipefail from crashing if path doesn't exist
-      QT_CMAKE=$(find /Users/runner/Qt "$HOME/Qt" -type f -name 'qt-cmake' 2>/dev/null | head -n 1 || true)
-    fi
+          if [ -n "$TARGET_QT_DIR" ] && [ -x "$TARGET_QT_DIR/bin/qt-cmake" ]; then
+            QT_CMAKE="$TARGET_QT_DIR/bin/qt-cmake"
+          else
+            QT_CMAKE=$(find /Users/runner/Qt "$HOME/Qt" -type f -name 'qt-cmake' 2>/dev/null | head -n 1 || true)
+          fi
 
-    if [ -z "$QT_CMAKE" ] || [ ! -x "$QT_CMAKE" ]; then
-      echo "Error: qt-cmake executable not found."
-      exit 1
-    fi
+          if [ -z "$QT_CMAKE" ] || [ ! -x "$QT_CMAKE" ]; then
+            echo "Error: qt-cmake executable not found."
+            exit 1
+          fi
 
-    "$QT_CMAKE" \
-      -S . \
-      -B "$MACOS_BUILD_DIR" \
-      -G Xcode \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_SYSTEM_NAME=Darwin \
-      -DMACOSX_BUNDLE_GUI_IDENTIFIER="$MACOS_BUNDLE_IDENTIFIER" \
-      -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-      -DAPP_BUILD_NUMBER="$MACOS_BUILD_NUMBER" \
-      -DAPP_VERSION_STRING="${MACOS_VERSION_STRING#v}"
+          "$QT_CMAKE" \
+            -S . \
+            -B "$MACOS_BUILD_DIR" \
+            -G Xcode \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_NAME=Darwin \
+            -DMACOSX_BUNDLE_GUI_IDENTIFIER="$MACOS_BUNDLE_IDENTIFIER" \
+            -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            -DAPP_BUILD_NUMBER="$MACOS_BUILD_NUMBER" \
+            -DAPP_VERSION_STRING="${MACOS_VERSION_STRING#v}"
 
       - name: Build archive and export
         id: build_artifact
