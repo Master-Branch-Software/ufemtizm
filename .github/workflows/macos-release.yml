@@ -463,7 +463,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          P8_KEY_PATH="$RUNNER_TEMP/AuthKey_${APPSTORE_API_KEY_ID}.p8"
+          export P8_KEY_PATH="$RUNNER_TEMP/AuthKey_${APPSTORE_API_KEY_ID}.p8"
+          trap 'rm -f "$P8_KEY_PATH"' EXIT
 
           python3 -c '
           import os
@@ -479,8 +480,6 @@ jobs:
             --key-id "$APPSTORE_API_KEY_ID" \
             --issuer "$APPSTORE_ISSUER_ID" \
             --wait
-
-          rm -f "$P8_KEY_PATH"
 
           xcrun stapler staple "$ARTIFACT_PATH"
 
