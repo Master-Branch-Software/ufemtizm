@@ -462,18 +462,19 @@ jobs:
         if: ${{ env.DISTRIBUTION_TYPE == 'direct' }}
         run: |
           set -euo pipefail
-          xcrun notarytool store-credentials "$NOTARY_KEYCHAIN_PROFILE" \
-            --key "$APP_STORE_CONNECT_API_KEY_PATH" \
-            --key-id "$APPSTORE_API_KEY_ID" \
-            --issuer "$APPSTORE_ISSUER_ID" || true
+
+          P8_KEY_PATH="$RUNNER_TEMP/AuthKey_${APPSTORE_API_KEY_ID}.p8"
+          printf '%s\n' "$APPSTORE_API_PRIVATE_KEY" > "$P8_KEY_PATH"
 
           ARTIFACT_PATH="${{ steps.build_artifact.outputs.artifact_path }}"
 
           xcrun notarytool submit "$ARTIFACT_PATH" \
-            --key <(printf '%s' "$APPSTORE_API_PRIVATE_KEY") \
+            --key "$P8_KEY_PATH" \
             --key-id "$APPSTORE_API_KEY_ID" \
             --issuer "$APPSTORE_ISSUER_ID" \
             --wait
+
+          rm -f "$P8_KEY_PATH"
 
           xcrun stapler staple "$ARTIFACT_PATH"
 
