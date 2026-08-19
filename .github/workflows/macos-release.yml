@@ -503,7 +503,7 @@ jobs:
             -DAPP_VERSION_STRING="${MACOS_VERSION_STRING#v}"
 
       # ------------------------------------------------------------
-      # Build archive and export
+      # Build archive, bundle Qt, and export
       # ------------------------------------------------------------
 
       - name: Build archive and export
@@ -622,6 +622,55 @@ jobs:
 
           xcodebuild archive \
             "${XCODEBUILD_ARGS[@]}"
+
+          # --------------------------------------------------------
+          # Bundle Qt frameworks into the archived .app with macdeployqt.
+          #
+          # xcodebuild archive/-exportArchive never bundle Qt on their own
+          # (CMake's MACOSX_BUNDLE target just produces a bare .app whose
+          # binary still references the Qt install location on the CI
+          # runner, e.g. /Users/runner/work/.../Qt/6.11.0/macos/lib/...).
+          # Without this step the exported/notarized .app dyld-fails on
+          # any machine that isn't the build agent.
+          #
+          # This MUST run on the .app while it still lives inside the
+          # .xcarchive, and it MUST run before any signing, because
+          # macdeployqt rewrites install names / rpaths and copies
+          # frameworks into Contents/Frameworks, which invalidates
+          # any signature already applied. -exportArchive (below) is
+          # what actually (re-)signs the final .app/.pkg, so this
+          # ordering is safe.
+          # --------------------------------------------------------
+
+          echo "=== MACDEPLOYQT ==="
+
+          ARCHIVED_APP_PATH="$(
+            find "$ARCHIVE_PATH/Products/Applications" \
+              -maxdepth 1 \
+              -type d \
+              -name "*.app" \
+              | head -n 1
+          )"
+
+          if [ -z "${ARCHIVED_APP_PATH:-}" ]; then
+            echo "No .app found in archive Products/Applications."
+            find "$ARCHIVE_PATH" -maxdepth 4 -print
+            exit 1
+          fi
+
+          echo "Found archived app:"
+          echo "$ARCHIVED_APP_PATH"
+
+          MACDEPLOYQT="$(command -v macdeployqt || true)"
+
+          if [ -z "${MACDEPLOYQT:-}" ]; then
+            echo "macdeployqt not found on PATH."
+            exit 1
+          fi
+
+          echo "Using macdeployqt at: $MACDEPLOYQT"
+
+          "$MACDEPLOYQT" "$ARCHIVED_APP_PATH" -verbose=2
 
           # --------------------------------------------------------
           # Export
@@ -744,6 +793,10 @@ jobs:
 
           echo "=== APP ==="
           echo "$APP_PATH"
+
+          echo
+          echo "=== FRAMEWORKS BUNDLED ==="
+          ls -la "$APP_PATH/Contents/Frameworks" 2>&1 || echo "No Frameworks directory found!"
 
           echo
           echo "=== CODE SIGNATURE ==="
