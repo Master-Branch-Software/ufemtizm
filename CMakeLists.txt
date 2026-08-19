@@ -57,7 +57,7 @@ elseif(APPLE)
     Ufemtizm
     PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Ufemtizm"
                OUTPUT_NAME "Ufemtizm"
-               MACOSX_BUNDLE_GUI_IDENTIFIER "com.ows.ufemtizm"
+               MACOSX_BUNDLE_GUI_IDENTIFIER "com.ufemtizm.app"
                MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
                MACOSX_BUNDLE_SHORT_VERSION_STRING
                "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"

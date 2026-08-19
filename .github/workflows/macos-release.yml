@@ -39,8 +39,8 @@ jobs:
       AQTINSTALL_SOURCE: "git+https://github.com/miurahr/aqtinstall.git@8c3695d4a4e1ceabf6a74dc6c79681656dc6b74b"
       MACOS_BUNDLE_IDENTIFIER: ${{ vars.MACOS_BUNDLE_IDENTIFIER }}
       APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
-      APPSTORE_ISSUER_ID: ${{ vars.APPSTORE_ISSUER_ID }}
-      APPSTORE_API_KEY_ID: ${{ vars.APPSTORE_API_KEY_ID }}
+      APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+      APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
       APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
       MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
       MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
