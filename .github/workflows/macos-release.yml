@@ -307,7 +307,6 @@ jobs:
             --git_url "$MATCH_GIT_URL"
             --app_identifier "$MACOS_BUNDLE_IDENTIFIER"
             --platform macos
-            --readonly true
             --verbose
           )
           if [ -n "${MATCH_GIT_BASIC_AUTHORIZATION:-}" ]; then
