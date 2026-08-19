@@ -31,8 +31,8 @@ jobs:
       RELEASE_BASE_BRANCH: ${{ github.event.repository.default_branch }}
       DISTRIBUTION_TYPE: ${{ inputs.distribution_type || vars.MACOS_DEFAULT_DISTRIBUTION || 'direct' }}
       ARTIFACT_PREFIX: ${{ vars.ARTIFACT_PREFIX }}
-      QT_VERSION: "6.11.0"
-      XCODE_VERSION: "26.3"
+      QT_VERSION: ${{ vars.QT_VERSION || '6.11.0' }}
+      XCODE_VERSION: ${{ vars.XCODE_VERSION || '26.3' }}
       MACOS_SCHEME: ${{ vars.MACOS_SCHEME }}
       MACOS_ARCHIVE_BASENAME: ${{ vars.MACOS_ARCHIVE_BASENAME }}
       MACOS_BUILD_DIR: "build/macos-release"

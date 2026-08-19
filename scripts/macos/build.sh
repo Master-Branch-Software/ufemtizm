@@ -68,14 +68,14 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 
-CONFIG=""
+CONFIG="${CONFIG:-Release}"
 CLEAN=false
 OPEN_APP=false
-SIGN_MODE="${SIGN_MODE:-}"
+SIGN_MODE="${SIGN_MODE:-direct}"
 DIST_MODE=""
-BUILD_DMG=false
+BUILD_DMG=true
 BUILD_PKG=false
-NOTARIZE=false
+NOTARIZE=true
 
 ENV_FILE="${ENV_FILE:-$PROJECT_DIR/.env.macos.local}"
 if [ -f "$ENV_FILE" ]; then
@@ -107,10 +107,10 @@ MAS_INSTALLER_SIGN_IDENTITY="${MAS_INSTALLER_SIGN_IDENTITY:-3rd Party Mac Develo
 MAS_PROVISIONING_PROFILE="${MAS_PROVISIONING_PROFILE:-}"
 MAS_ENTITLEMENTS="${MAS_ENTITLEMENTS:-}"
 
-NOTARY_APPLE_ID="${NOTARY_APPLE_ID:-}"
-NOTARY_TEAM_ID="${NOTARY_TEAM_ID:-${APPLE_TEAM_ID:-}}"
-NOTARY_PASSWORD="${NOTARY_PASSWORD:-}"
-NOTARY_KEYCHAIN_PROFILE="${NOTARY_KEYCHAIN_PROFILE:-}"
+# Notarization variables (App Store Connect API Key)
+NOTARY_KEY_BASE64="${NOTARY_KEY_BASE64:-}"
+NOTARY_KEY_ID="${NOTARY_KEY_ID:-}"
+NOTARY_ISSUER_ID="${NOTARY_ISSUER_ID:-}"
 
 usage() {
   cat <<'EOF'
@@ -311,19 +311,19 @@ notarize_artifact() {
     exit 1
   fi
 
-  local notary_args=(notarytool submit "$artifact_path" --wait)
-  if [ -n "${NOTARY_KEYCHAIN_PROFILE:-}" ]; then
-    notary_args+=(--keychain-profile "$NOTARY_KEYCHAIN_PROFILE")
-  else
-    if [ -z "${NOTARY_APPLE_ID:-}" ] || [ -z "${NOTARY_TEAM_ID:-}" ] || [ -z "${NOTARY_PASSWORD:-}" ]; then
-      echo "Missing notarization credentials."
-      echo "Set NOTARY_KEYCHAIN_PROFILE, or NOTARY_APPLE_ID + NOTARY_TEAM_ID + NOTARY_PASSWORD."
-      exit 1
-    fi
-    notary_args+=(--apple-id "$NOTARY_APPLE_ID" --team-id "$NOTARY_TEAM_ID" --password "$NOTARY_PASSWORD")
+  if [ -z "${NOTARY_KEY_BASE64:-}" ] || [ -z "${NOTARY_KEY_ID:-}" ] || [ -z "${NOTARY_ISSUER_ID:-}" ]; then
+    echo "Error: Missing NOTARY_KEY_BASE64, NOTARY_KEY_ID, or NOTARY_ISSUER_ID."
+    exit 1
   fi
 
-  xcrun "${notary_args[@]}"
+  echo "Submitting $artifact_path for notarization (Key ID: $NOTARY_KEY_ID)..."
+  xcrun notarytool submit "$artifact_path" \
+    --key <(echo "$NOTARY_KEY_BASE64" | base64 --decode) \
+    --key-id "$NOTARY_KEY_ID" \
+    --issuer "$NOTARY_ISSUER_ID" \
+    --wait
+
+  echo "Stapling ticket to $artifact_path..."
   xcrun stapler staple "$artifact_path"
 }
 
@@ -381,7 +381,7 @@ done
 
 CONFIG="${CONFIG:-Debug}"
 DIST_MODE="${DIST_MODE:-direct}"
-SIGN_MODE="${SIGN_MODE:-none}"
+SIGN_MODE="${SIGN_MODE:-direct}"
 MACOS_BUILD_DIR="${MACOS_BUILD_DIR:-$PROJECT_DIR/build/macos-local}"
 
 if [[ "$SIGN_MODE" != "none" && "$SIGN_MODE" != "direct" && "$SIGN_MODE" != "mas" ]]; then
@@ -485,6 +485,17 @@ echo ""
 echo ".app built at:"
 echo "  $APP_PATH"
 
+# Deploy Qt frameworks/plugins into the bundle (required for signed/notarized builds)
+MACDEPLOYQT="${QT_MACOS}/bin/macdeployqt"
+if [ -x "$MACDEPLOYQT" ]; then
+  echo "Running macdeployqt..."
+  "$MACDEPLOYQT" "$APP_PATH" -always-overwrite
+else
+  echo "ERROR: macdeployqt not found at $MACDEPLOYQT"
+  echo "Cannot produce a distributable .app without it."
+  exit 1
+fi
+
 if [ "$SIGN_MODE" = "direct" ]; then
   if [ -z "${APPLE_TEAM_ID:-}" ]; then
     echo "Missing APPLE_TEAM_ID for --sign."
@@ -505,12 +516,57 @@ elif [ "$SIGN_MODE" = "mas" ]; then
   sign_app_bundle "$APP_PATH" "$MAS_SIGN_IDENTITY" "$MAS_ENTITLEMENTS" "$MAS_PROVISIONING_PROFILE"
 fi
 
+# ---------------------------------------------------------------------------
+# Fancy DMG with vertically centered icons
+# ---------------------------------------------------------------------------
+build_dmg_fancy() {
+  local app_path="$1"
+  local open_dmg="${2:-false}"
+
+  local app_name
+  app_name="$(basename "$app_path")"
+  local dmg_name="${app_name%.app}.dmg"
+  local dmg_dir
+  dmg_dir="$(dirname "$app_path")"
+  local out_dmg="$dmg_dir/$dmg_name"
+
+  rm -f "$out_dmg"
+
+  echo "Building fancy .dmg (icons vertically centered)..."
+  create-dmg \
+    --volname "${app_name%.app}" \
+    --window-pos 200 120 \
+    --window-size 675 400 \
+    --icon-size 100 \
+    --icon "$app_name" 200 170 \
+    --hide-extension "$app_name" \
+    --app-drop-link 460 170 \
+    --no-internet-enable \
+    "$out_dmg" \
+    "$app_path"
+
+  if [ ! -f "$out_dmg" ]; then
+    echo "ERROR: DMG creation failed"
+    exit 1
+  fi
+
+  if [ "$SIGN_MODE" = "direct" ]; then
+    echo "Signing DMG with: $MACOS_SIGN_IDENTITY"
+    codesign --force --timestamp --sign "$MACOS_SIGN_IDENTITY" "$out_dmg"
+  fi
+
+  if [ "$open_dmg" = true ]; then
+    open "$out_dmg"
+  fi
+
+  printf '%s' "$out_dmg"
+}
+
 DMG_PATH=""
 if [ "$BUILD_DMG" = true ]; then
-  echo "Building .dmg..."
-  DMG_PATH="$(build_dmg "$APP_PATH")"
+  DMG_PATH="$(build_dmg_fancy "$APP_PATH" "$OPEN_APP")"
   echo ".dmg built at:"
-  echo "  $DMG_PATH"
+  echo " $DMG_PATH"
 fi
 
 PKG_PATH=""
@@ -552,3 +608,5 @@ if [ "$SIGN_MODE" = "none" ]; then
   echo "Note: signing is disabled."
   echo "Use --sign for Developer ID distribution or --sign-mas for Mac App Store."
 fi
+
+
