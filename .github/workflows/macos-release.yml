@@ -722,6 +722,42 @@ jobs:
                 exit 1
               fi
 
+              # --------------------------------------------------------
+              # Re-sign with hardened runtime explicitly.
+              #
+              # macdeployqt (and -exportArchive re-signing afterward) can
+              # leave the final executable without the hardened runtime
+              # flag even though `xcodebuild archive` originally applied
+              # it with ENABLE_HARDENED_RUNTIME=YES. Apple's notary
+              # service rejects submissions missing this flag ("The
+              # executable does not have the hardened runtime enabled.").
+              # This must be the LAST signing step applied to the .app
+              # before it is packed into the DMG and notarized.
+              # --------------------------------------------------------
+
+              echo "=== RE-SIGNING APP WITH HARDENED RUNTIME ==="
+
+              codesign \
+                --force \
+                --deep \
+                --strict \
+                --timestamp \
+                --options runtime \
+                --sign "$SIGN_IDENTITY" \
+                "$APP_EXPORTED"
+
+              echo
+              echo "=== VERIFY RE-SIGNED APP ==="
+
+              codesign \
+                --verify \
+                --deep \
+                --strict \
+                --verbose=4 \
+                "$APP_EXPORTED"
+
+              codesign -dvvv "$APP_EXPORTED" 2>&1
+
               DMG_BASE="$(basename "$APP_EXPORTED" .app)"
 
               DMG_STAGING="$EXPORT_PATH/dmg-staging"
