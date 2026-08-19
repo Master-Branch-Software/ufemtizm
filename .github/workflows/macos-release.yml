@@ -324,30 +324,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          QT_BASE="$HOME/Qt/${QT_VERSION}"
-          QT_HOST_PATH=""
-          for candidate in "$QT_BASE/macos" "$QT_BASE/clang_64"; do
-            if [ -d "$candidate" ]; then
-              QT_HOST_PATH="$candidate"
-              break
-            fi
-          done
+          # Use QT_DIR exported directly by jurplel/install-qt-action
+          QT_CMAKE="${QT_DIR}/bin/qt-cmake"
 
-          if [ -z "${QT_HOST_PATH:-}" ]; then
-            QT_HOST_CMAKE="$(find "$QT_BASE" -maxdepth 3 -type f -path "*/bin/qt-cmake" | sort | head -n 1)"
-            if [ -n "${QT_HOST_CMAKE:-}" ]; then
-              QT_HOST_PATH="$(dirname "$(dirname "$QT_HOST_CMAKE")")"
-            fi
-          fi
-
-          if [ -z "${QT_HOST_PATH:-}" ]; then
-            echo "Unable to find Qt host path under $QT_BASE."
-            exit 1
-          fi
-
-          QT_CMAKE="$QT_HOST_PATH/bin/qt-cmake"
           if [ ! -x "$QT_CMAKE" ]; then
-            echo "qt-cmake not found at $QT_CMAKE"
+            QT_CMAKE="$(find "$QT_DIR" -type f -name "qt-cmake" | head -n 1)"
+          fi
+
+          if [ -z "${QT_CMAKE:-}" ] || [ ! -x "$QT_CMAKE" ]; then
+            echo "qt-cmake not found in QT_DIR (${QT_DIR:-unset})"
             exit 1
           fi
 
@@ -360,8 +345,7 @@ jobs:
             -DMACOSX_BUNDLE_GUI_IDENTIFIER="$MACOS_BUNDLE_IDENTIFIER" \
             -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             -DAPP_BUILD_NUMBER="${MACOS_BUILD_NUMBER}" \
-            -DAPP_VERSION_STRING="${MACOS_VERSION_STRING#v}" \
-            "${extra_args[@]}"
+            -DAPP_VERSION_STRING="${MACOS_VERSION_STRING#v}"
 
       - name: Build archive and export
         id: build_artifact
