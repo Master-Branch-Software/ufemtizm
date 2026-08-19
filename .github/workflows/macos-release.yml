@@ -46,10 +46,9 @@ jobs:
       MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
       MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
       NOTARY_KEYCHAIN_PROFILE: "notary-profile"
-      # S3 — set these repo vars/secrets to enable direct-release uploads.
-      # Leave S3_BUCKET unset to skip the upload step entirely.
       S3_BUCKET: ${{ vars.S3_BUCKET }}
       AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -268,7 +267,7 @@ jobs:
             echo "match_type=developer_id" >> "$GITHUB_OUTPUT"
             echo "sign_identity=Developer ID Application" >> "$GITHUB_OUTPUT"
             echo "installer_identity=Developer ID Installer" >> "$GITHUB_OUTPUT"
-            echo "profile_specifier=match DeveloperID ${MACOS_BUNDLE_IDENTIFIER}" >> "$GITHUB_OUTPUT"
+            echo "profile_specifier=" >> "$GITHUB_OUTPUT"
             echo "export_method=developer-id" >> "$GITHUB_OUTPUT"
           fi
 
@@ -276,11 +275,6 @@ jobs:
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.MATCH_DEPLOY_KEY }}
-
-      - name: Sync macOS signing assets with Match (read-only)
-        run: |
-          set -euo pipefail
-          # ... rest of your existing step
 
       - name: Sync macOS signing assets with Match (read-only)
         run: |
@@ -309,6 +303,9 @@ jobs:
             --platform macos
             --verbose
           )
+          if [ "$DISTRIBUTION_TYPE" = "direct" ]; then
+            args+=(--skip_provisioning_profiles true)
+          fi
           if [ -n "${MATCH_GIT_BASIC_AUTHORIZATION:-}" ]; then
             args+=(--git_basic_authorization "$MATCH_GIT_BASIC_AUTHORIZATION")
           fi
@@ -326,15 +323,12 @@ jobs:
 
           QT_CMAKE=""
 
-          # 1. Check if qt-cmake is already in PATH
           if command -v qt-cmake >/dev/null 2>&1; then
             QT_CMAKE="$(command -v qt-cmake)"
-          # 2. Check QT_DIR or Qt6_DIR environment variables
           elif [ -n "${QT_DIR:-}" ] && [ -x "${QT_DIR}/bin/qt-cmake" ]; then
             QT_CMAKE="${QT_DIR}/bin/qt-cmake"
           elif [ -n "${Qt6_DIR:-}" ] && [ -x "${Qt6_DIR}/bin/qt-cmake" ]; then
             QT_CMAKE="${Qt6_DIR}/bin/qt-cmake"
-          # 3. Search the GitHub workspace and home directories
           else
             QT_CMAKE=$(find "${RUNNER_WORKSPACE:-$HOME}" "$HOME" -type f -name "qt-cmake" 2>/dev/null | head -n 1 || true)
           fi
@@ -356,7 +350,6 @@ jobs:
             -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             -DAPP_BUILD_NUMBER="$MACOS_BUILD_NUMBER" \
             -DAPP_VERSION_STRING="${MACOS_VERSION_STRING#v}"
-
 
       - name: Build archive and export
         id: build_artifact
@@ -380,7 +373,7 @@ jobs:
 
           {
             printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>'
-            printf '%s\n' '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+            printf '%s\n' '<!DOCTYPE plist PUBLIC "-//Apple//DOCTYPE PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
             printf '%s\n' '<plist version="1.0">'
             printf '%s\n' '<dict>'
             printf '%s\n' '  <key>method</key>'
@@ -389,32 +382,43 @@ jobs:
             printf '%s\n' '  <string>manual</string>'
             printf '%s\n' '  <key>teamID</key>'
             printf '%s\n' "  <string>${APPLE_TEAM_ID}</string>"
-            printf '%s\n' '  <key>provisioningProfiles</key>'
-            printf '%s\n' '  <dict>'
-            printf '%s\n' "    <key>${MACOS_BUNDLE_IDENTIFIER}</key>"
-            printf '%s\n' "    <string>${PROFILE_SPECIFIER}</string>"
-            printf '%s\n' '  </dict>'
+
+            if [ -n "${PROFILE_SPECIFIER:-}" ]; then
+              printf '%s\n' '  <key>provisioningProfiles</key>'
+              printf '%s\n' '  <dict>'
+              printf '%s\n' "    <key>${MACOS_BUNDLE_IDENTIFIER}</key>"
+              printf '%s\n' "    <string>${PROFILE_SPECIFIER}</string>"
+              printf '%s\n' '  </dict>'
+            fi
+
             if [ "$DISTRIBUTION_TYPE" = "appstore" ]; then
               printf '%s\n' '  <key>installerSigningCertificate</key>'
               printf '%s\n' "  <string>${INSTALLER_IDENTITY}</string>"
             fi
+
             printf '%s\n' '  <key>stripSwiftSymbols</key>'
             printf '%s\n' '  <true/>'
             printf '%s\n' '</dict>'
             printf '%s\n' '</plist>'
           } > "$EXPORT_OPTIONS_PATH"
 
-          xcodebuild archive \
-            -project "$XCODE_PROJECT" \
-            -scheme "${MACOS_SCHEME}" \
-            -configuration Release \
-            -destination "generic/platform=macOS" \
-            -archivePath "$ARCHIVE_PATH" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="$SIGN_IDENTITY" \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            PRODUCT_BUNDLE_IDENTIFIER="$MACOS_BUNDLE_IDENTIFIER" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_SPECIFIER"
+          XCODEBUILD_ARGS=(
+            -project "$XCODE_PROJECT"
+            -scheme "${MACOS_SCHEME}"
+            -configuration Release
+            -destination "generic/platform=macOS"
+            -archivePath "$ARCHIVE_PATH"
+            CODE_SIGN_STYLE=Manual
+            CODE_SIGN_IDENTITY="$SIGN_IDENTITY"
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
+            PRODUCT_BUNDLE_IDENTIFIER="$MACOS_BUNDLE_IDENTIFIER"
+          )
+
+          if [ -n "${PROFILE_SPECIFIER:-}" ]; then
+            XCODEBUILD_ARGS+=(PROVISIONING_PROFILE_SPECIFIER="$PROFILE_SPECIFIER")
+          fi
+
+          xcodebuild archive "${XCODEBUILD_ARGS[@]}"
 
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
