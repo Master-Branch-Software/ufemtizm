@@ -27,41 +27,63 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-rc')) }}
     runs-on: macos-15
     timeout-minutes: 120
+
     env:
       RELEASE_BASE_BRANCH: ${{ github.event.repository.default_branch }}
+
       DISTRIBUTION_TYPE: ${{ inputs.distribution_type || vars.MACOS_DEFAULT_DISTRIBUTION || 'direct' }}
+
       ARTIFACT_PREFIX: ${{ vars.ARTIFACT_PREFIX }}
+
       QT_VERSION: ${{ vars.QT_VERSION || '6.11.0' }}
       XCODE_VERSION: ${{ vars.XCODE_VERSION || '26.3' }}
+
       MACOS_SCHEME: ${{ vars.MACOS_SCHEME }}
       MACOS_ARCHIVE_BASENAME: ${{ vars.MACOS_ARCHIVE_BASENAME }}
       MACOS_BUILD_DIR: "build/macos-release"
+
       AQTINSTALL_SOURCE: "git+https://github.com/miurahr/aqtinstall.git@8c3695d4a4e1ceabf6a74dc6c79681656dc6b74b"
+
       MACOS_BUNDLE_IDENTIFIER: ${{ vars.MACOS_BUNDLE_IDENTIFIER }}
       APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+
       APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
       APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
       APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+
       MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
       MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
       MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+
       NOTARY_KEYCHAIN_PROFILE: "notary-profile"
+
       S3_BUCKET: ${{ vars.S3_BUCKET }}
       AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
 
     steps:
+      # ------------------------------------------------------------
+      # Checkout
+      # ------------------------------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
+      # ------------------------------------------------------------
+      # Validate configuration
+      # ------------------------------------------------------------
+
       - name: Validate distribution type
         run: |
           set -euo pipefail
+
           case "$DISTRIBUTION_TYPE" in
-            direct|appstore) ;;
+            direct|appstore)
+              ;;
             *)
-              echo "Invalid distribution_type: $DISTRIBUTION_TYPE (expected direct or appstore)."
+              echo "Invalid distribution_type: $DISTRIBUTION_TYPE"
+              echo "Expected: direct or appstore"
               exit 1
               ;;
           esac
@@ -70,19 +92,22 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$GITHUB_REF_NAME" != "$RELEASE_BASE_BRANCH" ]; then
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] \
+            && [ "$GITHUB_REF_NAME" != "$RELEASE_BASE_BRANCH" ]; then
             echo "Manual release runs must target ${RELEASE_BASE_BRANCH}."
             exit 1
           fi
 
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             if [[ "$GITHUB_REF_NAME" == *-rc* ]]; then
-              echo "macOS RC tags are not supported. Use release tags in vYYYY.MM.MINOR format."
+              echo "macOS RC tags are not supported."
+              echo "Use release tags in vYYYY.MM.MINOR format."
               exit 1
             fi
 
             if ! [[ "$GITHUB_REF_NAME" =~ ^v[0-9]{4}\.(0[1-9]|1[0-2])\.[0-9]+$ ]]; then
-              echo "Invalid release tag format: $GITHUB_REF_NAME (expected vYYYY.MM.MINOR)."
+              echo "Invalid release tag format: $GITHUB_REF_NAME"
+              echo "Expected: vYYYY.MM.MINOR"
               exit 1
             fi
           fi
@@ -91,15 +116,22 @@ jobs:
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: |
           set -euo pipefail
+
           git fetch --no-tags origin "$RELEASE_BASE_BRANCH"
+
           if ! git merge-base --is-ancestor "$GITHUB_SHA" "origin/$RELEASE_BASE_BRANCH"; then
             echo "Tag ${GITHUB_REF_NAME} does not point to a commit in ${RELEASE_BASE_BRANCH}."
             exit 1
           fi
 
+      # ------------------------------------------------------------
+      # Version
+      # ------------------------------------------------------------
+
       - name: Derive macOS version metadata
         run: |
           set -euo pipefail
+
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             VERSION_STRING="$GITHUB_REF_NAME"
           else
@@ -109,8 +141,10 @@ jobs:
           fi
 
           VERSION_CORE="${VERSION_STRING#v}"
+
           if ! [[ "$VERSION_CORE" =~ ^([0-9]{4})\.(0[1-9]|1[0-2])\.([0-9]+)$ ]]; then
-            echo "Unable to derive macOS version metadata from version string: $VERSION_STRING"
+            echo "Unable to derive macOS version metadata from:"
+            echo "$VERSION_STRING"
             exit 1
           fi
 
@@ -119,17 +153,34 @@ jobs:
           VERSION_MINOR="${BASH_REMATCH[3]}"
 
           BUILD_NUMBER="$((10#$VERSION_YEAR * 100000 + 10#$VERSION_MONTH * 1000 + 10#$VERSION_MINOR))"
+
           if [ "$BUILD_NUMBER" -gt 2147483647 ]; then
             echo "Derived macOS build number exceeds supported limit: $BUILD_NUMBER"
             exit 1
           fi
+
           echo "MACOS_VERSION_STRING=$VERSION_STRING" >> "$GITHUB_ENV"
           echo "MACOS_BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+
+          echo "macOS version: $VERSION_STRING"
+          echo "macOS build number: $BUILD_NUMBER"
+
+      # ------------------------------------------------------------
+      # Toolchain
+      # ------------------------------------------------------------
 
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Show Xcode version
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun --find xcodebuild
+          xcrun --find codesign
+          xcrun --find notarytool
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -144,13 +195,18 @@ jobs:
             local attempts="$1"
             local delay_seconds="$2"
             shift 2
+
             local attempt=1
+
             until "$@"; do
               if [ "$attempt" -ge "$attempts" ]; then
                 echo "Command failed after ${attempts} attempts: $*"
                 return 1
               fi
-              echo "Attempt ${attempt}/${attempts} failed. Retrying in ${delay_seconds}s..."
+
+              echo "Attempt ${attempt}/${attempts} failed."
+              echo "Retrying in ${delay_seconds}s..."
+
               attempt=$((attempt + 1))
               sleep "$delay_seconds"
             done
@@ -167,9 +223,14 @@ jobs:
           aqtsource: ${{ env.AQTINSTALL_SOURCE }}
           cache: true
 
+      # ------------------------------------------------------------
+      # Validate secrets/configuration
+      # ------------------------------------------------------------
+
       - name: Validate workflow configuration
         run: |
           set -euo pipefail
+
           required_values=(
             ARTIFACT_PREFIX
             MACOS_SCHEME
@@ -182,6 +243,7 @@ jobs:
             MATCH_GIT_URL
             MATCH_PASSWORD
           )
+
           for variable in "${required_values[@]}"; do
             if [ -z "${!variable:-}" ]; then
               echo "Missing required value: ${variable}"
@@ -190,73 +252,121 @@ jobs:
           done
 
           if ! [[ "$MACOS_BUNDLE_IDENTIFIER" =~ ^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$ ]]; then
-            echo "Invalid MACOS_BUNDLE_IDENTIFIER. Expected reverse-DNS format."
+            echo "Invalid MACOS_BUNDLE_IDENTIFIER."
+            echo "Expected reverse-DNS format."
             exit 1
           fi
 
           if ! [[ "$APPLE_TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]; then
-            echo "Invalid APPLE_TEAM_ID. Expected a 10-character alphanumeric team ID."
+            echo "Invalid APPLE_TEAM_ID."
+            echo "Expected a 10-character alphanumeric team ID."
             exit 1
           fi
 
           if ! [[ "$APPSTORE_API_KEY_ID" =~ ^[A-Z0-9]{10}$ ]]; then
-            echo "Invalid APPSTORE_API_KEY_ID. Expected a 10-character alphanumeric key ID."
+            echo "Invalid APPSTORE_API_KEY_ID."
+            echo "Expected a 10-character alphanumeric key ID."
             exit 1
           fi
 
           if ! [[ "$APPSTORE_ISSUER_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
-            echo "Invalid APPSTORE_ISSUER_ID. Expected UUID format."
+            echo "Invalid APPSTORE_ISSUER_ID."
+            echo "Expected UUID format."
             exit 1
           fi
 
           if [[ "$APPSTORE_API_PRIVATE_KEY" != *"BEGIN PRIVATE KEY"* ]]; then
-            echo "Invalid APPSTORE_API_PRIVATE_KEY. Expected .p8 private key content."
+            echo "Invalid APPSTORE_API_PRIVATE_KEY."
+            echo "Expected .p8 private key content."
             exit 1
           fi
 
           if ! [[ "$MATCH_GIT_URL" =~ ^(https://|http://|git@|ssh://).+ ]]; then
-            echo "Invalid MATCH_GIT_URL. Expected HTTPS, SSH, or git URL."
+            echo "Invalid MATCH_GIT_URL."
+            echo "Expected HTTPS, SSH, or git URL."
             exit 1
           fi
+
+      # ------------------------------------------------------------
+      # App Store Connect API key
+      # ------------------------------------------------------------
 
       - name: Create App Store Connect API key file
         run: |
           set -euo pipefail
+
           API_KEY_PATH="$RUNNER_TEMP/app_store_connect_api_key.json"
+
           API_KEY_PATH="$API_KEY_PATH" python3 - <<'PY'
           import json
           import os
           from pathlib import Path
 
           path = Path(os.environ["API_KEY_PATH"])
+
           payload = {
               "key_id": os.environ["APPSTORE_API_KEY_ID"],
               "issuer_id": os.environ["APPSTORE_ISSUER_ID"],
               "key": os.environ["APPSTORE_API_PRIVATE_KEY"],
               "in_house": False,
           }
-          path.write_text(json.dumps(payload), encoding="utf-8")
+
+          path.write_text(
+              json.dumps(payload),
+              encoding="utf-8",
+          )
+
+          os.chmod(path, 0o600)
           PY
+
           echo "APP_STORE_CONNECT_API_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
+
+      # ------------------------------------------------------------
+      # Keychain
+      # ------------------------------------------------------------
 
       - name: Create and unlock CI keychain
         run: |
           set -euo pipefail
+
           KEYCHAIN_NAME="ci-signing.keychain-db"
           KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_NAME"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+
+          security create-keychain \
+            -p "$KEYCHAIN_PASSWORD" \
+            "$KEYCHAIN_NAME"
+
+          security set-keychain-settings \
+            -lut 21600 \
+            "$KEYCHAIN_NAME"
+
+          security unlock-keychain \
+            -p "$KEYCHAIN_PASSWORD" \
+            "$KEYCHAIN_NAME"
+
           CURRENT_KEYCHAINS="$(security list-keychains -d user | tr -d '"')"
-          security list-keychains -d user -s "$KEYCHAIN_NAME" $CURRENT_KEYCHAINS
-          security default-keychain -d user -s "$KEYCHAIN_NAME"
+
+          security list-keychains \
+            -d user \
+            -s "$KEYCHAIN_NAME" \
+            $CURRENT_KEYCHAINS
+
+          security default-keychain \
+            -d user \
+            -s "$KEYCHAIN_NAME"
+
           echo "MATCH_KEYCHAIN_NAME=$KEYCHAIN_NAME" >> "$GITHUB_ENV"
           echo "MATCH_KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
+
+      # ------------------------------------------------------------
+      # Signing configuration
+      # ------------------------------------------------------------
 
       - name: Determine Match signing types
         id: match_types
         run: |
           set -euo pipefail
+
           if [ "$DISTRIBUTION_TYPE" = "appstore" ]; then
             echo "match_type=macappstore" >> "$GITHUB_OUTPUT"
             echo "sign_identity=Apple Distribution" >> "$GITHUB_OUTPUT"
@@ -284,17 +394,23 @@ jobs:
             local attempts="$1"
             local delay_seconds="$2"
             shift 2
+
             local attempt=1
+
             until "$@"; do
               if [ "$attempt" -ge "$attempts" ]; then
                 echo "Command failed after ${attempts} attempts: $*"
                 return 1
               fi
-              echo "Attempt ${attempt}/${attempts} failed. Retrying in ${delay_seconds}s..."
+
+              echo "Attempt ${attempt}/${attempts} failed."
+              echo "Retrying in ${delay_seconds}s..."
+
               attempt=$((attempt + 1))
               sleep "$delay_seconds"
             done
           }
+
           args=(
             ${{ steps.match_types.outputs.match_type }}
             --api_key_path "$APP_STORE_CONNECT_API_KEY_PATH"
@@ -303,19 +419,40 @@ jobs:
             --platform macos
             --verbose
           )
+
           if [ "$DISTRIBUTION_TYPE" = "direct" ]; then
             args+=(--skip_provisioning_profiles true)
           fi
+
           if [ -n "${MATCH_GIT_BASIC_AUTHORIZATION:-}" ]; then
-            args+=(--git_basic_authorization "$MATCH_GIT_BASIC_AUTHORIZATION")
+            args+=(
+              --git_basic_authorization
+              "$MATCH_GIT_BASIC_AUTHORIZATION"
+            )
           fi
+
           retry 3 20 fastlane match "${args[@]}"
 
       - name: Configure keychain access for codesign
         run: |
           set -euo pipefail
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MATCH_KEYCHAIN_PASSWORD" "$MATCH_KEYCHAIN_NAME"
-          security find-identity -v -p codesigning "$MATCH_KEYCHAIN_NAME"
+
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "$MATCH_KEYCHAIN_PASSWORD" \
+            "$MATCH_KEYCHAIN_NAME"
+
+          echo "=== Available code signing identities ==="
+
+          security find-identity \
+            -v \
+            -p codesigning \
+            "$MATCH_KEYCHAIN_NAME"
+
+      # ------------------------------------------------------------
+      # Configure CMake / Xcode
+      # ------------------------------------------------------------
 
       - name: Configure macOS project
         run: |
@@ -325,16 +462,28 @@ jobs:
 
           if command -v qt-cmake >/dev/null 2>&1; then
             QT_CMAKE="$(command -v qt-cmake)"
-          elif [ -n "${QT_DIR:-}" ] && [ -x "${QT_DIR}/bin/qt-cmake" ]; then
+
+          elif [ -n "${QT_DIR:-}" ] \
+            && [ -x "${QT_DIR}/bin/qt-cmake" ]; then
             QT_CMAKE="${QT_DIR}/bin/qt-cmake"
-          elif [ -n "${Qt6_DIR:-}" ] && [ -x "${Qt6_DIR}/bin/qt-cmake" ]; then
+
+          elif [ -n "${Qt6_DIR:-}" ] \
+            && [ -x "${Qt6_DIR}/bin/qt-cmake" ]; then
             QT_CMAKE="${Qt6_DIR}/bin/qt-cmake"
+
           else
-            QT_CMAKE=$(find "${RUNNER_WORKSPACE:-$HOME}" "$HOME" -type f -name "qt-cmake" 2>/dev/null | head -n 1 || true)
+            QT_CMAKE="$(
+              find "${RUNNER_WORKSPACE:-$HOME}" "$HOME" \
+                -type f \
+                -name "qt-cmake" \
+                2>/dev/null \
+                | head -n 1 \
+                || true
+            )"
           fi
 
           if [ -z "$QT_CMAKE" ] || [ ! -x "$QT_CMAKE" ]; then
-            echo "Error: qt-cmake executable not found in workspace."
+            echo "Error: qt-cmake executable not found."
             exit 1
           fi
 
@@ -348,8 +497,14 @@ jobs:
             -DCMAKE_SYSTEM_NAME=Darwin \
             -DMACOSX_BUNDLE_GUI_IDENTIFIER="$MACOS_BUNDLE_IDENTIFIER" \
             -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE=Manual \
+            -DCMAKE_XCODE_ATTRIBUTE_ENABLE_HARDENED_RUNTIME=YES \
             -DAPP_BUILD_NUMBER="$MACOS_BUILD_NUMBER" \
             -DAPP_VERSION_STRING="${MACOS_VERSION_STRING#v}"
+
+      # ------------------------------------------------------------
+      # Build archive and export
+      # ------------------------------------------------------------
 
       - name: Build archive and export
         id: build_artifact
@@ -361,46 +516,68 @@ jobs:
         run: |
           set -euo pipefail
 
-          XCODE_PROJECT="$(find "${MACOS_BUILD_DIR}" -maxdepth 1 -type d -name "*.xcodeproj" | head -n 1)"
+          XCODE_PROJECT="$(
+            find "${MACOS_BUILD_DIR}" \
+              -maxdepth 1 \
+              -type d \
+              -name "*.xcodeproj" \
+              | head -n 1
+          )"
+
           if [ -z "${XCODE_PROJECT:-}" ]; then
             echo "No generated .xcodeproj found in ${MACOS_BUILD_DIR}."
             exit 1
           fi
 
+          echo "Using Xcode project:"
+          echo "$XCODE_PROJECT"
+
           ARCHIVE_PATH="$RUNNER_TEMP/${MACOS_ARCHIVE_BASENAME}.xcarchive"
           EXPORT_PATH="$RUNNER_TEMP/${MACOS_ARCHIVE_BASENAME}-export"
           EXPORT_OPTIONS_PATH="$RUNNER_TEMP/ExportOptions.plist"
 
+          # --------------------------------------------------------
+          # ExportOptions.plist
+          # --------------------------------------------------------
+
           {
             printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>'
-            printf '%s\n' '<!DOCTYPE plist PUBLIC "-//Apple//DOCTYPE PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+            printf '%s\n' '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
             printf '%s\n' '<plist version="1.0">'
             printf '%s\n' '<dict>'
-            printf '%s\n' '  <key>method</key>'
-            printf '%s\n' "  <string>${EXPORT_METHOD}</string>"
-            printf '%s\n' '  <key>signingStyle</key>'
-            printf '%s\n' '  <string>manual</string>'
-            printf '%s\n' '  <key>teamID</key>'
-            printf '%s\n' "  <string>${APPLE_TEAM_ID}</string>"
+
+            printf '%s\n' ' <key>method</key>'
+            printf '%s\n' " <string>${EXPORT_METHOD}</string>"
+
+            printf '%s\n' ' <key>signingStyle</key>'
+            printf '%s\n' ' <string>manual</string>'
+
+            printf '%s\n' ' <key>teamID</key>'
+            printf '%s\n' " <string>${APPLE_TEAM_ID}</string>"
 
             if [ -n "${PROFILE_SPECIFIER:-}" ]; then
-              printf '%s\n' '  <key>provisioningProfiles</key>'
-              printf '%s\n' '  <dict>'
-              printf '%s\n' "    <key>${MACOS_BUNDLE_IDENTIFIER}</key>"
-              printf '%s\n' "    <string>${PROFILE_SPECIFIER}</string>"
-              printf '%s\n' '  </dict>'
+              printf '%s\n' ' <key>provisioningProfiles</key>'
+              printf '%s\n' ' <dict>'
+              printf '%s\n' " <key>${MACOS_BUNDLE_IDENTIFIER}</key>"
+              printf '%s\n' " <string>${PROFILE_SPECIFIER}</string>"
+              printf '%s\n' ' </dict>'
             fi
 
             if [ "$DISTRIBUTION_TYPE" = "appstore" ]; then
-              printf '%s\n' '  <key>installerSigningCertificate</key>'
-              printf '%s\n' "  <string>${INSTALLER_IDENTITY}</string>"
+              printf '%s\n' ' <key>installerSigningCertificate</key>'
+              printf '%s\n' " <string>${INSTALLER_IDENTITY}</string>"
             fi
 
-            printf '%s\n' '  <key>stripSwiftSymbols</key>'
-            printf '%s\n' '  <true/>'
+            printf '%s\n' ' <key>stripSwiftSymbols</key>'
+            printf '%s\n' ' <true/>'
+
             printf '%s\n' '</dict>'
             printf '%s\n' '</plist>'
           } > "$EXPORT_OPTIONS_PATH"
+
+          # --------------------------------------------------------
+          # Archive
+          # --------------------------------------------------------
 
           XCODEBUILD_ARGS=(
             -project "$XCODE_PROJECT"
@@ -408,45 +585,121 @@ jobs:
             -configuration Release
             -destination "generic/platform=macOS"
             -archivePath "$ARCHIVE_PATH"
+
             CODE_SIGN_STYLE=Manual
             CODE_SIGN_IDENTITY="$SIGN_IDENTITY"
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
             PRODUCT_BUNDLE_IDENTIFIER="$MACOS_BUNDLE_IDENTIFIER"
+
+            ENABLE_HARDENED_RUNTIME=YES
+
             SKIP_INSTALL=NO
             INSTALL_PATH=/Applications
           )
 
           if [ -n "${PROFILE_SPECIFIER:-}" ]; then
-            XCODEBUILD_ARGS+=(PROVISIONING_PROFILE_SPECIFIER="$PROFILE_SPECIFIER")
+            XCODEBUILD_ARGS+=(
+              PROVISIONING_PROFILE_SPECIFIER="$PROFILE_SPECIFIER"
+            )
           fi
 
-          xcodebuild archive "${XCODEBUILD_ARGS[@]}"
+          echo "=== XCODE BUILD SETTINGS ==="
+
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$MACOS_SCHEME" \
+            -configuration Release \
+            -showBuildSettings \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            ENABLE_HARDENED_RUNTIME=YES \
+            2>&1 \
+            | grep -E \
+              'CODE_SIGN|DEVELOPMENT_TEAM|ENABLE_HARDENED_RUNTIME|PRODUCT_BUNDLE_IDENTIFIER' \
+              || true
+
+          echo "=== XCODE ARCHIVE ==="
+
+          xcodebuild archive \
+            "${XCODEBUILD_ARGS[@]}"
+
+          # --------------------------------------------------------
+          # Export
+          # --------------------------------------------------------
+
+          echo "=== XCODE EXPORT ==="
 
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportPath "$EXPORT_PATH" \
             -exportOptionsPlist "$EXPORT_OPTIONS_PATH"
 
+          # --------------------------------------------------------
+          # Locate exported artifact
+          # --------------------------------------------------------
+
           if [ "$DISTRIBUTION_TYPE" = "appstore" ]; then
-            ARTIFACT_PATH="$(find "$EXPORT_PATH" -maxdepth 1 -type f -name "*.pkg" | head -n 1)"
+            ARTIFACT_PATH="$(
+              find "$EXPORT_PATH" \
+                -maxdepth 1 \
+                -type f \
+                -name "*.pkg" \
+                | head -n 1
+            )"
+
             ARTIFACT_KIND="pkg"
+
           else
-            ARTIFACT_PATH="$(find "$EXPORT_PATH" -maxdepth 1 -type f -name "*.dmg" | head -n 1)"
+            ARTIFACT_PATH="$(
+              find "$EXPORT_PATH" \
+                -maxdepth 1 \
+                -type f \
+                -name "*.dmg" \
+                | head -n 1
+            )"
+
             if [ -z "${ARTIFACT_PATH:-}" ]; then
-              APP_EXPORTED="$(find "$EXPORT_PATH" -maxdepth 2 -type d -name "*.app" | head -n 1)"
+
+              APP_EXPORTED="$(
+                find "$EXPORT_PATH" \
+                  -maxdepth 2 \
+                  -type d \
+                  -name "*.app" \
+                  | head -n 1
+              )"
+
               if [ -z "${APP_EXPORTED:-}" ]; then
                 echo "No exported .app or .dmg found."
                 exit 1
               fi
+
               DMG_BASE="$(basename "$APP_EXPORTED" .app)"
+
               DMG_STAGING="$EXPORT_PATH/dmg-staging"
+
               mkdir -p "$DMG_STAGING"
+
               cp -R "$APP_EXPORTED" "$DMG_STAGING/"
+
               ln -s /Applications "$DMG_STAGING/Applications"
+
               ARTIFACT_PATH="$EXPORT_PATH/${DMG_BASE}.dmg"
-              hdiutil create -volname "$DMG_BASE" -srcfolder "$DMG_STAGING" -ov -format UDZO "$ARTIFACT_PATH"
-              codesign --force --timestamp --sign "$SIGN_IDENTITY" "$ARTIFACT_PATH"
+
+              hdiutil create \
+                -volname "$DMG_BASE" \
+                -srcfolder "$DMG_STAGING" \
+                -ov \
+                -format UDZO \
+                "$ARTIFACT_PATH"
+
+              # Sign the final DMG.
+              codesign \
+                --force \
+                --timestamp \
+                --sign "$SIGN_IDENTITY" \
+                "$ARTIFACT_PATH"
             fi
+
             ARTIFACT_KIND="dmg"
           fi
 
@@ -455,63 +708,362 @@ jobs:
             exit 1
           fi
 
+          echo "Artifact:"
+          echo "$ARTIFACT_PATH"
+
+          echo "Artifact kind:"
+          echo "$ARTIFACT_KIND"
+
           echo "artifact_path=$ARTIFACT_PATH" >> "$GITHUB_OUTPUT"
           echo "artifact_kind=$ARTIFACT_KIND" >> "$GITHUB_OUTPUT"
+
+      # ------------------------------------------------------------
+      # Verify exported app before creating/notarizing DMG
+      # ------------------------------------------------------------
+
+      - name: Verify exported macOS application
+        if: ${{ env.DISTRIBUTION_TYPE == 'direct' }}
+        run: |
+          set -euo pipefail
+
+          EXPORT_PATH="$RUNNER_TEMP/${MACOS_ARCHIVE_BASENAME}-export"
+
+          APP_PATH="$(
+            find "$EXPORT_PATH" \
+              -maxdepth 2 \
+              -type d \
+              -name "*.app" \
+              | head -n 1
+          )"
+
+          if [ -z "${APP_PATH:-}" ]; then
+            echo "Could not find exported .app."
+            find "$EXPORT_PATH" -maxdepth 3 -print
+            exit 1
+          fi
+
+          echo "=== APP ==="
+          echo "$APP_PATH"
+
+          echo
+          echo "=== CODE SIGNATURE ==="
+          codesign -dvvv "$APP_PATH" 2>&1
+
+          echo
+          echo "=== ENTITLEMENTS ==="
+          codesign -d --entitlements :- "$APP_PATH" 2>&1 || true
+
+          echo
+          echo "=== DEEP SIGNATURE VERIFICATION ==="
+          codesign \
+            --verify \
+            --deep \
+            --strict \
+            --verbose=4 \
+            "$APP_PATH"
+
+          echo
+          echo "=== SPCTL ==="
+          spctl \
+            -a \
+            -t exec \
+            -vv \
+            "$APP_PATH" || true
+
+      # ------------------------------------------------------------
+      # Verify DMG before notarization
+      # ------------------------------------------------------------
+
+      - name: Verify DMG contents and signature
+        if: ${{ env.DISTRIBUTION_TYPE == 'direct' }}
+        run: |
+          set -euo pipefail
+
+          ARTIFACT_PATH="${{ steps.build_artifact.outputs.artifact_path }}"
+
+          echo "=== DMG ==="
+          echo "$ARTIFACT_PATH"
+
+          echo
+          echo "=== DMG SIGNATURE ==="
+
+          codesign \
+            -dvvv \
+            "$ARTIFACT_PATH" \
+            2>&1
+
+          echo
+          echo "=== DMG SIGNATURE VERIFICATION ==="
+
+          codesign \
+            --verify \
+            --verbose=4 \
+            "$ARTIFACT_PATH"
+
+          MOUNT_POINT="$RUNNER_TEMP/dmg-mount"
+
+          mkdir -p "$MOUNT_POINT"
+
+          cleanup_dmg() {
+            hdiutil detach "$MOUNT_POINT" >/dev/null 2>&1 || true
+          }
+
+          trap cleanup_dmg EXIT
+
+          echo
+          echo "=== MOUNT DMG ==="
+
+          hdiutil attach \
+            "$ARTIFACT_PATH" \
+            -nobrowse \
+            -readonly \
+            -mountpoint "$MOUNT_POINT"
+
+          APP_PATH="$(
+            find "$MOUNT_POINT" \
+              -maxdepth 2 \
+              -type d \
+              -name "*.app" \
+              | head -n 1
+          )"
+
+          if [ -z "${APP_PATH:-}" ]; then
+            echo "No .app found inside DMG."
+            find "$MOUNT_POINT" -maxdepth 3 -print
+            exit 1
+          fi
+
+          echo
+          echo "=== APP INSIDE DMG ==="
+          echo "$APP_PATH"
+
+          echo
+          echo "=== VERIFY APP INSIDE DMG ==="
+
+          codesign \
+            --verify \
+            --deep \
+            --strict \
+            --verbose=4 \
+            "$APP_PATH"
+
+          echo
+          echo "=== APP SIGNATURE ==="
+
+          codesign \
+            -dvvv \
+            "$APP_PATH" \
+            2>&1
+
+          echo
+          echo "=== APP ENTITLEMENTS ==="
+
+          codesign \
+            -d \
+            --entitlements :- \
+            "$APP_PATH" \
+            2>&1 || true
+
+          echo
+          echo "=== SPCTL ==="
+
+          spctl \
+            -a \
+            -t exec \
+            -vv \
+            "$APP_PATH" || true
+
+          echo
+          echo "=== DETACH DMG ==="
+
+          hdiutil detach "$MOUNT_POINT"
+
+          trap - EXIT
+
+      # ------------------------------------------------------------
+      # Notarization
+      # ------------------------------------------------------------
+
       - name: Notarize artifact
         if: ${{ env.DISTRIBUTION_TYPE == 'direct' }}
         run: |
           set -euo pipefail
 
           export P8_KEY_PATH="$RUNNER_TEMP/AuthKey_${APPSTORE_API_KEY_ID}.p8"
-          trap 'rm -f "$P8_KEY_PATH"' EXIT
 
-          python3 -c '
+          cleanup_notary_key() {
+            rm -f "$P8_KEY_PATH"
+          }
+
+          trap cleanup_notary_key EXIT
+
+          python3 - <<'PY'
           import os
-          key = os.environ.get("APPSTORE_API_PRIVATE_KEY", "").replace("\\n", "\n").strip()
-          with open(os.environ["P8_KEY_PATH"], "w") as f:
+
+          key = os.environ["APPSTORE_API_PRIVATE_KEY"]
+          key = key.replace("\\n", "\n").strip()
+
+          with open(os.environ["P8_KEY_PATH"], "w", encoding="utf-8") as f:
               f.write(key + "\n")
-          '
+
+          os.chmod(os.environ["P8_KEY_PATH"], 0o600)
+          PY
 
           ARTIFACT_PATH="${{ steps.build_artifact.outputs.artifact_path }}"
-          SUBMISSION_OUTPUT="$RUNNER_TEMP/notary_submit.log"
 
-          if ! xcrun notarytool submit "$ARTIFACT_PATH" \
+          SUBMISSION_OUTPUT="$RUNNER_TEMP/notary_submit.json"
+
+          echo "============================================================"
+          echo "Submitting artifact to Apple Notary Service"
+          echo "============================================================"
+
+          echo "Artifact:"
+          echo "$ARTIFACT_PATH"
+
+          # notarytool can return a terminal Invalid status.
+          # Do not allow set -e to hide Apple's detailed response.
+          set +e
+
+          xcrun notarytool submit \
+            "$ARTIFACT_PATH" \
             --key "$P8_KEY_PATH" \
             --key-id "$APPSTORE_API_KEY_ID" \
             --issuer "$APPSTORE_ISSUER_ID" \
-            --wait | tee "$SUBMISSION_OUTPUT"; then
+            --wait \
+            --output-format json \
+            > "$SUBMISSION_OUTPUT"
 
-            SUBMISSION_ID=$(grep -E '^\s*id:' "$SUBMISSION_OUTPUT" | head -n 1 | awk '{print $2}')
-            if [ -n "${SUBMISSION_ID:-}" ]; then
-              echo "=== APPLE NOTARIZATION ERROR LOG (${SUBMISSION_ID}) ==="
-              xcrun notarytool log "$SUBMISSION_ID" \
-                --key "$P8_KEY_PATH" \
-                --key-id "$APPSTORE_API_KEY_ID" \
-                --issuer "$APPSTORE_ISSUER_ID" || true
-            fi
+          SUBMIT_EXIT_CODE=$?
+
+          set -e
+
+          echo
+          echo "=== NOTARYTOOL SUBMISSION RESULT ==="
+
+          cat "$SUBMISSION_OUTPUT" || true
+
+          if [ ! -s "$SUBMISSION_OUTPUT" ]; then
+            echo "notarytool produced no output."
+            echo "Exit code: $SUBMIT_EXIT_CODE"
+            exit "${SUBMIT_EXIT_CODE:-1}"
+          fi
+
+          SUBMISSION_ID="$(
+            python3 - "$SUBMISSION_OUTPUT" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as f:
+              data = json.load(f)
+
+          print(data.get("id", ""))
+          PY
+          )"
+
+          STATUS="$(
+            python3 - "$SUBMISSION_OUTPUT" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as f:
+              data = json.load(f)
+
+          print(data.get("status", "Unknown"))
+          PY
+          )"
+
+          echo
+          echo "Submission ID: $SUBMISSION_ID"
+          echo "Status: $STATUS"
+          echo "Exit code: $SUBMIT_EXIT_CODE"
+
+          if [ -n "$SUBMISSION_ID" ]; then
+            echo
+            echo "============================================================"
+            echo "APPLE NOTARIZATION LOG"
+            echo "============================================================"
+
+            set +e
+
+            xcrun notarytool log \
+              "$SUBMISSION_ID" \
+              --key "$P8_KEY_PATH" \
+              --key-id "$APPSTORE_API_KEY_ID" \
+              --issuer "$APPSTORE_ISSUER_ID" \
+              --output-format json
+
+            LOG_EXIT_CODE=$?
+
+            set -e
+
+            echo
+            echo "Notary log exit code: $LOG_EXIT_CODE"
+          fi
+
+          if [ "$STATUS" != "Accepted" ]; then
+            echo
+            echo "============================================================"
+            echo "APPLE REJECTED THE NOTARIZATION"
+            echo "============================================================"
+            echo "Status: $STATUS"
+            echo
+            echo "The artifact will NOT be stapled."
             exit 1
           fi
 
-          xcrun stapler staple "$ARTIFACT_PATH"
+          echo
+          echo "============================================================"
+          echo "NOTARIZATION ACCEPTED"
+          echo "============================================================"
+
+          echo "Stapling notarization ticket..."
+
+          xcrun stapler staple \
+            "$ARTIFACT_PATH"
+
+          echo
+          echo "Validating stapled artifact..."
+
+          xcrun stapler validate \
+            "$ARTIFACT_PATH"
+
+          echo
+          echo "Stapling and validation successful."
+
+      # ------------------------------------------------------------
+      # Artifact suffix
+      # ------------------------------------------------------------
 
       - name: Derive artifact suffix
         id: artifact_suffix
         run: |
           set -euo pipefail
+
           SUFFIX="${GITHUB_REF_NAME:-manual-${GITHUB_RUN_ID}}"
+
           SUFFIX="${SUFFIX//\//-}"
           SUFFIX="${SUFFIX// /-}"
           SUFFIX="${SUFFIX//[^A-Za-z0-9._-]/-}"
+
           if [ -z "${SUFFIX:-}" ]; then
             SUFFIX="manual-${GITHUB_RUN_ID}"
           fi
+
           echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
+
+      # ------------------------------------------------------------
+      # GitHub artifact
+      # ------------------------------------------------------------
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_PREFIX }}-macos-${{ env.DISTRIBUTION_TYPE }}-${{ steps.build_artifact.outputs.artifact_kind }}-${{ steps.artifact_suffix.outputs.suffix }}
           path: ${{ steps.build_artifact.outputs.artifact_path }}
+
+      # ------------------------------------------------------------
+      # S3
+      # ------------------------------------------------------------
 
       - name: Upload DMG to S3
         if: ${{ env.DISTRIBUTION_TYPE == 'direct' && env.S3_BUCKET != '' }}
@@ -521,10 +1073,20 @@ jobs:
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
         run: |
           set -euo pipefail
+
           ARTIFACT_PATH="${{ steps.build_artifact.outputs.artifact_path }}"
           ARTIFACT_NAME="$(basename "$ARTIFACT_PATH")"
-          aws s3 cp "$ARTIFACT_PATH" "s3://${S3_BUCKET}/mac/releases/${ARTIFACT_NAME}"
-          echo "DMG: https://${S3_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/mac/releases/${ARTIFACT_NAME}"
+
+          aws s3 cp \
+            "$ARTIFACT_PATH" \
+            "s3://${S3_BUCKET}/mac/releases/${ARTIFACT_NAME}"
+
+          echo "DMG uploaded:"
+          echo "https://${S3_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/mac/releases/${ARTIFACT_NAME}"
+
+      # ------------------------------------------------------------
+      # App Store Connect
+      # ------------------------------------------------------------
 
       - name: Upload to App Store Connect
         if: ${{ env.DISTRIBUTION_TYPE == 'appstore' }}
@@ -535,22 +1097,28 @@ jobs:
             local attempts="$1"
             local delay_seconds="$2"
             shift 2
+
             local attempt=1
+
             until "$@"; do
               if [ "$attempt" -ge "$attempts" ]; then
                 echo "Command failed after ${attempts} attempts: $*"
                 return 1
               fi
-              echo "Attempt ${attempt}/${attempts} failed. Retrying in ${delay_seconds}s..."
+
+              echo "Attempt ${attempt}/${attempts} failed."
+              echo "Retrying in ${delay_seconds}s..."
+
               attempt=$((attempt + 1))
               sleep "$delay_seconds"
             done
           }
 
-          retry 3 20 fastlane pilot upload \
-            --ipa "${{ steps.build_artifact.outputs.artifact_path }}" \
-            --api_key_path "$APP_STORE_CONNECT_API_KEY_PATH" \
-            --app_identifier "$MACOS_BUNDLE_IDENTIFIER" \
-            --app_platform osx \
-            --skip_waiting_for_build_processing true \
-            --skip_submission true
+          retry 3 20 \
+            fastlane pilot upload \
+              --ipa "${{ steps.build_artifact.outputs.artifact_path }}" \
+              --api_key_path "$APP_STORE_CONNECT_API_KEY_PATH" \
+              --app_identifier "$MACOS_BUNDLE_IDENTIFIER" \
+              --app_platform osx \
+              --skip_waiting_for_build_processing true \
+              --skip_submission true
