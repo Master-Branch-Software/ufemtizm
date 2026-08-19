@@ -39,21 +39,41 @@ if(WIN32)
     copydialog.cpp
     resources.qrc)
 elseif(APPLE)
-  add_executable(
-    Ufemtizm MACOSX_BUNDLE
-    main.cpp
-    mainwindow.hpp
-    mainwindow.cpp
-    timezonewidget.hpp
-    timezonewidget.cpp
-    settingsdialog.hpp
-    settingsdialog.cpp
-    copydialog.hpp
-    copydialog.cpp
-    macos_helper.hpp
-    macos_helper.mm
-    resources.qrc
-    icon.icns)
+  # Build the source list first so icon.icns can be added conditionally.
+  # add_executable() would hard-fail at configure time if icon.icns were
+  # listed but missing from disk, so gate it the same way the old
+  # install()-based approach did.
+  set(_apple_sources
+      main.cpp
+      mainwindow.hpp
+      mainwindow.cpp
+      timezonewidget.hpp
+      timezonewidget.cpp
+      settingsdialog.hpp
+      settingsdialog.cpp
+      copydialog.hpp
+      copydialog.cpp
+      macos_helper.hpp
+      macos_helper.mm
+      resources.qrc)
+
+  set(_have_macos_icon FALSE)
+  if(EXISTS "${CMAKE_SOURCE_DIR}/icon.icns")
+    list(APPEND _apple_sources icon.icns)
+    set(_have_macos_icon TRUE)
+  endif()
+
+  add_executable(Ufemtizm MACOSX_BUNDLE ${_apple_sources})
+
+  if(_have_macos_icon)
+    # This is the piece that actually gets the file into
+    # Contents/Resources during `xcodebuild archive` / `xcodebuild build`
+    # (not just `cmake --install`). Without this source-file property,
+    # icon.icns just sits in the Xcode project unclassified and is never
+    # copied into the bundle, even though it's listed as a "source".
+    set_source_files_properties(
+      icon.icns PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+  endif()
 
   set_target_properties(
     Ufemtizm
@@ -65,6 +85,14 @@ elseif(APPLE)
                "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
                MACOSX_BUNDLE_INFO_STRING "${CONF_DESCRIPTION}"
                MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/Info.plist.in")
+
+  # This is a plain configure-time string (CFBundleIconFile), not a
+  # build-time condition, so a straight if/else is clearer than a
+  # generator expression here.
+  if(_have_macos_icon)
+    set_target_properties(Ufemtizm PROPERTIES MACOSX_BUNDLE_ICON_FILE
+                                              "icon.icns")
+  endif()
 else()
   add_executable(
     Ufemtizm
@@ -118,10 +146,12 @@ if(UNIX AND NOT APPLE)
     RENAME ufemtizm.svg
     COMPONENT ${COMPONENT_NAME_MAIN})
 elseif(APPLE)
+  # icon.icns is now embedded into the bundle directly via the
+  # MACOSX_PACKAGE_LOCATION source property set above, which is what
+  # `xcodebuild archive`/`xcodebuild build` actually respects. This
+  # install() rule is kept only for the `cmake --install` / CPack path,
+  # if that's ever used for macOS separately from the Xcode CI build.
   if(EXISTS "${CMAKE_SOURCE_DIR}/icon.icns")
-    set_target_properties(Ufemtizm PROPERTIES MACOSX_BUNDLE_ICON_FILE
-                                              "icon.icns")
-
     install(
       FILES ${CMAKE_SOURCE_DIR}/icon.icns
       DESTINATION Ufemtizm.app/Contents/Resources
