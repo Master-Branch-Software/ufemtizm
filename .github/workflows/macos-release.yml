@@ -412,6 +412,8 @@ jobs:
             CODE_SIGN_IDENTITY="$SIGN_IDENTITY"
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
             PRODUCT_BUNDLE_IDENTIFIER="$MACOS_BUNDLE_IDENTIFIER"
+            SKIP_INSTALL=NO
+            INSTALL_PATH=/Applications
           )
 
           if [ -n "${PROFILE_SPECIFIER:-}" ]; then
