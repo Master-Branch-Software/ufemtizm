@@ -52,7 +52,9 @@ elseif(APPLE)
     copydialog.cpp
     macos_helper.hpp
     macos_helper.mm
-    resources.qrc)
+    resources.qrc
+    icon.icns)
+
   set_target_properties(
     Ufemtizm
     PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Ufemtizm"
