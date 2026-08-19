@@ -320,7 +320,7 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MATCH_KEYCHAIN_PASSWORD" "$MATCH_KEYCHAIN_NAME"
           security find-identity -v -p codesigning "$MATCH_KEYCHAIN_NAME"
 
-        - name: Configure macOS project
+      - name: Configure macOS project
         run: |
           set -euo pipefail
 
@@ -356,6 +356,7 @@ jobs:
             -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             -DAPP_BUILD_NUMBER="$MACOS_BUILD_NUMBER" \
             -DAPP_VERSION_STRING="${MACOS_VERSION_STRING#v}"
+
 
       - name: Build archive and export
         id: build_artifact
