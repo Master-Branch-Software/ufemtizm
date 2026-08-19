@@ -307,7 +307,6 @@ jobs:
             --git_url "$MATCH_GIT_URL"
             --app_identifier "$MACOS_BUNDLE_IDENTIFIER"
             --platform macos
-            --additional_cert_types mac_installer_distribution
             --readonly true
             --verbose
           )
