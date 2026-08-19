@@ -464,7 +464,13 @@ jobs:
           set -euo pipefail
 
           P8_KEY_PATH="$RUNNER_TEMP/AuthKey_${APPSTORE_API_KEY_ID}.p8"
-          printf '%s\n' "$APPSTORE_API_PRIVATE_KEY" > "$P8_KEY_PATH"
+
+          python3 -c '
+          import os
+          key = os.environ.get("APPSTORE_API_PRIVATE_KEY", "").replace("\\n", "\n").strip()
+          with open(os.environ["P8_KEY_PATH"], "w") as f:
+              f.write(key + "\n")
+          '
 
           ARTIFACT_PATH="${{ steps.build_artifact.outputs.artifact_path }}"
 
